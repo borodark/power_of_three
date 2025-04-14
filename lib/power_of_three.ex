@@ -1,12 +1,4 @@
 defmodule PowerOfThree do
-  @moduledoc
-  """
-  TODO expose
-  cube
-  measure
-  dimension
-  """
-
   @doc false
   defmacro __using__(_) do
     quote do
@@ -52,7 +44,6 @@ defmodule PowerOfThree do
 end
 
 defmodule PowerOfThree.Cube do
-  @moduledoc
   """
   https://cube.dev/docs/reference/data-model/cube
   Top of Cube object with following:
@@ -79,7 +70,6 @@ defmodule PowerOfThree.Cube do
 end
 
 defmodule PowerOfThree.Dimension do
-  @moduledoc
   """
   https://cube.dev/docs/reference/data-model/dimensions
   A Dimension of Cube object with following:
@@ -100,7 +90,6 @@ defmodule PowerOfThree.Dimension do
 end
 
 defmodule PowerOfThree.Measure do
-  @moduledoc
   """
   https://cube.dev/docs/reference/data-model/measures
   A Dimension of Cube object with following:
