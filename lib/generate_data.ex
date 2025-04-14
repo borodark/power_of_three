@@ -20,9 +20,9 @@ defmodule GenerateData do
 
   require Logger
 
-  @default_size 5461 # Repo.insert_all() has limitation on 32K parameters markers,
+  # Repo.insert_all() has limitation on 32K parameters markers,
+  @default_size 5461
   # hence for Customer it's 5461 = 32K/number_of_columns_in_insert
-
 
   @impl Mix.Task
   @callback run(command_line_args :: [integer()]) :: any()
