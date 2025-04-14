@@ -57,27 +57,28 @@ defmodule Example.Order do
   ]
 
   schema "order" do
-    field :delivery_subtotal_amount, :integer, default: 0
-    field :discount_total_amount, :integer, default: 0
-    field :email, :string
-    field :financial_status, Ecto.Enum, values: @financial_status, default: :pending
-    field :fulfillment_status, Ecto.Enum, values: @fulfillment_status, default: :unfulfilled
-    field :gift_message, :string, virtual: true, default: nil
-    field :has_giftwrap?, :boolean, virtual: true, default: false
-    field :payment_reference, :string
-    field :subtotal_amount, :integer, default: 0
-    field :tax_amount, :integer, default: 0
-    field :total_amount, :integer, default: 0
+    field(:delivery_subtotal_amount, :integer, default: 0)
+    field(:discount_total_amount, :integer, default: 0)
+    field(:email, :string)
+    field(:financial_status, Ecto.Enum, values: @financial_status, default: :pending)
+    field(:fulfillment_status, Ecto.Enum, values: @fulfillment_status, default: :unfulfilled)
+    field(:gift_message, :string, virtual: true, default: nil)
+    field(:has_giftwrap?, :boolean, virtual: true, default: false)
+    field(:payment_reference, :string)
+    field(:subtotal_amount, :integer, default: 0)
+    field(:tax_amount, :integer, default: 0)
+    field(:total_amount, :integer, default: 0)
 
-    has_one :billing_address, Address, where: [kind: :billing], on_replace: :delete
-    has_one :shipping_address, Address, where: [kind: :shipping], on_replace: :delete
+    has_one(:billing_address, Address, where: [kind: :billing], on_replace: :delete)
+    has_one(:shipping_address, Address, where: [kind: :shipping], on_replace: :delete)
 
-    belongs_to :customer, Customer,
+    belongs_to(:customer, Customer,
       foreign_key: :customer_id,
       references: :id
+    )
 
-    field :brand_code, :string
-    field :market_code, :string
+    field(:brand_code, :string)
+    field(:market_code, :string)
 
     timestamps()
   end

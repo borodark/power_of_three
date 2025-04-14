@@ -77,6 +77,7 @@ defmodule GenerateData do
   def a_customer do
     email = to_string(:rand.uniform(999_999_999_999_999_999)) <> "@estee.com"
     fake_bd = Faker.Date.between(~D[1932-01-01], ~D[2005-12-31])
+
     %{
       birthday_day: fake_bd.day,
       birthday_month: fake_bd.month,

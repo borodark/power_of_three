@@ -7,11 +7,11 @@ defmodule Example.Application do
 
   @impl true
 
-    def start(_type, _args) do
-      children = [
-        Example.Repo,
-      ]
+  def start(_type, _args) do
+    children = [
+      Example.Repo
+    ]
 
-      Supervisor.start_link(children, strategy: :one_for_one, name: Example.Supervisor)
+    Supervisor.start_link(children, strategy: :one_for_one, name: Example.Supervisor)
   end
 end
