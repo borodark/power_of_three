@@ -20,7 +20,9 @@ defmodule GenerateData do
 
   require Logger
 
-  @default_size 5461
+  @default_size 5461 # Repo.insert_all() has limitation on 32K parameters markers,
+  # hence for Customer it's 5461 = 32K/number_of_columns_in_insert
+
 
   @impl Mix.Task
   @callback run(command_line_args :: [integer()]) :: any()
@@ -75,17 +77,16 @@ defmodule GenerateData do
   end
 
   def a_customer do
-    email = to_string(:rand.uniform(999_999_999_999_999_999)) <> "@estee.com"
     fake_bd = Faker.Date.between(~D[1932-01-01], ~D[2005-12-31])
 
     %{
       birthday_day: fake_bd.day,
       birthday_month: fake_bd.month,
-      brand_code: "TF",
-      email: email,
+      brand_code: Faker.Beer.brand(),
+      email: Faker.Internet.email(),
       first_name: Faker.Person.first_name(),
       last_name: Faker.Person.last_name(),
-      market_code: "US"
+      market_code: Faker.Address.country_code()
     }
   end
 end

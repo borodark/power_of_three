@@ -32,7 +32,7 @@ defmodule Example.Customer do
   # to derive/read during Macro expansion
   #  - cube default table
   #   - field names and types to feed to dimensions/measures generation
-  cube "of_customers", of: "customer" do
+  cube :of_customers, of: :customer do
     # cubes_dimension_name, for what field column name and type 
     dimension(:first_names,
       # for which Ecto table field?
