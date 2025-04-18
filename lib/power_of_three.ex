@@ -2,7 +2,7 @@ defmodule PowerOfThree do
   @moduledoc """
   generate cube.dev config files for cubes defined inline with Ecto.Schema
   """
-  @doc false
+
   defmacro __using__(_) do
     quote do
       import PowerOfThree, only: [cube: 3, dimension: 2, measure: 2]
@@ -137,21 +137,34 @@ defmodule PowerOfThree.Measure do
   A Measure of Cube object with following:
   """
 
-  @properties [
-    :name,
-    :description,
-    :drill_members,
-    :filters,
-    :format,
-    :meta,
-    :rolling_window,
-    :public,
-    :sql,
-    :title,
-    :type
-  ]
+  @type t() :: %__MODULE__{
+          name: String.t() | nil,
+          description: String.t() | nil,
+          drill_members: list(),
+          filters: list(),
+          format: atom() | nil,
+          meta: String.t() | nil,
+          rolling_window: atom() | nil,
+          public: boolean(),
+          sql: String.t() | nil,
+          title: String.t() | nil,
+          type: atom()
+        }
 
-  @measure_types [
+  defstruct name: nil,
+            description: nil,
+            drill_members: [],
+            filters: [],
+            format: nil,
+            meta: "X is Cubifed",
+            rolling_window: nil,
+            public: true,
+            sql: nil,
+            title: nil,
+            type: :count
+
+  @types [
+    # string can be used as categorical if :sql converts a numerical value to
     :string,
     :time,
     :boolean,
@@ -165,5 +178,9 @@ defmodule PowerOfThree.Measure do
     :max
   ]
 
-  @measure_formats [:percent, :currency]
+  @formats [:percent, :currency]
+
+  # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
+
+  @rolling_window [:trailing, :leading]
 end
