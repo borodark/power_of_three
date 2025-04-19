@@ -11,14 +11,15 @@ defmodule PowerOfThree do
       Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
       Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
       Module.put_attribute(__MODULE__, :cube_enabled, true)
-    end  end
-
-  defmacro cube(cube_name, [of: what_ecto_schema], do: block) do
-    cube(__CALLER__,cube_name, what_ecto_schema, block)
+    end
   end
 
-  defp cube(caller,cube_name,what_ecto_schema, block) do
-  prelude =
+  defmacro cube(cube_name, [of: what_ecto_schema], do: block) do
+    cube(__CALLER__, cube_name, what_ecto_schema, block)
+  end
+
+  defp cube(caller, cube_name, what_ecto_schema, block) do
+    prelude =
       quote do
         if line = Module.get_attribute(__MODULE__, :cube_defined) do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
@@ -38,7 +39,6 @@ defmodule PowerOfThree do
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         what_ecto_schema = unquote(what_ecto_schema) |> IO.inspect(label: :what_ecto_schema)
         cube_meta = @cube_meta
-        cube_meta |> IO.inspect(label: cube_meta)
 
         try do
           import PowerOfThree
@@ -63,6 +63,7 @@ defmodule PowerOfThree do
       unquote(postlude)
     end
   end
+
   @doc """
   Uses `:inserted_at` as default time dimension
   defmacro cube(__CALLER__,cube_name, what_ecto_schema, block)
@@ -71,26 +72,29 @@ defmodule PowerOfThree do
   """
   defmacro time_dimensions(cube_date_time_fields \\ []) do
     quote bind_quoted: binding() do
-      PowerOfThree.__define_time_dimensions___(__MODULE__, cube_date_time_fields)
+      # TODO process users time dimensions: loop
+      cube_date_time_fields
+      |> Enum.map(fn date_field ->
+        PowerOfThree.__define_time_dimension___(__MODULE__, date_field)
+      end)
     end
   end
 
   @doc false
-  def __define_time_dimensions__(mod, _list_of_dimensions_of_datetime_type) do
-    # TODO process users time dimensions
-    __dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
-    :ok
+  def __define_time_dimension__(mod, _list_of_dimensions_of_datetime_type) do
+    PowerOfThree.__dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
   end
 
   defmacro dimension(dimension_name, for: a_field) do
-    IO.inspect(__CALLER__)
-    IO.inspect(dimension_name)
-    IO.inspect(a_field)
+    quote bind_quoted: binding() do
+      # TODO process users time dimensions: loop
+      PowerOfThree.__define_dimension__(__MODULE__, cube_date_time_fields)
+    end
   end
 
   defmacro dimension(dimension_name, for: fields_list, sql: native_sql_using_fields_list) do
     IO.inspect(__CALLER__)
-    dimension_name |> IO.inspect(label: :dimension_name)
+    # dimension_name |> IO.inspect(label: :dimension_name)
     IO.inspect(fields_list)
     IO.inspect(native_sql_using_fields_list)
     # schema(__CALLER__, source, true, :id, block)
@@ -166,7 +170,7 @@ defmodule PowerOfThree.Dimension do
   @dimension_types [:string, :time, :number, :boolean, :geo]
   @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
   def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
-    [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
+    [mod, name, valid_type, opts]
   end
 end
 

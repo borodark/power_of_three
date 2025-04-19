@@ -31,7 +31,6 @@ defmodule Example.Customer do
   @cube_meta [tag: :mine]
 
   cube :of_customers, of: "customer" do
-
     time_dimensions()
     # cubes_dimension_name, for what field column name and type
     # dimension(:first_names,
