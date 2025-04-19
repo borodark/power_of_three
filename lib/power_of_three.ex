@@ -84,29 +84,28 @@ defmodule PowerOfThree do
     PowerOfThree.__dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
   end
 
-  defmacro dimension(dimension_name, for: an_ecto_schema_field) do
+  defmacro dimension(dimension_name, for: ecto_schema_field) do
     # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
-      dimension_name |> IO.inspect(label: :dimension_name)
-      an_ecto_schema_field |> IO.inspect(label: :an_ecto_schema_field)
       # TODO derive type knowing ecto_schema_field name
-      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
+      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
+        ecto_schema_field: ecto_schema_field
+      )
     end
   end
 
   defmacro dimension(dimension_name,
              for: list_of_ecto_schema_fields,
-             sql: native_sql_using_fields_list
-           ) do
+             sql: native_sql_using_list_of_ecto_schema_fields
+           )
+           when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
       # TODO use an_ecto_schema_field to derive data type of ecto field
       # TODO use the `list_of_ecto_schema_fields` to validate `native_sql_using_fields_list`
-
-      # PowerOfThree.__dimension__(__MODULE__, dimension_name, )
-      dimension_name|>IO.inspect(label: :dimension_name)
-      IO.inspect(native_sql_using_fields_list)
-      IO.inspect(list_of_ecto_schema_fields)
-      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
+      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
+        sql: native_sql_using_list_of_ecto_schema_fields,
+        ecto_schema_fields: list_of_ecto_schema_fields
+      )
     end
   end
 
@@ -180,7 +179,7 @@ defmodule PowerOfThree.Dimension do
   @dimension_types [:string, :time, :number, :boolean, :geo]
   @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
   def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
-    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect
+    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
     [mod, name, valid_type, opts]
   end
 end
