@@ -101,7 +101,9 @@ defmodule PowerOfThree do
     quote bind_quoted: binding() do
       # TODO use an_ecto_schema_field to derive data type of ecto field
       # TODO use the `list_of_ecto_schema_fields` to validate `native_sql_using_fields_list`
+
       # PowerOfThree.__dimension__(__MODULE__, dimension_name, )
+      dimension_name|>IO.inspect(label: :dimension_name)
       IO.inspect(native_sql_using_fields_list)
       IO.inspect(list_of_ecto_schema_fields)
       PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
@@ -120,9 +122,9 @@ defmodule PowerOfThree do
   end
 
   @doc false
-  def __dimension__(module, dimension_name, dimension_type, opts \\ []) do
+  def __dimension__(module, dimension_name, :string, opts \\ []) do
     # TODO some implement defence!
-    PowerOfThree.Dimension.define_dimension(module, dimension_name, dimension_type, opts)
+    PowerOfThree.Dimension.define_dimension(module, dimension_name, :string, opts)
   end
 end
 
@@ -178,6 +180,7 @@ defmodule PowerOfThree.Dimension do
   @dimension_types [:string, :time, :number, :boolean, :geo]
   @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
   def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
+    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect
     [mod, name, valid_type, opts]
   end
 end
