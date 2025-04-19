@@ -121,7 +121,14 @@ defmodule PowerOfThree do
   end
 
   @doc false
-  def __dimension__(module, dimension_name, :string, opts \\ []) do
+  def __dimension__(module, time_dimension_name, type, opts \\ [])
+
+  def __dimension__(module, time_dimension_name, :time, opts) do
+    # TODO add to time_dimensions[]?
+    PowerOfThree.Dimension.define_dimension(module, time_dimension_name, :time, opts)
+  end
+
+  def __dimension__(module, dimension_name, :string, opts) do
     # TODO some implement defence!
     PowerOfThree.Dimension.define_dimension(module, dimension_name, :string, opts)
   end
@@ -180,7 +187,7 @@ defmodule PowerOfThree.Dimension do
   @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
   def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
     "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
-    [mod, name, valid_type, opts]
+    [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
   end
 end
 
