@@ -5,25 +5,81 @@ defmodule PowerOfThree do
 
   defmacro __using__(_) do
     quote do
-      import PowerOfThree, only: [cube: 3, dimension: 2, measure: 2]
-
-      Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
-      Module.register_attribute(__MODULE__, :cube_measures, accumulate: true)
-      Module.register_attribute(__MODULE__, :cube_dimensions, accumulate: true)
-      Module.register_attribute(__MODULE__, :cube_time_dimensions, accumulate: true)
+      import PowerOfThree, only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+      Module.register_attribute(__MODULE__, :primary_keys, accumulate: true)
+      Module.register_attribute(__MODULE__, :measures, accumulate: true)
+      Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
+      Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
       Module.put_attribute(__MODULE__, :cube_enabled, true)
+    end  end
+
+  defmacro cube(cube_name, [of: what_ecto_schema], do: block) do
+    cube(__CALLER__,cube_name, what_ecto_schema, block)
+  end
+
+  defp cube(caller,cube_name,what_ecto_schema, block) do
+  prelude =
+      quote do
+        if line = Module.get_attribute(__MODULE__, :cube_defined) do
+          raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
+        end
+
+        @cube_defined unquote(caller.line)
+
+        @after_compile PowerOfThree
+
+        # TODO add these to __meta__ functions for reflection
+        Module.register_attribute(__MODULE__, :primary_keys, accumulate: true)
+        Module.register_attribute(__MODULE__, :measures, accumulate: true)
+        Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :datetime_dimensions, accumulate: true)
+        Module.put_attribute(__MODULE__, :cube_enabled, true)
+
+        cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
+        what_ecto_schema = unquote(what_ecto_schema) |> IO.inspect(label: :what_ecto_schema)
+        cube_meta = @cube_meta
+        cube_meta |> IO.inspect(label: cube_meta)
+
+        try do
+          import PowerOfThree
+          unquote(block)
+        after
+          :ok
+        end
+      end
+
+    postlude =
+      quote unquote: false do
+        primary_keys = @primary_keys |> Enum.reverse()
+        measures = @measures |> Enum.reverse()
+        dimensions = @dimensions |> Enum.reverse()
+        datetime_dimensions = @datetime_dimensions |> Enum.reverse()
+
+        :ok
+      end
+
+    quote do
+      unquote(prelude)
+      unquote(postlude)
+    end
+  end
+  @doc """
+  Uses `:inserted_at` as default time dimension
+  defmacro cube(__CALLER__,cube_name, what_ecto_schema, block)
+
+  defp cube(caller,cube_name,what_ecto_schema, block) do
+  """
+  defmacro time_dimensions(cube_date_time_fields \\ []) do
+    quote bind_quoted: binding() do
+      PowerOfThree.__define_time_dimensions___(__MODULE__, cube_date_time_fields)
     end
   end
 
-  defmacro cube(cube_name, [of: what_ecto_schema], do: block) do
-    IO.inspect(cube_name)
-    IO.inspect(what_ecto_schema)
-    IO.inspect(block)
-
-    quote do
-      Module.put_attribute(__MODULE__, :cube_name, unquote(cube_name))
-      Module.put_attribute(__MODULE__, :cube_table, unquote(what_ecto_schema))
-    end
+  @doc false
+  def __define_time_dimensions__(mod, _list_of_dimensions_of_datetime_type) do
+    # TODO process users time dimensions
+    __dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
+    :ok
   end
 
   defmacro dimension(dimension_name, for: a_field) do
@@ -49,23 +105,6 @@ defmodule PowerOfThree do
     IO.inspect(a_field)
     IO.inspect(measure_type)
     # schema(__CALLER__, source, true, :id, block)
-  end
-
-  @doc """
-  Uses `:inserted_at` as default time dimension
-  """
-  defmacro time_dimensions(fields_of_datetime_type \\ [:inserted_at]) do
-    quote bind_quoted: binding() do
-      __define_time_dimensions__(__MODULE__, fields_of_datetime_type)
-    end
-  end
-
-  @doc false
-  def __define_time_dimensions__(mod, time_dimensions \\ [:inserted_at]) do
-    IO.inspect(time_dimensions)
-    # TODO implement other then default
-    __dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
-    :ok
   end
 
   @doc false
