@@ -27,7 +27,7 @@ defmodule PowerOfThree do
 
         @cube_defined unquote(caller.line)
 
-        @after_compile PowerOfThree
+        # @after_compile PowerOfThree
 
         # TODO add these to __meta__ functions for reflection
         Module.register_attribute(__MODULE__, :primary_keys, accumulate: true)
@@ -38,7 +38,6 @@ defmodule PowerOfThree do
 
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         what_ecto_schema = unquote(what_ecto_schema) |> IO.inspect(label: :what_ecto_schema)
-        cube_meta = @cube_meta
 
         try do
           import PowerOfThree
@@ -88,17 +87,24 @@ defmodule PowerOfThree do
   defmacro dimension(dimension_name, for: an_ecto_schema_field) do
     # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
+      dimension_name |> IO.inspect(label: :dimension_name)
+      an_ecto_schema_field |> IO.inspect(label: :an_ecto_schema_field)
+      # TODO derive type knowing ecto_schema_field name
       PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
     end
   end
 
-  defmacro dimension(dimension_name, for: list_of_ecto_schema_fields, sql: native_sql_using_fields_list) do
+  defmacro dimension(dimension_name,
+             for: list_of_ecto_schema_fields,
+             sql: native_sql_using_fields_list
+           ) do
     quote bind_quoted: binding() do
-      # TODO process users time dimensions: loop
-      IO.inspect(__CALLER__)
-      IO.inspect(__MODULE__)
-
-      #PowerOfThree.__dimension__(__MODULE__,an_ecto_schema_field, dimension_name)
+      # TODO use an_ecto_schema_field to derive data type of ecto field
+      # TODO use the `list_of_ecto_schema_fields` to validate `native_sql_using_fields_list`
+      # PowerOfThree.__dimension__(__MODULE__, dimension_name, )
+      IO.inspect(native_sql_using_fields_list)
+      IO.inspect(list_of_ecto_schema_fields)
+      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
     end
   end
 
@@ -114,9 +120,9 @@ defmodule PowerOfThree do
   end
 
   @doc false
-  def __dimension__(module, dimension_name, type, opts \\ []) do
-    # TODO implement defence!
-    PowerOfThree.Dimension.define_dimension(mod, name, type, opts)
+  def __dimension__(module, dimension_name, dimension_type, opts \\ []) do
+    # TODO some implement defence!
+    PowerOfThree.Dimension.define_dimension(module, dimension_name, dimension_type, opts)
   end
 end
 

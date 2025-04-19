@@ -28,7 +28,6 @@ defmodule Example.Customer do
   # to derive/read during Macro expansion
   #  - cube default table
   #   - field names and types to feed to dimensions/measures generation
-  @cube_meta [tag: :mine]
 
   cube :of_customers, of: :customer do
     time_dimensions()
@@ -37,18 +36,18 @@ defmodule Example.Customer do
       for: :first_name
     )
 
-    # dimension(:zodiac,
-    #  for: [:birthday_day, :birthday_month],
-    #  sql: "CASE ... statement for calculating zodiac sign from two of the above in the list"
-    # )
+    dimension(:zodiac,
+      for: [:birthday_day, :birthday_month],
+      sql: "CASE ... statement for calculating zodiac sign from two of the above in the list"
+    )
 
-    # dimension(:brand,
-    #  for: :brand_code
-    # )
+    dimension(:brand,
+      for: :brand_code
+    )
 
-    # dimension(:market,
-    #  for: :market_code
-    # )
+    dimension(:market,
+      for: :market_code
+    )
 
     # measure(:number_of_customers,
     #  for: :email,
