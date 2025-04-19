@@ -30,13 +30,12 @@ defmodule Example.Customer do
   #   - field names and types to feed to dimensions/measures generation
   @cube_meta [tag: :mine]
 
-  cube :of_customers, of: "customer" do
+  cube :of_customers, of: :customer do
     time_dimensions()
     # cubes_dimension_name, for what field column name and type
-    # dimension(:first_names,
-    # for which Ecto table field?
-    #  for: :first_name
-    # )
+    dimension(:names,
+      for: :first_name
+    )
 
     # dimension(:zodiac,
     #  for: [:birthday_day, :birthday_month],

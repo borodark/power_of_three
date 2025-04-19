@@ -85,19 +85,21 @@ defmodule PowerOfThree do
     PowerOfThree.__dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
   end
 
-  defmacro dimension(dimension_name, for: a_field) do
+  defmacro dimension(dimension_name, for: an_ecto_schema_field) do
+    # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
-      # TODO process users time dimensions: loop
-      PowerOfThree.__define_dimension__(__MODULE__, cube_date_time_fields)
+      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string)
     end
   end
 
-  defmacro dimension(dimension_name, for: fields_list, sql: native_sql_using_fields_list) do
-    IO.inspect(__CALLER__)
-    # dimension_name |> IO.inspect(label: :dimension_name)
-    IO.inspect(fields_list)
-    IO.inspect(native_sql_using_fields_list)
-    # schema(__CALLER__, source, true, :id, block)
+  defmacro dimension(dimension_name, for: list_of_ecto_schema_fields, sql: native_sql_using_fields_list) do
+    quote bind_quoted: binding() do
+      # TODO process users time dimensions: loop
+      IO.inspect(__CALLER__)
+      IO.inspect(__MODULE__)
+
+      #PowerOfThree.__dimension__(__MODULE__,an_ecto_schema_field, dimension_name)
+    end
   end
 
   defmacro measure(measure_name,
@@ -112,7 +114,7 @@ defmodule PowerOfThree do
   end
 
   @doc false
-  def __dimension__(mod, name, type, opts) do
+  def __dimension__(module, dimension_name, type, opts \\ []) do
     # TODO implement defence!
     PowerOfThree.Dimension.define_dimension(mod, name, type, opts)
   end
