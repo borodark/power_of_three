@@ -107,7 +107,7 @@ defmodule PowerOfThree do
 
   defmacro dimension(dimension_name,
              # TODO
-             description: _description,
+             description: description,
              for: composit_key_fields,
              cube_primary_key: true
            ) do
@@ -127,6 +127,7 @@ defmodule PowerOfThree do
           Module.put_attribute(__MODULE__, :cube_primary_keys, composit_key_fields)
 
           PowerOfThree.__dimension__(__MODULE__, dimension_name,
+            description: description,
             for: composit_key_fields,
             cube_primary_key: true
           )
@@ -154,16 +155,15 @@ defmodule PowerOfThree do
                   "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
-          # TODO
           Module.put_attribute(
             __MODULE__,
             :dimensions,
             {dimension_name, native_sql_return_type, description}
           )
-
+          # TODO push description here too
           PowerOfThree.__dimension__(__MODULE__, dimension_name, native_sql_return_type,
-            for: list_of_ecto_schema_fields,
-            sql: native_sql_using_list_of_ecto_schema_fields
+            sql: native_sql_using_list_of_ecto_schema_fields,
+            ecto_fields: list_of_ecto_schema_fields
           )
       end
     end
@@ -171,6 +171,7 @@ defmodule PowerOfThree do
 
   @doc false
   def __dimension__(module, dimension_name,
+        description: _description,
         for: list_of_fields_of_composite_key,
         cube_primary_key: true
       ) do

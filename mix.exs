@@ -32,17 +32,13 @@ defmodule PowerOfThree.MixProject do
       {:blacksmith, "~> 0.1"},
       {:postgrex, ">= 0.0.0"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false}
     ]
   end
 
   defp aliases do
     [
-      setup: ["deps.get", "deps.compile", "compile"]
+      setup: ["clean", "deps.get", "deps.compile", "compile"]
     ]
   end
 end
