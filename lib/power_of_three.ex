@@ -30,7 +30,7 @@ defmodule PowerOfThree do
         # @after_compile PowerOfThree
 
         # TODO add these to __meta__ functions for reflection
-        Module.register_attribute(__MODULE__, :primary_keys, accumulate: true)
+        Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
         Module.register_attribute(__MODULE__, :measures, accumulate: true)
         Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
         Module.register_attribute(__MODULE__, :datetime_dimensions, accumulate: true)
@@ -49,10 +49,14 @@ defmodule PowerOfThree do
 
     postlude =
       quote unquote: false do
-        cube_primary_keys = @cube_primary_keys |> Enum.reverse()
-        measures = @measures |> Enum.reverse()
-        dimensions = @dimensions |> Enum.reverse()
-        datetime_dimensions = @datetime_dimensions |> Enum.reverse()
+        cube_primary_keys =
+          @cube_primary_keys |> Enum.reverse() |> IO.inspect(label: :cube_primary_keys)
+
+        measures = @measures |> Enum.reverse() |> IO.inspect(label: :measures)
+        dimensions = @dimensions |> Enum.reverse() |> IO.inspect(label: :dimensions)
+
+        datetime_dimensions =
+          @datetime_dimensions |> Enum.reverse() |> IO.inspect(label: :datetime_dimensions)
 
         :ok
       end
@@ -72,7 +76,7 @@ defmodule PowerOfThree do
   defmacro time_dimensions(cube_date_time_fields \\ []) do
     quote bind_quoted: binding() do
       # TODO process users time dimensions: loop
-      Module.put_attribute(__MODULE__, :time_dimensions, {:inserted_at, :time})
+      Module.put_attribute(__MODULE__, :datetime_dimensions, {:inserted_at, :time})
 
       PowerOfThree.__dimension__(__MODULE__, :inserted_at, :time,
         description: " Default to inserted_at"
@@ -80,7 +84,7 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, for: ecto_schema_field) do
+  defmacro dimension(dimension_name, description: description, for: ecto_schema_field) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
@@ -88,7 +92,12 @@ defmodule PowerOfThree do
                 "Cube Dimension wants field #{inspect(ecto_schema_field)}, but Ecto schema has only these: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
-          Module.put_attribute(__MODULE__, :dimensions, {dimension_name, ecto_field_type}) # TODO or?
+          Module.put_attribute(
+            __MODULE__,
+            :dimensions,
+            {dimension_name, ecto_field_type, description}
+          )
+
           PowerOfThree.__dimension__(__MODULE__, dimension_name, ecto_field_type,
             ecto_field: ecto_schema_field
           )
@@ -96,7 +105,12 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, for: composit_key_fields, cube_primary_key: true) do
+  defmacro dimension(dimension_name,
+             # TODO
+             description: _description,
+             for: composit_key_fields,
+             cube_primary_key: true
+           ) do
     quote bind_quoted: binding() do
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
@@ -110,7 +124,8 @@ defmodule PowerOfThree do
                   "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
-          Module.put_attribute(__MODULE__, :cube_primary_keys, {dimension_name, composit_key_fields}) # TODO or?
+          Module.put_attribute(__MODULE__, :cube_primary_keys, composit_key_fields)
+
           PowerOfThree.__dimension__(__MODULE__, dimension_name,
             for: composit_key_fields,
             cube_primary_key: true
@@ -120,14 +135,13 @@ defmodule PowerOfThree do
   end
 
   defmacro dimension(dimension_name,
+             description: description,
              type: native_sql_return_type,
              for: list_of_ecto_schema_fields,
              sql: native_sql_using_list_of_ecto_schema_fields
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
-      # TODO use an_ecto_schema_field to derive data type of ecto field
-      # TODO use the `list_of_ecto_schema_fields` to validate `native_sql_using_fields_list`
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
             ecto_field in list_of_ecto_schema_fields,
@@ -136,11 +150,17 @@ defmodule PowerOfThree do
       case list_of_ecto_schema_fields |> Enum.sort() == intersection |> Enum.sort() do
         false ->
           raise ArgumentError,
-                # TODO pull out calls?
                 "Cube Dimensions are `for:` *existing* ecto schema field!\n" <>
                   "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
+          # TODO
+          Module.put_attribute(
+            __MODULE__,
+            :dimensions,
+            {dimension_name, native_sql_return_type, description}
+          )
+
           PowerOfThree.__dimension__(__MODULE__, dimension_name, native_sql_return_type,
             for: list_of_ecto_schema_fields,
             sql: native_sql_using_list_of_ecto_schema_fields

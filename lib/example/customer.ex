@@ -31,6 +31,7 @@ defmodule Example.Customer do
 
   cube :of_customers, of: :customer do
     dimension(:email_per_brand_per_market,
+      description: "MANDATORI",
       for: [:brand_code, :market_code, :email],
       cube_primary_key: true
     )
@@ -38,10 +39,12 @@ defmodule Example.Customer do
     time_dimensions()
 
     dimension(:names,
+      description: "MANDATORI",
       for: :first_name
     )
 
     dimension(:zodiac,
+      description: "Gyroscops",
       type: :string,
       for: [:birthday_day, :birthday_month],
       sql: "'WASSERMAN'"
@@ -49,6 +52,7 @@ defmodule Example.Customer do
     )
 
     dimension(:bm_code,
+      description: " brand_code+_+market_code, like TF_AU",
       type: :string,
       for: [:brand_code, :market_code],
       sql: "brand_code|| '_' || market_code"
@@ -56,15 +60,23 @@ defmodule Example.Customer do
     )
 
     dimension(:brand,
+      description: " brand_code, like TF",
       for: :brand_code
     )
 
     dimension(:market,
+      description: "market_code, like AU",
       for: :market_code
     )
 
-    # measure(:number_of_customers,
+    # measure(:number_of_emails,
+    #  description: "count of emails, int perhaps",
     #  for: :email,
+    #  type: :count
+    # )
+    # measure(:number_of_customers,
+    #  description: "count of emails, int perhaps",
+    #  for:  [:brand_code, :market_code, :email]
     #  type: :count
     # )
   end
