@@ -87,13 +87,33 @@ defmodule PowerOfThree do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
           raise ArgumentError,
-                # TODO pull out calls?
-                "Dimensions are `for:` existing ecto schema field!\n" <>
-                  "The ecto field name in the defeniotion is  #{inspect(ecto_schema_field)} , Ecto schema has no field of this name declared: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+                "Cube Dimension wants field #{inspect(ecto_schema_field)}, but Ecto schema has only these: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
           PowerOfThree.__dimension__(__MODULE__, dimension_name, ecto_field_type,
             ecto_field: ecto_schema_field
+          )
+      end
+    end
+  end
+
+  defmacro dimension(dimension_name, for: composit_key_fields, cube_primary_key: true) do
+    quote bind_quoted: binding() do
+      intersection =
+        for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
+            ecto_field in composit_key_fields,
+            do: ecto_field
+
+      case composit_key_fields |> Enum.sort() == intersection |> Enum.sort() do
+        false ->
+          raise ArgumentError,
+                "Cube Primary Key Dimension wants all of: #{inspect(composit_key_fields)}\n" <>
+                  "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        true ->
+          PowerOfThree.__dimension__(__MODULE__, dimension_name,
+            for: composit_key_fields,
+            cube_primary_key: true
           )
       end
     end
@@ -117,7 +137,7 @@ defmodule PowerOfThree do
         false ->
           raise ArgumentError,
                 # TODO pull out calls?
-                "Dimensions are `for:` existing ecto schema field!\n" <>
+                "Cube Dimensions are `for:` *existing* ecto schema field!\n" <>
                   "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
@@ -129,27 +149,23 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro measure(measure_name,
-             for: a_field,
-             type: measure_type
-           ) do
-    IO.inspect(__CALLER__)
-    IO.inspect(measure_name)
-    IO.inspect(a_field)
-    IO.inspect(measure_type)
-    # schema(__CALLER__, source, true, :id, block)
+  @doc false
+  def __dimension__(module, dimension_name,
+        for: list_of_fields_of_composite_key,
+        cube_primary_key: true
+      ) do
+    PowerOfThree.Dimension.define_dimension(module, dimension_name,
+      cube_primary_keys: list_of_fields_of_composite_key
+    )
   end
 
-  @doc false
   def __dimension__(module, time_dimension_name, type, opts \\ [])
 
   def __dimension__(module, time_dimension_name, :time, opts) do
-    # TODO add to time_dimensions[]?
     PowerOfThree.Dimension.define_dimension(module, time_dimension_name, :time, opts)
   end
 
   def __dimension__(module, dimension_name, :string, opts) do
-    # TODO some implement defence!
     PowerOfThree.Dimension.define_dimension(module, dimension_name, :string, opts)
   end
 
@@ -157,7 +173,6 @@ defmodule PowerOfThree do
         sql: native_sql_using_list_of_ecto_schema_fields,
         ecto_fields: list_of_ecto_schema_fields
       ) do
-    # TODO some implement defence!
     PowerOfThree.Dimension.define_dimension(module, dimension_name, native_sql_return_type,
       sql: native_sql_using_list_of_ecto_schema_fields,
       ecto_fields: list_of_ecto_schema_fields
@@ -216,9 +231,15 @@ defmodule PowerOfThree.Dimension do
   ]
   @dimension_types [:string, :time, :number, :boolean, :geo]
   @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
+
   def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
     "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
     [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
+  end
+
+  def define_dimension(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
+    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
+    [mod, name, list_of_fields_of_composite_key] |> Enum.map(&IO.inspect/1)
   end
 end
 

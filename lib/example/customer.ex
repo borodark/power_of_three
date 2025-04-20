@@ -30,8 +30,13 @@ defmodule Example.Customer do
   #   - field names and types to feed to dimensions/measures generation
 
   cube :of_customers, of: :customer do
+    dimension(:email_per_brand_per_market,
+      for: [:brand, :market_code, :email],
+      cube_primary_key: true
+    )
+
     time_dimensions()
-    # cubes_dimension_name, for what field column name and type
+
     dimension(:names,
       for: :first_name
     )
@@ -39,13 +44,14 @@ defmodule Example.Customer do
     dimension(:zodiac,
       type: :string,
       for: [:birthday_day, :birthday_month],
-      sql: "CASE ... statement for calculating zodiac sign from two of the above in the list"
+      sql: "'WASSERMAN'"
+      # hardcoded for now but"CASE ... statement for calculating zodiac sign from two of the above in the list"
     )
 
     dimension(:bm_code,
       type: :string,
       for: [:brand_code, :market_code],
-      sql: "brand_code|| '_' || market_code
+      sql: "brand_code|| '_' || market_code"
       ## TODO danger lurking here"
     )
 
