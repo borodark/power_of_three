@@ -88,7 +88,7 @@ defmodule PowerOfThree do
         false ->
           raise ArgumentError,
                 # TODO pull out calls?
-                "Dimensions can only created for existing ecto schema field!\n" <>
+                "Dimensions are `for:` existing ecto schema field!\n" <>
                   "The ecto field name in the defeniotion is  #{inspect(ecto_schema_field)} , Ecto schema has no field of this name declared: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
@@ -117,7 +117,7 @@ defmodule PowerOfThree do
         false ->
           raise ArgumentError,
                 # TODO pull out calls?
-                "Dimensions can only created for existing ecto schema field!\n" <>
+                "Dimensions are `for:` existing ecto schema field!\n" <>
                   "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->

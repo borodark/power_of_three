@@ -42,12 +42,15 @@ defmodule Example.Customer do
       sql: "CASE ... statement for calculating zodiac sign from two of the above in the list"
     )
 
-    dimension(:brand,
-      for: :brand_code
+    dimension(:bm_code,
+      type: :string,
+      for: [:brand_code, :market_code],
+      sql: "brand_code|| '_' || market_code
+      ## TODO danger lurking here"
     )
 
-    dimension(:brandt,
-      for: :brand
+    dimension(:brand,
+      for: :brand_code
     )
 
     dimension(:market,
