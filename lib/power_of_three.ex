@@ -92,16 +92,15 @@ defmodule PowerOfThree do
                   "The ecto field name in the defeniotion is  #{inspect(ecto_schema_field)} , Ecto schema has no field of this name declared: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
-          {ecto_field_type, ecto_field_option} |> IO.inspect()
+          PowerOfThree.__dimension__(__MODULE__, dimension_name, ecto_field_type,
+            ecto_field: ecto_schema_field
+          )
       end
-
-      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
-        ecto_schema_field: ecto_schema_field
-      )
     end
   end
 
   defmacro dimension(dimension_name,
+             type: native_sql_return_type,
              for: list_of_ecto_schema_fields,
              sql: native_sql_using_list_of_ecto_schema_fields
            )
@@ -109,10 +108,24 @@ defmodule PowerOfThree do
     quote bind_quoted: binding() do
       # TODO use an_ecto_schema_field to derive data type of ecto field
       # TODO use the `list_of_ecto_schema_fields` to validate `native_sql_using_fields_list`
-      PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
-        sql: native_sql_using_list_of_ecto_schema_fields,
-        ecto_schema_fields: list_of_ecto_schema_fields
-      )
+      intersection =
+        for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
+            ecto_field in list_of_ecto_schema_fields,
+            do: ecto_field
+
+      case list_of_ecto_schema_fields |> Enum.sort() == intersection |> Enum.sort() do
+        false ->
+          raise ArgumentError,
+                # TODO pull out calls?
+                "Dimensions can only created for existing ecto schema field!\n" <>
+                  "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        true ->
+          PowerOfThree.__dimension__(__MODULE__, dimension_name, native_sql_return_type,
+            for: list_of_ecto_schema_fields,
+            sql: native_sql_using_list_of_ecto_schema_fields
+          )
+      end
     end
   end
 
@@ -138,6 +151,17 @@ defmodule PowerOfThree do
   def __dimension__(module, dimension_name, :string, opts) do
     # TODO some implement defence!
     PowerOfThree.Dimension.define_dimension(module, dimension_name, :string, opts)
+  end
+
+  def __dimension__(module, dimension_name, native_sql_return_type,
+        sql: native_sql_using_list_of_ecto_schema_fields,
+        ecto_fields: list_of_ecto_schema_fields
+      ) do
+    # TODO some implement defence!
+    PowerOfThree.Dimension.define_dimension(module, dimension_name, native_sql_return_type,
+      sql: native_sql_using_list_of_ecto_schema_fields,
+      ecto_fields: list_of_ecto_schema_fields
+    )
   end
 end
 

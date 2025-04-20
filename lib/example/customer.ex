@@ -37,6 +37,7 @@ defmodule Example.Customer do
     )
 
     dimension(:zodiac,
+      type: :string,
       for: [:birthday_day, :birthday_month],
       sql: "CASE ... statement for calculating zodiac sign from two of the above in the list"
     )
