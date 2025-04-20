@@ -81,15 +81,14 @@ defmodule PowerOfThree do
   end
 
   defmacro dimension(dimension_name, for: ecto_schema_field) do
-    # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
-      # TODO derive type knowing ecto_schema_field name
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
           raise ArgumentError,
                 "Cube Dimension wants field #{inspect(ecto_schema_field)}, but Ecto schema has only these: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
+          Module.put_attribute(__MODULE__, :dimensions, {dimension_name, ecto_field_type}) # TODO or?
           PowerOfThree.__dimension__(__MODULE__, dimension_name, ecto_field_type,
             ecto_field: ecto_schema_field
           )
@@ -111,6 +110,7 @@ defmodule PowerOfThree do
                   "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
+          Module.put_attribute(__MODULE__, :cube_primary_keys, {dimension_name, composit_key_fields}) # TODO or?
           PowerOfThree.__dimension__(__MODULE__, dimension_name,
             for: composit_key_fields,
             cube_primary_key: true

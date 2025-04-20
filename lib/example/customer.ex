@@ -31,7 +31,7 @@ defmodule Example.Customer do
 
   cube :of_customers, of: :customer do
     dimension(:email_per_brand_per_market,
-      for: [:brand, :market_code, :email],
+      for: [:brand_code, :market_code, :email],
       cube_primary_key: true
     )
 
