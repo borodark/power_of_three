@@ -6,7 +6,7 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree, only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
-      Module.register_attribute(__MODULE__, :primary_keys, accumulate: true)
+      Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
       Module.register_attribute(__MODULE__, :measures, accumulate: true)
       Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
       Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
@@ -84,10 +84,14 @@ defmodule PowerOfThree do
     # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
       # TODO derive type knowing ecto_schema_field name
-      if Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
-        raise ArgumentError,
-              "Dimensions can only created for existing ecto schema field!\n" <>
-                "Dimensions `for:` is  #{inspect(ecto_schema_field)} , Ecto schema has this fields declared: \n #{inspect(Module.get_attribute(__MODULE__, :ecto_fields))}"
+      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
+        false ->
+          raise ArgumentError,
+                "Dimensions can only created for existing ecto schema field!\n" <>
+                  "Dimensions `for:` is  #{inspect(ecto_schema_field)} , Ecto schema has this fields declared: \n #{inspect(Module.get_attribute(__MODULE__, :ecto_fields))}"
+
+        {ecto_field_type, ecto_field_option} ->
+          {ecto_field_type, ecto_field_option} |> IO.inspect()
       end
 
       PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
