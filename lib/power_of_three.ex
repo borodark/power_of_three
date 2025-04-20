@@ -49,7 +49,7 @@ defmodule PowerOfThree do
 
     postlude =
       quote unquote: false do
-        primary_keys = @primary_keys |> Enum.reverse()
+        cube_primary_keys = @cube_primary_keys |> Enum.reverse()
         measures = @measures |> Enum.reverse()
         dimensions = @dimensions |> Enum.reverse()
         datetime_dimensions = @datetime_dimensions |> Enum.reverse()
@@ -72,22 +72,24 @@ defmodule PowerOfThree do
   defmacro time_dimensions(cube_date_time_fields \\ []) do
     quote bind_quoted: binding() do
       # TODO process users time dimensions: loop
-      cube_date_time_fields
-      |> Enum.map(fn date_field ->
-        PowerOfThree.__define_time_dimension___(__MODULE__, date_field)
-      end)
-    end
-  end
+      Module.put_attribute(__MODULE__, :time_dimensions, {:inserted_at, :time})
 
-  @doc false
-  def __define_time_dimension__(mod, _list_of_dimensions_of_datetime_type) do
-    PowerOfThree.__dimension__(mod, :inserted_at, :time, description: " Default to inserted_at")
+      PowerOfThree.__dimension__(__MODULE__, :inserted_at, :time,
+        description: " Default to inserted_at"
+      )
+    end
   end
 
   defmacro dimension(dimension_name, for: ecto_schema_field) do
     # TODO use an_ecto_schema_field to derive data type of ecto field
     quote bind_quoted: binding() do
       # TODO derive type knowing ecto_schema_field name
+      if Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
+        raise ArgumentError,
+              "Dimensions can only created for existing ecto schema field!\n" <>
+                "Dimensions `for:` is  #{inspect(ecto_schema_field)} , Ecto schema has this fields declared: \n #{inspect(Module.get_attribute(__MODULE__, :ecto_fields))}"
+      end
+
       PowerOfThree.__dimension__(__MODULE__, dimension_name, :string,
         ecto_schema_field: ecto_schema_field
       )
