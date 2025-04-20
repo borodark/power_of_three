@@ -87,8 +87,9 @@ defmodule PowerOfThree do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
           raise ArgumentError,
+                # TODO pull out calls?
                 "Dimensions can only created for existing ecto schema field!\n" <>
-                  "Dimensions `for:` is  #{inspect(ecto_schema_field)} , Ecto schema has this fields declared: \n #{inspect(Module.get_attribute(__MODULE__, :ecto_fields))}"
+                  "The ecto field name in the defeniotion is  #{inspect(ecto_schema_field)} , Ecto schema has no field of this name declared: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, ecto_field_option} ->
           {ecto_field_type, ecto_field_option} |> IO.inspect()

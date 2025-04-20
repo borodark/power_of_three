@@ -45,6 +45,10 @@ defmodule Example.Customer do
       for: :brand_code
     )
 
+    dimension(:brandt,
+      for: :brand
+    )
+
     dimension(:market,
       for: :market_code
     )
