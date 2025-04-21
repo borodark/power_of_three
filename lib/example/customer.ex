@@ -60,11 +60,14 @@ defmodule Example.Customer do
       ELSE 'Aquarius'
       END
       """
+      # TODO make sure columns mentioned in `sql:` are resolvable when run in DB
+      # TODO perhaps add ecto @schema prefix etc 
     )
 
     dimension(:bm_code,
       description: " brand_code+_+market_code, like TF_AU",
       type: :string,
+      # This is Cube Dimension type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
       for: [:brand_code, :market_code],
       sql: "brand_code|| '_' || market_code"
       ## TODO danger lurking here"
@@ -82,6 +85,7 @@ defmodule Example.Customer do
 
     measure(:number_of_emails,
       type: :count,
+      # This is Cube Measure type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
       for: :email,
       description: "count of emails, int perhaps"
     )
