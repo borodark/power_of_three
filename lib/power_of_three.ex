@@ -203,46 +203,49 @@ defmodule PowerOfThree do
 
   defmacro measure(measure_name,
              type: measure_type,
-             for: for_ecto_field,
+             for: for_ecto_fields,
              description: description
-           ) do
+           )
+           when is_list(for_ecto_fields) do
     quote bind_quoted: binding() do
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
-            ecto_field in [for_ecto_field],
+            ecto_field in for_ecto_fields,
             do: ecto_field
 
-      case [for_ecto_field] |> Enum.sort() == intersection |> Enum.sort() do
+      case for_ecto_fields |> Enum.sort() == intersection |> Enum.sort() do
         false ->
           raise ArgumentError,
-                "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+                "Cube Measure wants: \n#{inspect(for_ecto_fields)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name, measure_type,
-             [description: description, ecto_fields: [for_ecto_field]]}
+            {measure_name, measure_type, [description: description, ecto_fields: for_ecto_fields]}
           )
 
-          # TODO push description here too
           PowerOfThree.__measure__(
             __MODULE__,
             measure_name,
-            measure_type,
+            type: measure_type,
             description: description,
-            ecto_fields: [for_ecto_field]
+            ecto_fields: for_ecto_fields
           )
       end
     end
   end
 
   @doc false
-  def __measure__(module, name, type,
+  def __measure__(module, name,
+        type: measure_type,
         description: description,
         ecto_fields: list_of_ecto_schema_fields
       ) do
-    PowerOfThree.Measure.define(module, name, type, ecto_fields: list_of_ecto_schema_fields)
+    PowerOfThree.Measure.define(module, name, measure_type,
+      ecto_fields: list_of_ecto_schema_fields,
+      description: description
+    )
   end
 end
 
@@ -303,7 +306,6 @@ defmodule PowerOfThree.Dimension do
   end
 
   def define(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
-    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
     [mod, name, list_of_fields_of_composite_key] |> Enum.map(&IO.inspect/1)
   end
 end
