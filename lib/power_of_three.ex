@@ -149,9 +149,10 @@ defmodule PowerOfThree do
 
       case list_of_ecto_schema_fields |> Enum.sort() == intersection |> Enum.sort() do
         false ->
+          # TODO use all info in error message
           raise ArgumentError,
-                "Cube Dimensions are `for:` *existing* ecto schema field!\n" <>
-                  "The ecto field names are: #{inspect(list_of_ecto_schema_fields)},\n Not all found in the declared ecto fields: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+                "Cube Dimension wants all of: #{inspect(list_of_ecto_schema_fields)}," <>
+                  "But only these are avalable:\n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
           Module.put_attribute(
@@ -214,7 +215,7 @@ defmodule PowerOfThree do
       case [for_ecto_field] |> Enum.sort() == intersection |> Enum.sort() do
         false ->
           raise ArgumentError,
-                "Cube Measure wants #{inspect(for_ecto_field)} field in ecto schema ,\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+                "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
           Module.put_attribute(
