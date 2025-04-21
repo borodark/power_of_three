@@ -236,6 +236,36 @@ defmodule PowerOfThree do
     end
   end
 
+  defmacro measure(measure_name,
+             type: measure_type,
+             for: for_ecto_field,
+             description: description
+           ) do
+    quote bind_quoted: binding() do
+      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), for_ecto_field, false) do
+        false ->
+          raise ArgumentError,
+                "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        {ecto_type, _ecto_always} ->
+          Module.put_attribute(
+            __MODULE__,
+            :measures,
+            {measure_name, measure_type,
+             [description: description, ecto_fields: {for_ecto_field, ecto_type}]}
+          )
+
+          PowerOfThree.__measure__(
+            __MODULE__,
+            measure_name,
+            type: measure_type,
+            description: description,
+            ecto_fields: {for_ecto_field, ecto_type}
+          )
+      end
+    end
+  end
+
   @doc false
   def __measure__(module, name,
         type: measure_type,

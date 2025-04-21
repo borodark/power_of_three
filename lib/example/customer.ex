@@ -24,28 +24,6 @@ defmodule Example.Customer do
     timestamps()
   end
 
-  # cube name and _of_ what schema is it
-  # to derive/read during Macro expansion
-  #  - cube default table
-  #   - field names and types to feed to dimensions/measures generation
-
-  @doc """
-  CASE
-        WHEN (birthday_month = 1 AND day >= 20) OR (month = 2 AND day <= 18) THEN 'Aquarius'
-        WHEN (month = 2 AND day >= 19) OR (month = 3 AND day <= 20) THEN 'Pisces'
-        WHEN (month = 3 AND day >= 21) OR (month = 4 AND day <= 19) THEN 'Aries'
-        WHEN (month = 4 AND day >= 20) OR (month = 5 AND day <= 20) THEN 'Taurus'
-        WHEN (month = 5 AND day >= 21) OR (month = 6 AND day <= 20) THEN 'Gemini'
-        WHEN (month = 6 AND day >= 21) OR (month = 7 AND day <= 22) THEN 'Cancer'
-        WHEN (month = 7 AND day >= 23) OR (month = 8 AND day <= 22) THEN 'Leo'
-        WHEN (month = 8 AND day >= 23) OR (month = 9 AND day <= 22) THEN 'Virgo'
-        WHEN (month = 9 AND day >= 23) OR (month = 10 AND day <= 22) THEN 'Libra'
-        WHEN (month = 10 AND day >= 23) OR (month = 11 AND day <= 21) THEN 'Scorpio'
-        WHEN (month = 11 AND day >= 22) OR (month = 12 AND day <= 21) THEN 'Sagittarius'
-        WHEN (month = 12 AND day >= 22) OR (month = 1 AND day <= 19) THEN 'Capricorn'
-        ELSE 'Unknown'
-        END AS zodiac_sign
-  """
   cube :of_customers, of: :customer do
     dimension(:email_per_brand_per_market,
       description: "MANDATORI",
