@@ -5,6 +5,37 @@ defmodule PowerOfThree do
   The dimensions and measures derive some defaults
   from `Ecto.Schema.field` properties mentioned in the defenition
 
+  time
+  string
+  number
+  boolean
+  geo
+
+
+    Ecto type               | Elixir type             | Cube dimension types
+  :---------------------- | :---------------------- | :---------------------
+  `:id`                   | `integer`               | number
+  `:binary_id`            | `binary`                | string
+  `:integer`              | `integer`               | number, boolean
+  `:float`                | `float`                 | number, boolean ... enough?
+  `:boolean`              | `boolean`               | boolean
+  `:string`               | UTF-8 encoded `string`  |  string
+  `:binary`               | `binary`                |  string
+  `:bitstring`            | `bitstring`             |  string
+  `{:array, inner_type}`  | `list`                  | TODO geo?
+  `:map`                  | `map` |  TODO geo? Not Supported now
+  `{:map, inner_type}`    | `map` |  TODO geo? Not Supported now
+  `:decimal`              | [`Decimal`](https://github.com/ericmj/decimal) | number TODO research?
+  `:date`                 | `Date` | time TODO to UTC?
+  `:time`                 | `Time` | time TODO to UTC?
+  `:time_usec`            | `Time` | time TODO to UTC?
+  `:naive_datetime`       | `NaiveDateTime` | time TODO to UTC?
+  `:naive_datetime_usec`  | `NaiveDateTime` |TODO to UTC?
+  `:utc_datetime`         | `DateTime` | time
+  `:utc_datetime_usec`    | `DateTime` | time
+  `:duration`             | `Duration` | TODO int? ms, nanos?
+
+
   """
 
   defmacro __using__(_) do
@@ -27,6 +58,14 @@ defmodule PowerOfThree do
       quote do
         if line = Module.get_attribute(__MODULE__, :cube_defined) do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
+        end
+
+        case Module.get_attribute(__MODULE__, :ecto_fields, false) do
+          [id: _tuple_of_id_always] ->
+            raise ArgumentError,
+              "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+          [_|_] ->
+            :ok
         end
 
         @cube_defined unquote(caller.line)
