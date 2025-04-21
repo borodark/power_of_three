@@ -102,15 +102,22 @@ defmodule Example.Customer do
       for: :market_code
     )
 
-    # measure(:number_of_emails,
-    #  description: "count of emails, int perhaps",
-    #  for: :email,
-    #  type: :count
-    # )
-    # measure(:number_of_customers,
-    #  description: "count of emails, int perhaps",
-    #  for:  [:brand_code, :market_code, :email]
-    #  type: :count
-    # )
+    measure(:number_of_emails,
+      type: :count,
+      for: :email,
+      description: "count of emails, int perhaps"
+    )
+
+    measure(:number_of_customers,
+      type: :count,
+      for: [:brand_code, :market_code, :email],
+      description: "count of emails, int perhaps"
+    )
+
+    measure(:obscure_one,
+      type: :sum,
+      for: :birthday_day,
+      description: "Explore your inner data scientist"
+    )
   end
 end

@@ -106,7 +106,6 @@ defmodule PowerOfThree do
   end
 
   defmacro dimension(dimension_name,
-             # TODO
              description: description,
              for: composit_key_fields,
              cube_primary_key: true
@@ -160,6 +159,7 @@ defmodule PowerOfThree do
             :dimensions,
             {dimension_name, native_sql_return_type, description}
           )
+
           # TODO push description here too
           PowerOfThree.__dimension__(__MODULE__, dimension_name, native_sql_return_type,
             sql: native_sql_using_list_of_ecto_schema_fields,
@@ -175,7 +175,7 @@ defmodule PowerOfThree do
         for: list_of_fields_of_composite_key,
         cube_primary_key: true
       ) do
-    PowerOfThree.Dimension.define_dimension(module, dimension_name,
+    PowerOfThree.Dimension.define(module, dimension_name,
       cube_primary_keys: list_of_fields_of_composite_key
     )
   end
@@ -183,21 +183,65 @@ defmodule PowerOfThree do
   def __dimension__(module, time_dimension_name, type, opts \\ [])
 
   def __dimension__(module, time_dimension_name, :time, opts) do
-    PowerOfThree.Dimension.define_dimension(module, time_dimension_name, :time, opts)
+    PowerOfThree.Dimension.define(module, time_dimension_name, :time, opts)
   end
 
   def __dimension__(module, dimension_name, :string, opts) do
-    PowerOfThree.Dimension.define_dimension(module, dimension_name, :string, opts)
+    PowerOfThree.Dimension.define(module, dimension_name, :string, opts)
   end
 
   def __dimension__(module, dimension_name, native_sql_return_type,
         sql: native_sql_using_list_of_ecto_schema_fields,
         ecto_fields: list_of_ecto_schema_fields
       ) do
-    PowerOfThree.Dimension.define_dimension(module, dimension_name, native_sql_return_type,
+    PowerOfThree.Dimension.define(module, dimension_name, native_sql_return_type,
       sql: native_sql_using_list_of_ecto_schema_fields,
       ecto_fields: list_of_ecto_schema_fields
     )
+  end
+
+  defmacro measure(measure_name,
+             type: measure_type,
+             for: for_ecto_field,
+             description: description
+           ) do
+    quote bind_quoted: binding() do
+      intersection =
+        for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
+            ecto_field in [for_ecto_field],
+            do: ecto_field
+
+      case [for_ecto_field] |> Enum.sort() == intersection |> Enum.sort() do
+        false ->
+          raise ArgumentError,
+                "Cube Measure wants #{inspect(for_ecto_field)} field in ecto schema ,\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        true ->
+          Module.put_attribute(
+            __MODULE__,
+            :measures,
+            {measure_name, measure_type,
+             [description: description, ecto_fields: [for_ecto_field]]}
+          )
+
+          # TODO push description here too
+          PowerOfThree.__measure__(
+            __MODULE__,
+            measure_name,
+            measure_type,
+            description: description,
+            ecto_fields: [for_ecto_field]
+          )
+      end
+    end
+  end
+
+  @doc false
+  def __measure__(module, name, type,
+        description: description,
+        ecto_fields: list_of_ecto_schema_fields
+      ) do
+    PowerOfThree.Measure.define(module, name, type, ecto_fields: list_of_ecto_schema_fields)
   end
 end
 
@@ -250,15 +294,14 @@ defmodule PowerOfThree.Dimension do
     :type,
     :granularities
   ]
-  @dimension_types [:string, :time, :number, :boolean, :geo]
-  @dimension_formats [:imageUrl, :id, :link, :currency, :percent]
+  @types [:string, :time, :number, :boolean, :geo]
+  # TODO use @formats [:imageUrl, :id, :link, :currency, :percent]
 
-  def define_dimension(mod, name, valid_type, opts) when valid_type in @dimension_types do
-    "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
+  def define(mod, name, valid_type, opts) when valid_type in @types do
     [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
   end
 
-  def define_dimension(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
+  def define(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
     "CALLING POWEROFTHREE.DIMENSION.DEFINE_DIMENSION" |> IO.inspect()
     [mod, name, list_of_fields_of_composite_key] |> Enum.map(&IO.inspect/1)
   end
@@ -269,6 +312,28 @@ defmodule PowerOfThree.Measure do
   https://cube.dev/docs/reference/data-model/measures
   A Measure of Cube object with following:
   """
+  @types [
+    # string can be used as categorical if :sql converts a numerical value to
+    :string,
+    :time,
+    :boolean,
+    :number,
+    :count,
+    :count_distinct,
+    :count_distinct_approx,
+    :sum,
+    :avg,
+    :min,
+    :max
+  ]
+
+  @formats [:percent, :currency]
+  # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
+  @rolling_window [:trailing, :leading]
+
+  def define(mod, name, valid_type, opts) when valid_type in @types do
+    [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
+  end
 
   @type t() :: %__MODULE__{
           name: String.t() | nil,
@@ -295,25 +360,4 @@ defmodule PowerOfThree.Measure do
             sql: nil,
             title: nil,
             type: :count
-
-  @types [
-    # string can be used as categorical if :sql converts a numerical value to
-    :string,
-    :time,
-    :boolean,
-    :number,
-    :count,
-    :count_distinct,
-    :count_distinct_approx,
-    :sum,
-    :avg,
-    :min,
-    :max
-  ]
-
-  @formats [:percent, :currency]
-
-  # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
-
-  @rolling_window [:trailing, :leading]
 end
