@@ -1,6 +1,10 @@
 defmodule PowerOfThree do
   @moduledoc """
-  generate cube.dev config files for cubes defined inline with Ecto.Schema
+
+  Able to generate cube.dev config files for cubes defined for one `using Ecto.Schema`.
+  The dimensions and measures derive some defaults
+  from `Ecto.Schema.field` properties mentioned in the defenition
+
   """
 
   defmacro __using__(_) do
