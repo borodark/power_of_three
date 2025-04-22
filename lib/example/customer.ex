@@ -90,10 +90,10 @@ defmodule Example.Customer do
       description: "count of emails, int perhaps"
     )
 
-    measure(:number_of_customers,
+    measure(:number_of_accounts,
       type: :count,
       for: [:brand_code, :market_code, :email],
-      description: "count of emails, int perhaps"
+      description: "Accounts: email + market code + brand code"
     )
 
     measure(:obscure_one,

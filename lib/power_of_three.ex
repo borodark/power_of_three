@@ -63,8 +63,9 @@ defmodule PowerOfThree do
         case Module.get_attribute(__MODULE__, :ecto_fields, false) do
           [id: _tuple_of_id_always] ->
             raise ArgumentError,
-              "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
-          [_|_] ->
+                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+
+          [_ | _] ->
             :ok
         end
 
