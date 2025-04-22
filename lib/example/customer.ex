@@ -20,6 +20,8 @@ defmodule Example.Customer do
     field(:birthday_month, :integer)
     field(:brand_code, :string)
     field(:market_code, :string)
+    field(:customer_since, :date)
+    field(:last_order, :utc_datetime)
     has_many(:addresses, Address)
     timestamps()
   end
@@ -30,8 +32,6 @@ defmodule Example.Customer do
       for: [:brand_code, :market_code, :email],
       cube_primary_key: true
     )
-
-    time_dimensions()
 
     dimension(:names,
       description: "MANDATORI",
@@ -83,6 +83,16 @@ defmodule Example.Customer do
       for: :market_code
     )
 
+    dimension(:arbirtary_datetime,
+      description: "IDK ...?",
+      for: :updated_at
+    )
+
+    dimension(:last_order,
+      description: "IDK ...?",
+      for: :last_order
+    )
+
     measure(:number_of_emails,
       type: :count,
       # This is Cube Measure type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
@@ -100,6 +110,18 @@ defmodule Example.Customer do
       type: :sum,
       for: :birthday_day,
       description: "Explore your inner data scientist"
+    )
+
+    measure(:latest_joined,
+      type: :max,
+      for: :customer_since,
+      description: "Again, Explore your inner data scientist"
+    )
+
+    measure(:later_not_ordering,
+      type: :min,
+      for: :last_order,
+      description: "Again, Explore your inner data scientist"
     )
   end
 end

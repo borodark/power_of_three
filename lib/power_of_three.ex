@@ -37,6 +37,15 @@ defmodule PowerOfThree do
 
 
   """
+  @ecto_date_times [
+    :date,
+    :time,
+    :time_usec,
+    :naive_datetime,
+    :naive_datetime_usec,
+    :utc_datetime,
+    :utc_datetime_usec
+  ]
 
   defmacro __using__(_) do
     quote do
@@ -116,7 +125,12 @@ defmodule PowerOfThree do
   """
   defmacro time_dimensions(cube_date_time_fields \\ []) do
     quote bind_quoted: binding() do
-      Module.put_attribute(__MODULE__, :datetime_dimensions, {:inserted_at, :time})
+      Module.put_attribute(
+        __MODULE__,
+        :datetime_dimensions,
+        {:inserted_at, :time, [description: " Default to inserted_at"]}
+      )
+
       PowerOfThree.__dimension__(__MODULE__, :inserted_at, :time,
         description: " Default to inserted_at"
       )
@@ -222,7 +236,9 @@ defmodule PowerOfThree do
 
   def __dimension__(module, time_dimension_name, type, opts \\ [])
 
-  def __dimension__(module, time_dimension_name, :time, opts) do
+  def __dimension__(module, time_dimension_name, one_of_ecto_date_times, opts)
+      when one_of_ecto_date_times in @ecto_date_times do
+    Module.put_attribute(module, :datetime_dimensions, {time_dimension_name, :time, opts})
     PowerOfThree.Dimension.define(module, time_dimension_name, :time, opts)
   end
 
@@ -347,35 +363,69 @@ defmodule PowerOfThree.Cube do
   ]
 end
 
+defmodule PowerOfThree.Dimension.Case do
+  @type t() :: %__MODULE__{}
+  defstruct when: [],
+            else: nil
+end
+
 defmodule PowerOfThree.Dimension do
   @moduledoc """
   https://cube.dev/docs/reference/data-model/dimensions
   A Dimension of Cube object with following properties:
+  Parameters:
+    - name
+    - case
+    - description
+    - format
+    - meta
+    - primary_key
+    - propagate_filters_to_sub_query
+    - public
+    - sql
+    - sub_query
+    - title
+    - type
+    - granularities
   """
+  @dimension_type [:string, :time, :number, :boolean, :geo]
+  @format [:imageUrl, :id, :link, :currency, :percent]
 
-  @properties_in_opts [
-    :case,
-    :description,
-    :format,
-    :meta,
-    :primary_key,
-    :propagate_filters_to_sub_query,
-    :public,
-    :sql,
-    :sub_query,
-    :title,
-    :type,
-    :granularities
-  ]
-  @types [:string, :time, :number, :boolean, :geo]
-  # TODO use @formats [:imageUrl, :id, :link, :currency, :percent]
+  alias PowerOfThree.Dimension.Case
 
-  def define(mod, name, valid_type, opts) when valid_type in @types do
-    [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
+  @type t() :: %__MODULE__{
+          name: String.t() | nil,
+          case: Case.t() | nil,
+          description: String.t() | nil,
+          format: atom() | nil,
+          meta: Keyword.t(),
+          public: boolean(),
+          sql: String.t() | nil,
+          title: String.t() | nil,
+          type: atom()
+          # TODO granularities: https://cube.dev/docs/reference/data-model/dimensions#granularities 
+        }
+
+  defstruct name: nil,
+            case: nil,
+            description: nil,
+            format: nil,
+            meta: [tag: :dimension],
+            public: true,
+            sql: nil,
+            title: nil,
+            type: :string
+
+  # TODO granularities: https://cube.dev/docs/reference/data-model/dimensions#granularities 
+
+  def define(mod, name, valid_type, opts) when valid_type in @dimension_type do
+    # |> Enum.map(&IO.inspect/1)
+    [mod, name, valid_type, opts]
   end
 
   def define(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
-    [mod, name, list_of_fields_of_composite_key] |> Enum.map(&IO.inspect/1)
+    #  |> Enum.map(&IO.inspect/1)
+    [mod, name, list_of_fields_of_composite_key]
   end
 end
 
@@ -383,8 +433,20 @@ defmodule PowerOfThree.Measure do
   @moduledoc """
   https://cube.dev/docs/reference/data-model/measures
   A Measure of Cube object with following:
+  Parameters:
+    - name
+    - description
+    - drill_members
+    - filters
+    - format @format
+    - meta
+    - rolling_window @rolling_window
+    - public
+    - sql
+    - title
+    - type  @type
   """
-  @types [
+  @measure_types [
     # string can be used as categorical if :sql converts a numerical value to
     :string,
     :time,
@@ -399,12 +461,13 @@ defmodule PowerOfThree.Measure do
     :max
   ]
 
-  @formats [:percent, :currency]
+  @format [:percent, :currency]
   # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
   @rolling_window [:trailing, :leading]
 
-  def define(mod, name, valid_type, opts) when valid_type in @types do
-    [mod, name, valid_type, opts] |> Enum.map(&IO.inspect/1)
+  def define(mod, name, valid_type, opts) when valid_type in @measure_types do
+    # |> Enum.map(&IO.inspect/1)
+    [mod, name, valid_type, opts]
   end
 
   @type t() :: %__MODULE__{
@@ -413,7 +476,7 @@ defmodule PowerOfThree.Measure do
           drill_members: list(),
           filters: list(),
           format: atom() | nil,
-          meta: String.t() | nil,
+          meta: Keyword.t(),
           rolling_window: atom() | nil,
           public: boolean(),
           sql: String.t() | nil,
@@ -426,7 +489,7 @@ defmodule PowerOfThree.Measure do
             drill_members: [],
             filters: [],
             format: nil,
-            meta: "X is Cubifed",
+            meta: [tag: :measure],
             rolling_window: nil,
             public: true,
             sql: nil,
