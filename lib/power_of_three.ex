@@ -71,9 +71,6 @@ defmodule PowerOfThree do
 
         @cube_defined unquote(caller.line)
 
-        # @after_compile PowerOfThree
-
-        # TODO add these to __meta__ functions for reflection
         Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
         Module.register_attribute(__MODULE__, :measures, accumulate: true)
         Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
@@ -119,9 +116,7 @@ defmodule PowerOfThree do
   """
   defmacro time_dimensions(cube_date_time_fields \\ []) do
     quote bind_quoted: binding() do
-      # TODO process users time dimensions: loop
       Module.put_attribute(__MODULE__, :datetime_dimensions, {:inserted_at, :time})
-
       PowerOfThree.__dimension__(__MODULE__, :inserted_at, :time,
         description: " Default to inserted_at"
       )
