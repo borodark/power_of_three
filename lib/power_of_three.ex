@@ -5,38 +5,28 @@ defmodule PowerOfThree do
   The dimensions and measures derive some defaults
   from `Ecto.Schema.field` properties mentioned in the defenition
 
-  time
-  string
-  number
-  boolean
-  geo
-
-
   Cube dimension types    | Ecto type               | Elixir type
   :---------------------- | :---------------------- | :---------------------
   number                  | `:id`                   | `integer`
   string                  | `:binary_id`            | `binary`
-  ******************************
-  `:integer`              | `integer`               | number, boolean
-  `:float`                | `float`                 | number, boolean ... enough?
+  number, boolean         | `:integer`              | `integer`
+  number, boolean enough? | `:float`                | `float`
   `:boolean`              | `boolean`               | boolean
   `:string`               | UTF-8 encoded `string`  |  string
   `:binary`               | `binary`                |  string
   `:bitstring`            | `bitstring`             |  string
   `{:array, inner_type}`  | `list`                  | TODO geo?
-
-  TODO geo? Not Supported now |  `:map`                  | `map`
-  TODO geo? Not Supported now | `{:map, inner_type}`    | `map`
-  number TODO research? |  `:decimal`              | [`Decimal`](https://github.com/ericmj/decimal)
-  time | `:date`                 | `Date`
-  time | `:time`                 | `Time`
-  time | `:time_usec`            | `Time`
-  time | `:naive_datetime`       | `NaiveDateTime`
-  time | `:naive_datetime_usec`  | `NaiveDateTime`
-  time | `:utc_datetime`         | `DateTime`
-  time | `:utc_datetime_usec`    | `DateTime`
- TODO int? ms, nanos? |  `:duration`             | `Duration`
-
+  Not Supported now       | `:map`                  | `map`
+  Not Supported now       | `{:map, inner_type}`    | `map`
+  number                  | `:decimal`              | [`Decimal`](https://github.com/ericmj/decimal)
+  time                    | `:date`                 | `Date`
+  time                    | `:time`                 | `Time`
+  time                    | `:time_usec`            | `Time`
+  time                    | `:naive_datetime`       | `NaiveDateTime`
+  time                    | `:naive_datetime_usec`  | `NaiveDateTime`
+  time                    | `:utc_datetime`         | `DateTime`
+  time                    | `:utc_datetime_usec`    | `DateTime`
+  number                  | `:duration`             | `Duration`
 
   """
 
