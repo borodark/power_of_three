@@ -118,6 +118,13 @@ defmodule Example.Customer do
       description: "Again, Explore your inner data scientist"
     )
 
+    # measure(:latest_joined_sql_way,
+    #  type: :time, 
+    #  for: :customer_since,
+    #  sql: "MAX(customer_since)", TODO
+    #  description: "Again, Explore your inner data scientist"
+    # )
+
     measure(:later_not_ordering,
       type: :min,
       for: :last_order,

@@ -12,10 +12,11 @@ defmodule PowerOfThree do
   geo
 
 
-    Ecto type               | Elixir type             | Cube dimension types
+  Cube dimension types    | Ecto type               | Elixir type
   :---------------------- | :---------------------- | :---------------------
-  `:id`                   | `integer`               | number
-  `:binary_id`            | `binary`                | string
+  number                  | `:id`                   | `integer`
+  string                  | `:binary_id`            | `binary`
+  ******************************
   `:integer`              | `integer`               | number, boolean
   `:float`                | `float`                 | number, boolean ... enough?
   `:boolean`              | `boolean`               | boolean
@@ -23,29 +24,21 @@ defmodule PowerOfThree do
   `:binary`               | `binary`                |  string
   `:bitstring`            | `bitstring`             |  string
   `{:array, inner_type}`  | `list`                  | TODO geo?
-  `:map`                  | `map` |  TODO geo? Not Supported now
-  `{:map, inner_type}`    | `map` |  TODO geo? Not Supported now
-  `:decimal`              | [`Decimal`](https://github.com/ericmj/decimal) | number TODO research?
-  `:date`                 | `Date` | time TODO to UTC?
-  `:time`                 | `Time` | time TODO to UTC?
-  `:time_usec`            | `Time` | time TODO to UTC?
-  `:naive_datetime`       | `NaiveDateTime` | time TODO to UTC?
-  `:naive_datetime_usec`  | `NaiveDateTime` |TODO to UTC?
-  `:utc_datetime`         | `DateTime` | time
-  `:utc_datetime_usec`    | `DateTime` | time
-  `:duration`             | `Duration` | TODO int? ms, nanos?
+
+  TODO geo? Not Supported now |  `:map`                  | `map`
+  TODO geo? Not Supported now | `{:map, inner_type}`    | `map`
+  number TODO research? |  `:decimal`              | [`Decimal`](https://github.com/ericmj/decimal)
+  time | `:date`                 | `Date`
+  time | `:time`                 | `Time`
+  time | `:time_usec`            | `Time`
+  time | `:naive_datetime`       | `NaiveDateTime`
+  time | `:naive_datetime_usec`  | `NaiveDateTime`
+  time | `:utc_datetime`         | `DateTime`
+  time | `:utc_datetime_usec`    | `DateTime`
+ TODO int? ms, nanos? |  `:duration`             | `Duration`
 
 
   """
-  @ecto_date_times [
-    :date,
-    :time,
-    :time_usec,
-    :naive_datetime,
-    :naive_datetime_usec,
-    :utc_datetime,
-    :utc_datetime_usec
-  ]
 
   defmacro __using__(_) do
     quote do
@@ -144,15 +137,41 @@ defmodule PowerOfThree do
           raise ArgumentError,
                 "Cube Dimension wants field #{inspect(ecto_schema_field)}, but Ecto schema has only these: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
-        {ecto_field_type, ecto_field_option} ->
+        {original_ecto_field_type, _always} ->
+          # TODO resolve Ecto Datetimes to :time
+          dimension_type =
+            case original_ecto_field_type in [
+                   :date,
+                   :time,
+                   :time_usec,
+                   :naive_datetime,
+                   :naive_datetime_usec,
+                   :utc_datetime,
+                   :utc_datetime_usec
+                 ] do
+              # cube use onlu time
+              true ->
+                :time
+
+              false ->
+                original_ecto_field_type
+            end
+
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            {dimension_name, ecto_field_type, description}
+            {dimension_name, dimension_type,
+             [
+               ecto_field_type: original_ecto_field_type,
+               ecto_field: ecto_schema_field,
+               description: description
+             ]}
           )
 
-          PowerOfThree.__dimension__(__MODULE__, dimension_name, ecto_field_type,
-            ecto_field: ecto_schema_field
+          PowerOfThree.__dimension__(__MODULE__, dimension_name, dimension_type,
+            ecto_field_type: original_ecto_field_type,
+            ecto_field: ecto_schema_field,
+            description: description
           )
       end
     end
@@ -211,7 +230,10 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            {dimension_name, native_sql_return_type, description}
+            {dimension_name, native_sql_return_type,
+             sql: native_sql_using_list_of_ecto_schema_fields,
+             ecto_fields: list_of_ecto_schema_fields,
+             description: description}
           )
 
           # TODO push description here too
@@ -237,7 +259,15 @@ defmodule PowerOfThree do
   def __dimension__(module, time_dimension_name, type, opts \\ [])
 
   def __dimension__(module, time_dimension_name, one_of_ecto_date_times, opts)
-      when one_of_ecto_date_times in @ecto_date_times do
+      when one_of_ecto_date_times in [
+             :date,
+             :time,
+             :time_usec,
+             :naive_datetime,
+             :naive_datetime_usec,
+             :utc_datetime,
+             :utc_datetime_usec
+           ] do
     Module.put_attribute(module, :datetime_dimensions, {time_dimension_name, :time, opts})
     PowerOfThree.Dimension.define(module, time_dimension_name, :time, opts)
   end
@@ -255,6 +285,8 @@ defmodule PowerOfThree do
       ecto_fields: list_of_ecto_schema_fields
     )
   end
+
+  # TODO perhaps resolve ecto_type into measure_type? 
 
   defmacro measure(measure_name,
              type: measure_type,
@@ -303,6 +335,38 @@ defmodule PowerOfThree do
                 "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_type, _ecto_always} ->
+          Module.put_attribute(
+            __MODULE__,
+            :measures,
+            {measure_name, measure_type,
+             [description: description, ecto_fields: {for_ecto_field, ecto_type}]}
+          )
+
+          PowerOfThree.__measure__(
+            __MODULE__,
+            measure_name,
+            type: measure_type,
+            description: description,
+            ecto_fields: {for_ecto_field, ecto_type}
+          )
+      end
+    end
+  end
+
+  defmacro measure(measure_name,
+             type: :time,
+             sql: sql_returning_datetime_value,
+             for: for_ecto_field,
+             description: description
+           ) do
+    quote bind_quoted: binding() do
+      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), for_ecto_field, false) do
+        false ->
+          raise ArgumentError,
+                "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        {ecto_type, _ecto_always} ->
+          # TODO resolve 
           Module.put_attribute(
             __MODULE__,
             :measures,
@@ -446,6 +510,7 @@ defmodule PowerOfThree.Measure do
     - title
     - type  @type
   """
+
   @measure_types [
     # string can be used as categorical if :sql converts a numerical value to
     :string,
@@ -472,6 +537,8 @@ defmodule PowerOfThree.Measure do
 
   @type t() :: %__MODULE__{
           name: String.t() | nil,
+          sql: String.t() | nil,
+          type: atom(),
           description: String.t() | nil,
           drill_members: list(),
           filters: list(),
@@ -479,20 +546,19 @@ defmodule PowerOfThree.Measure do
           meta: Keyword.t(),
           rolling_window: atom() | nil,
           public: boolean(),
-          sql: String.t() | nil,
-          title: String.t() | nil,
-          type: atom()
+          title: String.t() | nil
         }
 
+  @mandatory [:name, :sql, :type]
   defstruct name: nil,
+            sql: nil,
+            type: :count,
+            title: nil,
             description: nil,
             drill_members: [],
             filters: [],
             format: nil,
             meta: [tag: :measure],
             rolling_window: nil,
-            public: true,
-            sql: nil,
-            title: nil,
-            type: :count
+            public: true
 end
