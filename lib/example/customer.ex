@@ -102,6 +102,7 @@ defmodule Example.Customer do
     )
 
     measure(:wrong_count_number, :email, type: :count)
+    # TODO catch type :count do not use fields
 
     measure(:emails, :email,
       type: :count_distinct,
