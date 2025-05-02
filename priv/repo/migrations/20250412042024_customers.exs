@@ -10,8 +10,7 @@ defmodule Example.Repo.Migrations.Customers do
       add :birthday_month, :integer
       add :brand_code, :string
       add :market_code, :string
-      #add :default_address_id,
-      #  references(:address)
+      timestamps()
     end
 
     create table(:order) do
@@ -30,6 +29,7 @@ defmodule Example.Repo.Migrations.Customers do
         references(:customer)
       add :brand_code, :string
       add :market_code, :string
+      timestamps()
     end
 
     create table(:address) do

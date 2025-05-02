@@ -20,29 +20,27 @@ defmodule Example.Customer do
     field(:birthday_month, :integer)
     field(:brand_code, :string)
     field(:market_code, :string)
-    field(:customer_since, :date)
-    field(:last_order, :utc_datetime)
     has_many(:addresses, Address)
     timestamps()
   end
 
   cube :of_customers, of: :customer do
-    dimension(:email_per_brand_per_market,
+    dimension(
+      :email_per_brand_per_market,
+      [:brand_code, :market_code, :email],
       description: "MANDATORI",
-      for: [:brand_code, :market_code, :email],
       cube_primary_key: true
     )
 
-    dimension(:names,
-      description: "MANDATORI",
-      for: :first_name
+    dimension(
+      :names,
+      :first_name,
+      description: "MANDATORI"
     )
 
-    dimension(:zodiac,
+    dimension(:zodiac, [:birthday_day, :birthday_month],
       description:
         "SQL for a zodiac sign for given [:birthday_day, :birthday_month], not _gyroscope_, TODO unicode of Emoji",
-      type: :number,
-      for: [:birthday_day, :birthday_month],
       sql: """
       CASE
       WHEN (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18) THEN 'Aquarius'
@@ -60,74 +58,67 @@ defmodule Example.Customer do
       ELSE 'Aquarius'
       END
       """
-      # TODO make sure columns mentioned in `sql:` are resolvable when run in DB
-      # TODO perhaps add ecto @schema prefix etc 
     )
 
-    dimension(:bm_code,
+    dimension(:star_sector, [:birthday_day, :birthday_month],
+      description: "integer from 0 to 11 for zodiac signs",
+      sql: """
+      CASE
+      WHEN (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18) THEN 0
+      WHEN (birthday_month = 2 AND birthday_day >= 19) OR (birthday_month = 3 AND birthday_day <= 20) THEN 1
+      WHEN (birthday_month = 3 AND birthday_day >= 21) OR (birthday_month = 4 AND birthday_day <= 19) THEN 2
+      WHEN (birthday_month = 4 AND birthday_day >= 20) OR (birthday_month = 5 AND birthday_day <= 20) THEN 3
+      WHEN (birthday_month = 5 AND birthday_day >= 21) OR (birthday_month = 6 AND birthday_day <= 20) THEN 4
+      WHEN (birthday_month = 6 AND birthday_day >= 21) OR (birthday_month = 7 AND birthday_day <= 22) THEN 5
+      WHEN (birthday_month = 7 AND birthday_day >= 23) OR (birthday_month = 8 AND birthday_day <= 22) THEN 6
+      WHEN (birthday_month = 8 AND birthday_day >= 23) OR (birthday_month = 9 AND birthday_day <= 22) THEN 7
+      WHEN (birthday_month = 9 AND birthday_day >= 23) OR (birthday_month = 10 AND birthday_day <= 22) THEN 8
+      WHEN (birthday_month = 10 AND birthday_day >= 23) OR (birthday_month = 11 AND birthday_day <= 21) THEN 9
+      WHEN (birthday_month = 11 AND birthday_day >= 22) OR (birthday_month = 12 AND birthday_day <= 21) THEN 10
+      WHEN (birthday_month = 12 AND birthday_day >= 22) OR (birthday_month = 1 AND birthday_day <= 19) THEN 11
+      ELSE 0
+      END
+      """
+    )
+
+    dimension(
+      :bm_code,
+      [:brand_code, :market_code],
       description: " brand_code+_+market_code, like TF_AU",
       type: :string,
       # This is Cube Dimension type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
-      for: [:brand_code, :market_code],
       sql: "brand_code|| '_' || market_code"
       ## TODO danger lurking here"
     )
 
-    dimension(:brand,
-      description: " brand_code, like TF",
-      for: :brand_code
-    )
+    dimension(:brand, :brand_code, description: " brand_code, like TF")
 
-    dimension(:market,
-      description: "market_code, like AU",
-      for: :market_code
-    )
+    dimension(:market, :market_code, description: "market_code, like AU")
 
-    dimension(:arbirtary_datetime,
-      description: "IDK ...?",
-      for: :updated_at
-    )
+    dimension(:arbirtary_datetime, :updated_at, description: "IDK ...?")
 
-    dimension(:last_order,
-      description: "IDK ...?",
-      for: :last_order
-    )
-
-    measure(:number_of_emails,
-      type: :count,
-      # This is Cube Measure type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
-      for: :email,
+    measure(:number_of_emails, :email,
+      type: :count_distinct,
       description: "count of emails, int perhaps"
     )
 
-    measure(:number_of_accounts,
+    measure(:number_of_accounts, [:brand_code, :market_code, :email],
       type: :count,
-      for: [:brand_code, :market_code, :email],
       description: "Accounts: email + market code + brand code"
     )
 
-    measure(:obscure_one,
+    measure(:obscure_one, :birthday_day,
       type: :sum,
-      for: :birthday_day,
       description: "Explore your inner data scientist"
     )
 
-    measure(:latest_joined,
+    measure(:latest_joined, :inserted_at,
       type: :max,
-      for: :customer_since,
       description: "Again, Explore your inner data scientist"
     )
 
-    # measure(:latest_joined_sql_way,
-    #  type: :time, 
-    #  for: :customer_since,
-    #  sql: "MAX(customer_since)", TODO
-    #  description: "Again, Explore your inner data scientist"
-    # )
-
-    measure(:later_not_ordering,
-      type: :min,
-      for: :last_order,
+    measure(:updated_pii, :updated_at,
+      type: :max,
       description: "Again, Explore your inner data scientist"
     )
   end

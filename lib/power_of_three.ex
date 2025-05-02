@@ -7,14 +7,14 @@ defmodule PowerOfThree do
 
   Cube dimension types    | Ecto type               | Elixir type
   :---------------------- | :---------------------- | :---------------------
-  number                  | `:id`                   | `integer`
-  string                  | `:binary_id`            | `binary`
-  number, boolean         | `:integer`              | `integer`
-  number, boolean enough? | `:float`                | `float`
-  `:boolean`              | `boolean`               | boolean
-  `:string`               | UTF-8 encoded `string`  |  string
-  `:binary`               | `binary`                |  string
-  `:bitstring`            | `bitstring`             |  string
+  number                  | :id                     | integer
+  string                  | :binary_id              | binary
+  number, boolean         | :integer                | integer
+  number, boolean enough? | :float                  | float
+  boolean                 | :boolean                | boolean
+  string                  | UTF-8 encoded `string`  | string
+  string                  | :binary                 | :binary
+  string                  | :bitstring              | :bitstring
   `{:array, inner_type}`  | `list`                  | TODO geo?
   Not Supported now       | `:map`                  | `map`
   Not Supported now       | `{:map, inner_type}`    | `map`
@@ -113,96 +113,15 @@ defmodule PowerOfThree do
         :datetime_dimensions,
         {:inserted_at, :time, [description: " Default to inserted_at"]}
       )
-
-      PowerOfThree.__dimension__(__MODULE__, :inserted_at, :time,
-        description: " Default to inserted_at"
-      )
     end
   end
 
-  defmacro dimension(dimension_name, description: description, for: ecto_schema_field) do
-    quote bind_quoted: binding() do
-      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
-        false ->
-          raise ArgumentError,
-                "Cube Dimension wants field #{inspect(ecto_schema_field)}, but Ecto schema has only these: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
-
-        {original_ecto_field_type, _always} ->
-          # TODO resolve Ecto Datetimes to :time
-          dimension_type =
-            case original_ecto_field_type in [
-                   :date,
-                   :time,
-                   :time_usec,
-                   :naive_datetime,
-                   :naive_datetime_usec,
-                   :utc_datetime,
-                   :utc_datetime_usec
-                 ] do
-              # cube use onlu time
-              true ->
-                :time
-
-              false ->
-                original_ecto_field_type
-            end
-
-          Module.put_attribute(
-            __MODULE__,
-            :dimensions,
-            {dimension_name, dimension_type,
-             [
-               ecto_field_type: original_ecto_field_type,
-               ecto_field: ecto_schema_field,
-               description: description
-             ]}
-          )
-
-          PowerOfThree.__dimension__(__MODULE__, dimension_name, dimension_type,
-            ecto_field_type: original_ecto_field_type,
-            ecto_field: ecto_schema_field,
-            description: description
-          )
-      end
-    end
-  end
-
-  defmacro dimension(dimension_name,
-             description: description,
-             for: composit_key_fields,
-             cube_primary_key: true
-           ) do
-    quote bind_quoted: binding() do
-      intersection =
-        for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
-            ecto_field in composit_key_fields,
-            do: ecto_field
-
-      case composit_key_fields |> Enum.sort() == intersection |> Enum.sort() do
-        false ->
-          raise ArgumentError,
-                "Cube Primary Key Dimension wants all of: #{inspect(composit_key_fields)}\n" <>
-                  "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
-
-        true ->
-          Module.put_attribute(__MODULE__, :cube_primary_keys, composit_key_fields)
-
-          PowerOfThree.__dimension__(__MODULE__, dimension_name,
-            description: description,
-            for: composit_key_fields,
-            cube_primary_key: true
-          )
-      end
-    end
-  end
-
-  defmacro dimension(dimension_name,
-             description: description,
-             type: native_sql_return_type,
-             for: list_of_ecto_schema_fields,
-             sql: native_sql_using_list_of_ecto_schema_fields
+  defmacro dimension(
+             dimension_name,
+             list_of_ecto_schema_fields,
+             opts
            )
-           when is_list(list_of_ecto_schema_fields) do
+           when is_list(list_of_ecto_schema_fields) and length(list_of_ecto_schema_fields) > 1 do
     quote bind_quoted: binding() do
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
@@ -217,71 +136,92 @@ defmodule PowerOfThree do
                   "But only these are avalable:\n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
+          type = opts[:type] || :string
+          sql = opts[:sql] || list_of_ecto_schema_fields |> Enum.join("||")
+          desc = opts[:description] || "Documentation if Empathy"
+          # TODO all properties
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            {dimension_name, native_sql_return_type,
-             sql: native_sql_using_list_of_ecto_schema_fields,
-             ecto_fields: list_of_ecto_schema_fields,
-             description: description}
-          )
-
-          # TODO push description here too
-          PowerOfThree.__dimension__(__MODULE__, dimension_name, native_sql_return_type,
-            sql: native_sql_using_list_of_ecto_schema_fields,
-            ecto_fields: list_of_ecto_schema_fields
+            {dimension_name,
+             [
+               type: type,
+               sql: sql,
+               description: desc,
+               meta: [ecto_fields: list_of_ecto_schema_fields]
+             ]}
           )
       end
     end
   end
 
-  @doc false
-  def __dimension__(module, dimension_name,
-        description: _description,
-        for: list_of_fields_of_composite_key,
-        cube_primary_key: true
-      ) do
-    PowerOfThree.Dimension.define(module, dimension_name,
-      cube_primary_keys: list_of_fields_of_composite_key
-    )
+  defmacro dimension(dimension_name, ecto_schema_field, opts) when is_atom(ecto_schema_field) do
+    quote bind_quoted: binding() do
+      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
+        false ->
+          raise ArgumentError,
+                "Cube Dimension wants a #{inspect(ecto_schema_field)}, but Ecto schema has only: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+
+        {original_ecto_field_type, _always} ->
+          type =
+            opts[:type] ||
+              cond do
+                original_ecto_field_type in [:bitstring, :string, :binary_id, :binary] ->
+                  :string
+
+                original_ecto_field_type in [
+                  :date,
+                  :time,
+                  :time_usec,
+                  :naive_datetime,
+                  :naive_datetime_usec,
+                  :utc_datetime,
+                  :utc_datetime_usec
+                ] ->
+                  :time
+
+                original_ecto_field_type in [
+                  :id,
+                  :integer,
+                  :float,
+                  :decimal
+                ] ->
+                  :number
+
+                original_ecto_field_type in [
+                  :boolean
+                ] ->
+                  :boolen
+              end
+
+          # TODO enforce CUBE.DEV grammar
+          sql = opts[:sql] || ecto_schema_field
+          desc = opts[:description] || "Documentation if Empathy"
+
+          Module.put_attribute(
+            __MODULE__,
+            :dimensions,
+            {
+              dimension_name,
+              [
+                sql: sql,
+                description: desc,
+                type: type,
+                meta: [
+                  ecto_field_type: original_ecto_field_type,
+                  ecto_field: ecto_schema_field
+                ]
+              ]
+            }
+          )
+      end
+    end
   end
 
-  def __dimension__(module, time_dimension_name, type, opts \\ [])
-
-  def __dimension__(module, time_dimension_name, one_of_ecto_date_times, opts)
-      when one_of_ecto_date_times in [
-             :date,
-             :time,
-             :time_usec,
-             :naive_datetime,
-             :naive_datetime_usec,
-             :utc_datetime,
-             :utc_datetime_usec
-           ] do
-    Module.put_attribute(module, :datetime_dimensions, {time_dimension_name, :time, opts})
-    PowerOfThree.Dimension.define(module, time_dimension_name, :time, opts)
-  end
-
-  def __dimension__(module, dimension_name, :string, opts) do
-    PowerOfThree.Dimension.define(module, dimension_name, :string, opts)
-  end
-
-  def __dimension__(module, dimension_name, native_sql_return_type,
-        sql: native_sql_using_list_of_ecto_schema_fields,
-        ecto_fields: list_of_ecto_schema_fields
-      ) do
-    PowerOfThree.Dimension.define(module, dimension_name, native_sql_return_type,
-      sql: native_sql_using_list_of_ecto_schema_fields,
-      ecto_fields: list_of_ecto_schema_fields
-    )
-  end
-
-  # TODO perhaps resolve ecto_type into measure_type? 
-
-  defmacro measure(measure_name,
-             type: measure_type,
-             for: for_ecto_fields,
-             description: description
+  defmacro measure(
+             measure_name,
+             for_ecto_fields,
+             type: measure_type
            )
            when is_list(for_ecto_fields) do
     quote bind_quoted: binding() do
@@ -299,23 +239,17 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name, measure_type, [description: description, ecto_fields: for_ecto_fields]}
-          )
-
-          PowerOfThree.__measure__(
-            __MODULE__,
-            measure_name,
-            type: measure_type,
-            description: description,
-            ecto_fields: for_ecto_fields
+            {measure_name, measure_type,
+             [description: description, meta: [ecto_fields: for_ecto_fields]]}
           )
       end
     end
   end
 
-  defmacro measure(measure_name,
+  defmacro measure(
+             measure_name,
+             for_ecto_field,
              type: measure_type,
-             for: for_ecto_field,
              description: description
            ) do
     quote bind_quoted: binding() do
@@ -329,24 +263,17 @@ defmodule PowerOfThree do
             __MODULE__,
             :measures,
             {measure_name, measure_type,
-             [description: description, ecto_fields: {for_ecto_field, ecto_type}]}
-          )
-
-          PowerOfThree.__measure__(
-            __MODULE__,
-            measure_name,
-            type: measure_type,
-            description: description,
-            ecto_fields: {for_ecto_field, ecto_type}
+             [description: description, meta: [ecto_fields: {for_ecto_field, ecto_type}]]}
           )
       end
     end
   end
 
-  defmacro measure(measure_name,
+  defmacro measure(
+             measure_name,
+             for_ecto_field,
              type: :time,
              sql: sql_returning_datetime_value,
-             for: for_ecto_field,
              description: description
            ) do
     quote bind_quoted: binding() do
@@ -363,28 +290,8 @@ defmodule PowerOfThree do
             {measure_name, measure_type,
              [description: description, ecto_fields: {for_ecto_field, ecto_type}]}
           )
-
-          PowerOfThree.__measure__(
-            __MODULE__,
-            measure_name,
-            type: measure_type,
-            description: description,
-            ecto_fields: {for_ecto_field, ecto_type}
-          )
       end
     end
-  end
-
-  @doc false
-  def __measure__(module, name,
-        type: measure_type,
-        description: description,
-        ecto_fields: list_of_ecto_schema_fields
-      ) do
-    PowerOfThree.Measure.define(module, name, measure_type,
-      ecto_fields: list_of_ecto_schema_fields,
-      description: description
-    )
   end
 end
 
