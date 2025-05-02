@@ -28,14 +28,13 @@ defmodule Example.Customer do
     dimension(
       :email_per_brand_per_market,
       [:brand_code, :market_code, :email],
-      description: "MANDATORI",
       cube_primary_key: true
     )
 
     dimension(
       :names,
       :first_name,
-      description: "MANDATORI"
+      description: "Louzy documentation"
     )
 
     dimension(:zodiac, [:birthday_day, :birthday_month],
@@ -61,6 +60,7 @@ defmodule Example.Customer do
     )
 
     dimension(:star_sector, [:birthday_day, :birthday_month],
+      type: :number,
       description: "integer from 0 to 11 for zodiac signs",
       sql: """
       CASE
@@ -84,20 +84,26 @@ defmodule Example.Customer do
     dimension(
       :bm_code,
       [:brand_code, :market_code],
-      description: " brand_code+_+market_code, like TF_AU",
       type: :string,
       # This is Cube Dimension type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
       sql: "brand_code|| '_' || market_code"
       ## TODO danger lurking here"
     )
 
-    dimension(:brand, :brand_code, description: " brand_code, like TF")
+    dimension(:brand, :brand_code)
 
     dimension(:market, :market_code, description: "market_code, like AU")
 
     dimension(:arbirtary_datetime, :updated_at, description: "IDK ...?")
 
-    measure(:number_of_emails, :email,
+    measure(:number_of_emails,
+      type: :count,
+      description: "no need for fields for :count type measure"
+    )
+
+    measure(:wrong_count_number, :email, type: :count)
+
+    measure(:emails, :email,
       type: :count_distinct,
       description: "count of emails, int perhaps"
     )
@@ -117,9 +123,9 @@ defmodule Example.Customer do
       description: "Again, Explore your inner data scientist"
     )
 
-    measure(:number_of_accounts, [:brand_code, :market_code, :email],
+    measure(:just_a_count,
       type: :count,
-      description: "Accounts: email + market code + brand code"
+      description: "no fields here "
     )
   end
 end
