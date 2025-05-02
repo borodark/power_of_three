@@ -32,7 +32,7 @@ defmodule PowerOfThree do
 
   defmacro __using__(_) do
     quote do
-      import PowerOfThree, only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+      import PowerOfThree, only: [cube: 3, dimension: 3, measure: 3, time_dimensions: 1]
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
       Module.register_attribute(__MODULE__, :measures, accumulate: true)
       Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
@@ -155,7 +155,7 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, ecto_schema_field, opts) when is_atom(ecto_schema_field) do
+  defmacro dimension(dimension_name, ecto_schema_field, opts) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
@@ -221,9 +221,9 @@ defmodule PowerOfThree do
   defmacro measure(
              measure_name,
              for_ecto_fields,
-             type: measure_type
+             opts
            )
-           when is_list(for_ecto_fields) do
+           when is_list(for_ecto_fields) and length(for_ecto_fields) > 1 do
     quote bind_quoted: binding() do
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
@@ -236,11 +236,25 @@ defmodule PowerOfThree do
                 "Cube Measure wants: \n#{inspect(for_ecto_fields)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
+          type = :number
+
+          sql =
+            opts[:sql] ||
+              raise ArgumentError,
+                    "Cube Measure uses multiple fields: \n#{inspect(for_ecto_fields)},\n, hence the`:sql` is mandatory, but not provided in opts: \n #{inspect(opts)}"
+
+          desc = opts[:description] || "Documentation if Empathy"
+
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name, measure_type,
-             [description: description, meta: [ecto_fields: for_ecto_fields]]}
+            {measure_name,
+             [
+               sql: sql,
+               type: type,
+               description: desc,
+               meta: [ecto_fields: for_ecto_fields]
+             ]}
           )
       end
     end
@@ -249,8 +263,7 @@ defmodule PowerOfThree do
   defmacro measure(
              measure_name,
              for_ecto_field,
-             type: measure_type,
-             description: description
+             opts
            ) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), for_ecto_field, false) do
@@ -259,36 +272,22 @@ defmodule PowerOfThree do
                 "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_type, _ecto_always} ->
+          type =
+            opts[:type] ||
+              raise ArgumentError,
+                    "The `:type` is required in options for Cube Measure that uses a single field: \n#{inspect(for_ecto_field)},\n opts: \n #{inspect(opts)}"
+          desc = opts[:description] || "Documentation if Empathy"
+
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name, measure_type,
-             [description: description, meta: [ecto_fields: {for_ecto_field, ecto_type}]]}
-          )
-      end
-    end
-  end
-
-  defmacro measure(
-             measure_name,
-             for_ecto_field,
-             type: :time,
-             sql: sql_returning_datetime_value,
-             description: description
-           ) do
-    quote bind_quoted: binding() do
-      case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), for_ecto_field, false) do
-        false ->
-          raise ArgumentError,
-                "Cube Measure wants: \n#{inspect(for_ecto_field)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
-
-        {ecto_type, _ecto_always} ->
-          # TODO resolve 
-          Module.put_attribute(
-            __MODULE__,
-            :measures,
-            {measure_name, measure_type,
-             [description: description, ecto_fields: {for_ecto_field, ecto_type}]}
+            {measure_name,
+             [
+               sql: for_ecto_field,
+               description: desc,
+               type: type,
+               meta: [ecto_field: for_ecto_field, ecto_type: ecto_type]
+             ]}
           )
       end
     end

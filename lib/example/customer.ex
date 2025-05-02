@@ -102,11 +102,6 @@ defmodule Example.Customer do
       description: "count of emails, int perhaps"
     )
 
-    measure(:number_of_accounts, [:brand_code, :market_code, :email],
-      type: :count,
-      description: "Accounts: email + market code + brand code"
-    )
-
     measure(:obscure_one, :birthday_day,
       type: :sum,
       description: "Explore your inner data scientist"
@@ -120,6 +115,11 @@ defmodule Example.Customer do
     measure(:updated_pii, :updated_at,
       type: :max,
       description: "Again, Explore your inner data scientist"
+    )
+
+    measure(:number_of_accounts, [:brand_code, :market_code, :email],
+      type: :count,
+      description: "Accounts: email + market code + brand code"
     )
   end
 end
