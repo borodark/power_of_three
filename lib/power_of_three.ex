@@ -29,34 +29,6 @@ defmodule PowerOfThree do
   number                  | `:duration`             | `Duration`
 
   """
-
-  @cube_properties [
-    # :name, 1st argument
-    :sql_alias,
-    :extends,
-    :data_source,
-    :sql,
-    :sql_table,
-    :title,
-    :description,
-    :public,
-    :refresh_key,
-    :meta,
-    :pre_aggregations,
-    :joins,
-    :dimensions,
-    :hierarchies,
-    :segments,
-    :measures,
-    :access_policy
-  ]
-
-  defp take_our_opts(given_opts) when is_list(given_opts) do
-    for a_given <- given_opts,
-        a_given in @cube_properties,
-        do: a_given
-  end
-
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
@@ -70,19 +42,64 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro cube(cube_name, [of: what_ecto_schema], do: block) do
-    cube(__CALLER__, cube_name, what_ecto_schema, block)
+  defmacro cube(cube_name, opts, do: block) do
+    cube(__CALLER__, cube_name, opts, block)
   end
 
-  defp cube(caller, cube_name, what_ecto_schema, block) do
+  @cube_properties [
+    # :name, 1st argument
+    :sql_alias,
+    # TODO? :extends,
+    :data_source,
+    :sql,
+    :sql_table,
+    :title,
+    :description,
+    :public,
+    :refresh_key,
+    :meta
+    # :pre_aggregations,
+    # :joins,
+    # :dimensions,
+    # :hierarchies,
+    # :segments,
+    # :measures,
+    # :access_policy
+  ]
+
+  defp cube(caller, cube_name, opts, block) do
     prelude =
       quote do
         if line = Module.get_attribute(__MODULE__, :cube_defined) do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
-        case Module.get_attribute(__MODULE__, :ecto_fields, false) do
-          [id: _tuple_of_id_always] ->
+        cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
+        extra_opts = unquote(opts)
+
+        cube_opts =
+          for a_given <- extra_opts,
+              a_given in [
+                :sql_alias,
+                :data_source,
+                :sql,
+                :sql_table,
+                :title,
+                :description,
+                :public,
+                :refresh_key,
+                :meta
+              ],
+              do: a_given
+
+        cube_opts |> IO.inspect(label: :cube_opts)
+
+        case Module.get_attribute(__MODULE__, :ecto_fields, []) do
+          [id: {:id, :always}] ->
+            raise ArgumentError,
+                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+
+          [] ->
             raise ArgumentError,
                   "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
 
@@ -97,9 +114,6 @@ defmodule PowerOfThree do
         Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
         Module.register_attribute(__MODULE__, :datetime_dimensions, accumulate: true)
         Module.put_attribute(__MODULE__, :cube_enabled, true)
-
-        cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
-        what_ecto_schema = unquote(what_ecto_schema) |> IO.inspect(label: :what_ecto_schema)
 
         try do
           import PowerOfThree
@@ -145,6 +159,8 @@ defmodule PowerOfThree do
     end
   end
 
+  defmacro dimension(dimension_name, one_or_a_list_of_ecto_schema_fields, opts \\ [])
+
   defmacro dimension(
              dimension_name,
              list_of_ecto_schema_fields,
@@ -185,7 +201,7 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, ecto_schema_field, opts \\ []) do
+  defmacro dimension(dimension_name, ecto_schema_field, opts) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
