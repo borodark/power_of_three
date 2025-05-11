@@ -77,20 +77,18 @@ defmodule PowerOfThree do
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         extra_opts = unquote(opts)
 
-        cube_opts =
-          for a_given <- Keyword.keys(extra_opts),
-              a_given in [
-                :sql_alias,
-                :data_source,
-                :sql,
-                :sql_table,
-                :title,
-                :description,
-                :public,
-                :refresh_key,
-                :meta
-              ],
-              do: {a_given, extra_opts |> Keyword.get(a_given)}
+        {cube_opts,_} =
+          Keyword.split(extra_opts, [
+            :sql_alias,
+            :data_source,
+            :sql,
+            :sql_table,
+            :title,
+            :description,
+            :public,
+            :refresh_key,
+            :meta
+          ])
 
         cube_opts |> IO.inspect(label: :cube_opts)
 
