@@ -29,6 +29,22 @@ defmodule PowerOfThree do
   number                  | `:duration`             | `Duration`
 
   """
+  defmacro __using__(_) do
+    quote do
+      import PowerOfThree,
+        only: [cube: 3, dimension: 3, measure: 3, measure: 2, time_dimensions: 1]
+
+      Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
+      Module.register_attribute(__MODULE__, :measures, accumulate: true)
+      Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
+      Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
+      Module.put_attribute(__MODULE__, :cube_enabled, true)
+    end
+  end
+
+  defmacro cube(cube_name, opts, do: block) do
+    cube(__CALLER__, cube_name, opts, block)
+  end
 
   @cube_properties [
     # :name, 1st argument
@@ -51,23 +67,6 @@ defmodule PowerOfThree do
     # :access_policy
   ]
 
-  defmacro __using__(_) do
-    quote do
-      import PowerOfThree,
-        only: [cube: 3, dimension: 3, measure: 3, measure: 2, time_dimensions: 1]
-
-      Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
-      Module.register_attribute(__MODULE__, :measures, accumulate: true)
-      Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
-      Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
-      Module.put_attribute(__MODULE__, :cube_enabled, true)
-    end
-  end
-
-  defmacro cube(cube_name, opts, do: block) do
-    cube(__CALLER__, cube_name, opts, block)
-  end
-
   defp cube(caller, cube_name, opts, block) do
     prelude =
       quote do
@@ -76,6 +75,24 @@ defmodule PowerOfThree do
         end
 
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
+        extra_opts = unquote(opts)
+
+        cube_opts =
+          for a_given <- extra_opts,
+              a_given in [
+                :sql_alias,
+                :data_source,
+                :sql,
+                :sql_table,
+                :title,
+                :description,
+                :public,
+                :refresh_key,
+                :meta
+              ],
+              do: a_given
+
+        cube_opts |> IO.inspect(label: :cube_opts)
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
@@ -85,7 +102,8 @@ defmodule PowerOfThree do
           [] ->
             raise ArgumentError,
                   "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
-          [_|_] ->
+
+          [_ | _] ->
             :ok
         end
 

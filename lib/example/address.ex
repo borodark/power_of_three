@@ -48,9 +48,12 @@ defmodule Example.Address do
 
   cube :of_addresses, title: "Demo cube", description: "of Customers" do
     dimension(
-      :email_per_brand_per_market,
-      [:brand_code, :market_code, :email],
-      cube_primary_key: true
+      :country_bm,
+      [:brand_code, :market_code, :country]
+    )
+    dimension(
+      :city,
+      [:country,:province,:city]
     )
 
     dimension(
@@ -58,5 +61,12 @@ defmodule Example.Address do
       :first_name,
       description: "Louzy documentation"
     )
+    measure(:number_of_addresses,
+      type: :count,
+      description: "no need for fields for :count type measure"
+    )
+
+    measure(:country_count, :country, type: :count)
+
   end
 end
