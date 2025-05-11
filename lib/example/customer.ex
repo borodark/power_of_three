@@ -9,9 +9,6 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
-  @required_fields [:brand_code, :email, :market_code]
-  @optional_fields [:birthday_day, :birthday_month, :address_id, :first_name, :last_name]
-
   schema "customer" do
     field(:first_name, :string)
     field(:last_name, :string)
@@ -24,7 +21,9 @@ defmodule Example.Customer do
     timestamps()
   end
 
-  cube :of_customers, of: :customer do
+  cube :of_customers,
+    title: "Demo cube",
+    description: "of Customers" do
     dimension(
       :email_per_brand_per_market,
       [:brand_code, :market_code, :email],

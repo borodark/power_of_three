@@ -4,38 +4,12 @@ defmodule Example.Address do
   """
   use Ecto.Schema
 
+  use PowerOfThree
+
   alias Example.Customer
   alias Example.Order
 
   @type t() :: %__MODULE__{}
-
-  @required_fields [
-    :address_1,
-    :city,
-    :country_code,
-    :first_name,
-    :kind,
-    :last_name,
-    :phone,
-    :postal_code,
-    :province_code,
-    :site_domain,
-    :market_code,
-    :brand_code
-  ]
-
-  # for those fields we're gonna need locales and recheck how to build then
-  @optional_fields [
-    :address_2,
-    :checkout_id,
-    :company,
-    :country,
-    :customer_id,
-    :order_id,
-    :province,
-    :summary,
-    :url
-  ]
 
   @kinds [:shipping, :billing]
 
@@ -70,5 +44,19 @@ defmodule Example.Address do
     )
 
     timestamps()
+  end
+
+  cube :of_addresses, title: "Demo cube", description: "of Customers" do
+    dimension(
+      :email_per_brand_per_market,
+      [:brand_code, :market_code, :email],
+      cube_primary_key: true
+    )
+
+    dimension(
+      :names,
+      :first_name,
+      description: "Louzy documentation"
+    )
   end
 end
