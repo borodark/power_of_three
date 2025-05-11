@@ -78,7 +78,7 @@ defmodule PowerOfThree do
         extra_opts = unquote(opts)
 
         cube_opts =
-          for a_given <- extra_opts,
+          for a_given <- Keyword.keys(extra_opts),
               a_given in [
                 :sql_alias,
                 :data_source,
@@ -90,7 +90,7 @@ defmodule PowerOfThree do
                 :refresh_key,
                 :meta
               ],
-              do: a_given
+              do: {a_given, extra_opts |> Keyword.get(a_given)}
 
         cube_opts |> IO.inspect(label: :cube_opts)
 

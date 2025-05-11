@@ -46,14 +46,18 @@ defmodule Example.Address do
     timestamps()
   end
 
-  cube :of_addresses, title: "Demo cube", description: "of Customers" do
+  cube :of_addresses,
+    non_existent_cube_porperty: "intruding here",
+    title: "Demo cube",
+    description: "of Customers" do
     dimension(
       :country_bm,
       [:brand_code, :market_code, :country]
     )
+
     dimension(
       :city,
-      [:country,:province,:city]
+      [:country, :province, :city]
     )
 
     dimension(
@@ -61,12 +65,12 @@ defmodule Example.Address do
       :first_name,
       description: "Louzy documentation"
     )
+
     measure(:number_of_addresses,
       type: :count,
       description: "no need for fields for :count type measure"
     )
 
     measure(:country_count, :country, type: :count)
-
   end
 end
