@@ -77,7 +77,7 @@ defmodule PowerOfThree do
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         extra_opts = unquote(opts)
 
-        {cube_opts,_} =
+        {cube_opts, _} =
           Keyword.split(extra_opts, [
             :sql_alias,
             :data_source,
@@ -124,13 +124,22 @@ defmodule PowerOfThree do
     postlude =
       quote unquote: false do
         cube_primary_keys =
-          @cube_primary_keys |> Enum.reverse() |> IO.inspect(label: :cube_primary_keys)
+          @cube_primary_keys
+          |> Enum.reverse()
 
-        measures = @measures |> Enum.reverse() |> IO.inspect(label: :measures)
-        dimensions = @dimensions |> Enum.reverse() |> IO.inspect(label: :dimensions)
+        measures = @measures |> Enum.reverse()#|> Enum.into(%{})
 
-        datetime_dimensions =
-          @datetime_dimensions |> Enum.reverse() |> IO.inspect(label: :datetime_dimensions)
+        dimensions =
+          @dimensions |> Enum.reverse() #|> Enum.into(%{})
+
+        a_cube_config =
+          Keyword.merge([name: cube_name, dimensions: dimensions, measures: measures],cube_opts)
+
+        File.write(
+          "/tmp/cubes.yaml",
+          %{cubes: a_cube_config}
+          |> Ymlr.document!()
+        )
 
         :ok
       end

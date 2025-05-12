@@ -27,6 +27,7 @@ defmodule PowerOfThree.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ymlr, "~> 5.0"},
       {:ecto_sql, "~> 3.0"},
       {:faker, "~> 0.18"},
       {:blacksmith, "~> 0.1"},

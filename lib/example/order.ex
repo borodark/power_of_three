@@ -35,27 +35,6 @@ defmodule Example.Order do
     :unfulfilled
   ]
 
-  @required_fields [
-    :brand_code,
-    :email,
-    :market_code,
-    :reference_number,
-    :site_domain,
-    :subtotal_amount,
-    :total_amount
-  ]
-
-  @optional_fields [
-    :attributes,
-    :customer_uuid,
-    :delivery_subtotal_amount,
-    :discount_total_amount,
-    :financial_status,
-    :fulfillment_status,
-    :payment_reference,
-    :tax_amount
-  ]
-
   schema "order" do
     field(:delivery_subtotal_amount, :integer, default: 0)
     field(:discount_total_amount, :integer, default: 0)
