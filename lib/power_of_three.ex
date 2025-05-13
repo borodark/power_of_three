@@ -77,7 +77,7 @@ defmodule PowerOfThree do
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         extra_opts = unquote(opts)
 
-        {cube_opts, _} =
+        {cube_opts_, _} =
           Keyword.split(extra_opts, [
             :sql_alias,
             :data_source,
@@ -90,7 +90,7 @@ defmodule PowerOfThree do
             :meta
           ])
 
-        cube_opts |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(cube_opts_, %{}) |> IO.inspect(label: :cube_opts)
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
@@ -127,13 +127,18 @@ defmodule PowerOfThree do
           @cube_primary_keys
           |> Enum.reverse()
 
-        measures = @measures |> Enum.reverse()#|> Enum.into(%{})
+        # |> Enum.into(%{})
+        measures = @measures |> Enum.reverse()
 
+        # |> Enum.into(%{})
         dimensions =
-          @dimensions |> Enum.reverse() #|> Enum.into(%{})
+          @dimensions |> Enum.reverse()
 
-        a_cube_config =
-          Keyword.merge([name: cube_name, dimensions: dimensions, measures: measures],cube_opts)
+        a_cube_config = [
+          %{name: cube_name}
+          |> Map.merge(cube_opts)
+          |> Map.merge(%{dimensions: dimensions, measures: measures})
+        ]
 
         File.write(
           "/tmp/cubes.yaml",
