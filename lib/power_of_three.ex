@@ -131,8 +131,9 @@ defmodule PowerOfThree do
         measures = @measures |> Enum.reverse()
 
         # |> Enum.into(%{})
+        # |> Enum.reverse()
         dimensions =
-          @dimensions |> Enum.reverse()
+          @dimensions
 
         a_cube_config = [
           %{name: cube_name}
@@ -201,13 +202,13 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            {dimension_name,
-             [
-               type: type,
-               sql: sql,
-               description: desc,
-               meta: [ecto_fields: list_of_ecto_schema_fields]
-             ]}
+            %{
+              meta: %{ecto_fields: list_of_ecto_schema_fields},
+              name: dimension_name,
+              type: type,
+              sql: sql,
+              description: desc
+            }
           )
       end
     end
@@ -260,17 +261,15 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            {
-              dimension_name,
-              [
-                sql: sql,
-                description: desc,
-                type: type,
-                meta: [
-                  ecto_field_type: original_ecto_field_type,
-                  ecto_field: ecto_schema_field
-                ]
-              ]
+            %{
+              meta: %{
+                ecto_field_type: original_ecto_field_type,
+                ecto_field: ecto_schema_field
+              },
+              name: dimension_name,
+              type: type,
+              sql: sql,
+              description: desc
             }
           )
       end
@@ -291,11 +290,12 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name,
-             [
-               type: :count,
-               description: desc
-             ]}
+            %{
+              name: measure_name,
+              type: :count,
+              # add meta
+              description: desc
+            }
           )
 
         false ->
@@ -335,13 +335,13 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name,
-             [
-               sql: sql,
-               type: type,
-               description: desc,
-               meta: [ecto_fields: for_ecto_fields]
-             ]}
+            %{
+              name: measure_name,
+              type: type,
+              sql: sql,
+              description: desc
+              # meta: %{ecto_fields: for_ecto_fields}
+            }
           )
       end
     end
@@ -369,13 +369,13 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :measures,
-            {measure_name,
-             [
-               sql: for_ecto_field,
-               description: desc,
-               type: type,
-               meta: [ecto_field: for_ecto_field, ecto_type: ecto_type]
-             ]}
+            %{
+              name: measure_name,
+              type: type,
+              sql: for_ecto_field,
+              description: desc
+              # meta: %{ecto_field: for_ecto_field, ecto_type: ecto_type}
+            }
           )
       end
     end
