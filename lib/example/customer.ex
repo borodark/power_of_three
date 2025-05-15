@@ -22,6 +22,7 @@ defmodule Example.Customer do
   end
 
   cube :of_customers,
+    sql_table: "customer",
     title: "Demo cube",
     description: "of Customers" do
     dimension(

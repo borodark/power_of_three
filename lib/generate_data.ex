@@ -77,7 +77,7 @@ defmodule GenerateData do
   end
 
   def a_customer do
-    fake_bd = Faker.Date.between(~D[1932-01-01], ~D[2005-12-31])
+    fake_bd = Faker.DateTime.between(~N[1934-12-20 00:00:00], ~N[2006-12-25 00:00:00])
 
     %{
       birthday_day: fake_bd.day,
@@ -86,7 +86,9 @@ defmodule GenerateData do
       email: Faker.Internet.email(),
       first_name: Faker.Person.first_name(),
       last_name: Faker.Person.last_name(),
-      market_code: Faker.Address.country_code()
+      market_code: Faker.Address.country_code(),
+      inserted_at: fake_bd |> DateTime.to_naive |> NaiveDateTime.truncate(:second),
+      updated_at: Faker.DateTime.backward(900) |> DateTime.to_naive |> NaiveDateTime.truncate(:second)
     }
   end
 end

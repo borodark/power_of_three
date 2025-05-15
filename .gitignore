@@ -23,3 +23,5 @@ power_of_3-*.tar
 /tmp/
 
 /priv/plts/
+
+/.cubestore/

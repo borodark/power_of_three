@@ -8,6 +8,7 @@ config :power_of_3, Example.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
+  port: 7432,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10

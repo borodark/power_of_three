@@ -91,7 +91,7 @@ defmodule PowerOfThree do
           ])
 
         cube_opts = Enum.into(cube_opts_, %{}) |> IO.inspect(label: :cube_opts)
-
+        sql_table = cube_opts[:sql_table]
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
@@ -140,9 +140,9 @@ defmodule PowerOfThree do
           |> Map.merge(cube_opts)
           |> Map.merge(%{dimensions: dimensions, measures: measures})
         ]
-
+        # TODO validate sql_table
         File.write(
-          "/tmp/cubes.yaml",
+          "model/cubes/cubes-of-#{inspect(sql_table)}.yaml",
           %{cubes: a_cube_config}
           |> Ymlr.document!()
         )
