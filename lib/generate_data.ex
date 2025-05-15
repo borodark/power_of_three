@@ -87,8 +87,9 @@ defmodule GenerateData do
       first_name: Faker.Person.first_name(),
       last_name: Faker.Person.last_name(),
       market_code: Faker.Address.country_code(),
-      inserted_at: fake_bd |> DateTime.to_naive |> NaiveDateTime.truncate(:second),
-      updated_at: Faker.DateTime.backward(900) |> DateTime.to_naive |> NaiveDateTime.truncate(:second)
+      inserted_at: fake_bd |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
+      updated_at:
+        Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
     }
   end
 end

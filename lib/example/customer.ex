@@ -96,27 +96,20 @@ defmodule Example.Customer do
 
     dimension(:arbirtary_datetime, :updated_at, description: "IDK ...?")
 
-    measure(:number_of_emails,
+    measure(:number_of_records,
       type: :count,
       description: "no need for fields for :count type measure"
     )
 
-    measure(:wrong_count_number, :email, type: :count)
-    # TODO catch type :count do not use fields
-
-    measure(:emails, :email,
+    measure(:emails_distinct, :email,
       type: :count_distinct,
       description: "count of emails, int perhaps"
     )
 
-    measure(:obscure_one, :birthday_day,
-      type: :sum,
-      description: "Explore your inner data scientist"
-    )
-
     measure(:latest_joined, :inserted_at,
       type: :max,
-      description: "Again, Explore your inner data scientist"
+      description: "Again, Explore your inner data scientist",
+      format: :currency
     )
 
     measure(:updated_pii, :updated_at,
