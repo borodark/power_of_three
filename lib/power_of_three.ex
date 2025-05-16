@@ -48,8 +48,15 @@ defmodule PowerOfThree do
 
   @cube_properties [
     # :name, 1st argument
-    :sql_alias,
+    # :pre_aggregations,
+    # :joins,
+    # :dimensions,
+    # :hierarchies,
+    # :segments,
+    # :measures,
+    # :access_policy
     # TODO? :extends,
+    :sql_alias,
     :data_source,
     :sql,
     :sql_table,
@@ -58,13 +65,6 @@ defmodule PowerOfThree do
     :public,
     :refresh_key,
     :meta
-    # :pre_aggregations,
-    # :joins,
-    # :dimensions,
-    # :hierarchies,
-    # :segments,
-    # :measures,
-    # :access_policy
   ]
 
   defp cube(caller, cube_name, opts, block) do
@@ -128,13 +128,8 @@ defmodule PowerOfThree do
           @cube_primary_keys
           |> Enum.reverse()
 
-        # |> Enum.into(%{})
         measures = @measures |> Enum.reverse()
-
-        # |> Enum.into(%{})
-        # |> Enum.reverse()
-        dimensions =
-          @dimensions
+        dimensions = @dimensions
 
         a_cube_config = [
           %{name: cube_name}
@@ -169,7 +164,13 @@ defmodule PowerOfThree do
       Module.put_attribute(
         __MODULE__,
         :datetime_dimensions,
-        {:inserted_at, :time, [description: " Default to inserted_at"]}
+        %{
+          meta: %{ecto_field: :inserted_at},
+          name: :inserted_at,
+          type: :time,
+          sql: :inserted_at,
+          description: "inserted_at"
+        }
       )
     end
   end

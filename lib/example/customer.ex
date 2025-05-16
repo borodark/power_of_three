@@ -90,11 +90,11 @@ defmodule Example.Customer do
       ## TODO danger lurking here"
     )
 
-    dimension(:brand, :brand_code)
+    dimension(:brand, :brand_code, description: "Beer")
 
     dimension(:market, :market_code, description: "market_code, like AU")
 
-    dimension(:arbirtary_datetime, :updated_at, description: "IDK ...?")
+    dimension(:a_datetime, :updated_at, description: "updated_at timestamp")
 
     measure(:number_of_records,
       type: :count,
@@ -103,23 +103,13 @@ defmodule Example.Customer do
 
     measure(:emails_distinct, :email,
       type: :count_distinct,
-      description: "count of emails, int perhaps"
+      description: "count distinct of emails"
     )
 
-    measure(:latest_joined, :inserted_at,
-      type: :max,
-      description: "Again, Explore your inner data scientist",
-      format: :currency
-    )
-
-    measure(:updated_pii, :updated_at,
-      type: :max,
-      description: "Again, Explore your inner data scientist"
-    )
-
-    measure(:just_a_count,
-      type: :count,
-      description: "no fields here "
+    measure(:aquari, :email,
+      type: :count_distinct,
+      description: "Filtered by start sector = 0",
+      filters: [sql: "{CUBE}.star_sector = 0"]
     )
   end
 end

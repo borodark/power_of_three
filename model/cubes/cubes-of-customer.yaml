@@ -10,26 +10,19 @@ cubes:
         description: no need for fields for :count type measure
       - name: emails_distinct
         type: count_distinct
-        description: count of emails, int perhaps
+        description: count distinct of emails
         sql: email
-      - name: latest_joined
-        type: max
-        description: Again, Explore your inner data scientist
-        sql: inserted_at
-      - name: updated_pii
-        type: max
-        description: Again, Explore your inner data scientist
-        sql: updated_at
-      - name: just_a_count
-        type: count
-        description: 'no fields here '
+      - name: aquari
+        type: count_distinct
+        description: Filtered by start sector = 0
+        sql: email
     dimensions:
       - meta:
           ecto_field: updated_at
           ecto_field_type: naive_datetime
-        name: arbirtary_datetime
+        name: a_datetime
         type: time
-        description: IDK ...?
+        description: updated_at timestamp
         sql: updated_at
       - meta:
           ecto_field: market_code
@@ -43,7 +36,7 @@ cubes:
           ecto_field_type: string
         name: brand
         type: string
-        description: Documentation if Empathy
+        description: Beer
         sql: brand_code
       - meta:
           ecto_fields:
