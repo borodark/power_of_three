@@ -8,11 +8,17 @@ cubes:
       - name: number_of_records
         type: count
         description: no need for fields for :count type measure
-      - name: emails_distinct
+      - meta:
+          ecto_field: email
+          ecto_type: string
+        name: emails_distinct
         type: count_distinct
         description: count distinct of emails
         sql: email
-      - name: aquari
+      - meta:
+          ecto_field: email
+          ecto_type: string
+        name: aquari
         type: count_distinct
         description: Filtered by start sector = 0
         sql: email
@@ -90,7 +96,7 @@ cubes:
           WHEN (birthday_month = 10 AND birthday_day >= 23) OR (birthday_month = 11 AND birthday_day <= 21) THEN 'Scorpio'
           WHEN (birthday_month = 11 AND birthday_day >= 22) OR (birthday_month = 12 AND birthday_day <= 21) THEN 'Sagittarius'
           WHEN (birthday_month = 12 AND birthday_day >= 22) OR (birthday_month = 1 AND birthday_day <= 19) THEN 'Capricorn'
-          ELSE 'Aquarius'
+          ELSE 'Professor Abe Weissman'
           END
       - meta:
           ecto_field: first_name
@@ -108,3 +114,9 @@ cubes:
         type: string
         description: Documentation if Empathy
         sql: brand_code||market_code||email
+      - meta:
+          ecto_field: inserted_at
+        name: inserted_at
+        type: time
+        description: inserted_at
+        sql: inserted_at

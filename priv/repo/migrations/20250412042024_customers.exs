@@ -49,7 +49,6 @@ defmodule Example.Repo.Migrations.Customers do
       add :province_code, :string
       add :market_code, :string
       add :summary, :string
-      add :url, :string
       add :customer_id,
         references(:customer)
       add :order_id,

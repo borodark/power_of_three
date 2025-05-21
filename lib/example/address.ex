@@ -29,9 +29,7 @@ defmodule Example.Address do
     field(:province, :string)
     field(:province_code, :string)
     field(:market_code, :string)
-    field(:site_domain, :string)
     field(:summary, :string)
-    field(:url, :string)
 
     belongs_to(:customer, Customer,
       foreign_key: :customer_id,
@@ -66,6 +64,8 @@ defmodule Example.Address do
       :first_name,
       description: "Louzy documentation"
     )
+
+    time_dimensions()
 
     measure(:number_of_addresses,
       type: :count,

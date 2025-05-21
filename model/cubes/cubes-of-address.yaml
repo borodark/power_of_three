@@ -8,7 +8,10 @@ cubes:
       - name: number_of_addresses
         type: count
         description: no need for fields for :count type measure
-      - name: country_count
+      - meta:
+          ecto_field: country
+          ecto_type: string
+        name: country_count
         type: count
         description: Documentation if Empathy
         sql: country
@@ -38,3 +41,9 @@ cubes:
         type: string
         description: Documentation if Empathy
         sql: brand_code||market_code||country
+      - meta:
+          ecto_field: inserted_at
+        name: inserted_at
+        type: time
+        description: inserted_at
+        sql: inserted_at

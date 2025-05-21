@@ -16,6 +16,8 @@ defmodule GenerateData do
   use Mix.Task
 
   alias Example.Customer
+  alias Example.Address
+  alias Example.Order
   alias Example.Repo
 
   require Logger
@@ -79,15 +81,57 @@ defmodule GenerateData do
   def a_customer do
     fake_bd = Faker.DateTime.between(~N[1934-12-20 00:00:00], ~N[2006-12-25 00:00:00])
 
+    {bd_day, bd_month} =
+      Enum.random([{nil, nil}, {nil, nil}, {nil, nil}, {fake_bd.day, fake_bd.month}])
+
     %{
-      birthday_day: fake_bd.day,
-      birthday_month: fake_bd.month,
+      birthday_day: bd_day,
+      birthday_month: bd_month,
       brand_code: Faker.Beer.brand(),
       email: Faker.Internet.email(),
       first_name: Faker.Person.first_name(),
       last_name: Faker.Person.last_name(),
       market_code: Faker.Address.country_code(),
       inserted_at: fake_bd |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
+      updated_at:
+        Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
+    }
+  end
+
+  def an_address(%Order{} = order) do
+    Map.merge(
+      %{kind: :shipping, order: order},
+      base_address()
+    )
+  end
+
+  def an_address(%Customer{} = customer) do
+    Map.merge(
+      %{kind: :billing, customer: customer},
+      base_address()
+    )
+  end
+
+  def base_address() do
+    %{
+      brand_code: Faker.Beer.brand(),
+      email: Faker.Internet.email(),
+      address_1: Faker.Address.En.street_address(),
+      address_2: Faker.Address.En.secondary_address(),
+      city: Faker.Address.En.city(),
+      company: Enum.random([nil, nil, nil, Faker.Company.name()]),
+      country_code: Faker.Address.En.country_code(),
+      country: Faker.Address.En.country(),
+      first_name: Faker.Person.first_name(),
+      last_name: Faker.Person.last_name(),
+      phone: Faker.Phone.EnUs.phone(),
+      postal_code: Faker.Address.En.zip_code(),
+      province: Faker.Address.En.state(),
+      province_code: Faker.Address.En.state_abbr(),
+      market_code: Faker.Address.country_code(),
+      summary: "FaKeD",
+      inserted_at:
+        Faker.DateTime.backward(1000) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
       updated_at:
         Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
     }

@@ -130,11 +130,12 @@ defmodule PowerOfThree do
 
         measures = @measures |> Enum.reverse()
         dimensions = @dimensions
+        time_dimensions = @time_dimensions
 
         a_cube_config = [
           %{name: cube_name}
           |> Map.merge(cube_opts)
-          |> Map.merge(%{dimensions: dimensions, measures: measures})
+          |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
 
         # TODO validate sql_table
@@ -144,6 +145,7 @@ defmodule PowerOfThree do
           |> Ymlr.document!()
         )
 
+        a_cube_config |> IO.inspect(label: :a_cube_config)
         :ok
       end
 
@@ -163,7 +165,7 @@ defmodule PowerOfThree do
     quote bind_quoted: binding() do
       Module.put_attribute(
         __MODULE__,
-        :datetime_dimensions,
+        :time_dimensions,
         %{
           meta: %{ecto_field: :inserted_at},
           name: :inserted_at,
@@ -285,6 +287,7 @@ defmodule PowerOfThree do
            )
            when is_list(opts) and length(opts) > 1 do
     # TODO , opts \\ []
+
     quote bind_quoted: binding() do
       case opts[:type] == :count do
         true ->
@@ -376,21 +379,15 @@ defmodule PowerOfThree do
               name: measure_name,
               type: type,
               sql: for_ecto_field,
-              description: desc
-              # meta: %{ecto_field: for_ecto_field, ecto_type: ecto_type}
+              description: desc,
+              meta: %{ecto_field: for_ecto_field, ecto_type: ecto_type}
             }
           )
       end
     end
   end
 
-  defmodule PowerOfThree.Dimension.Case do
-    @type t() :: %__MODULE__{}
-    defstruct when: [],
-              else: nil
-  end
-
-  defmodule PowerOfThree.Dimension do
+  defmodule Dimension do
     @moduledoc """
     https://cube.dev/docs/reference/data-model/dimensions
     A Dimension of Cube object with following properties:
@@ -409,48 +406,24 @@ defmodule PowerOfThree do
       - type
       - granularities
     """
+    @case [when: [], else: nil]
     @dimension_type [:string, :time, :number, :boolean, :geo]
     @format [:imageUrl, :id, :link, :currency, :percent]
-
-    alias PowerOfThree.Dimension.Case
-
-    @type t() :: %__MODULE__{
-            name: String.t() | nil,
-            case: Case.t() | nil,
-            description: String.t() | nil,
-            format: atom() | nil,
-            meta: Keyword.t(),
-            public: boolean(),
-            sql: String.t() | nil,
-            title: String.t() | nil,
-            type: atom()
-            # TODO granularities: https://cube.dev/docs/reference/data-model/dimensions#granularities 
-          }
-
-    defstruct name: nil,
-              case: nil,
-              description: nil,
-              format: nil,
-              meta: [tag: :dimension],
-              public: true,
-              sql: nil,
-              title: nil,
-              type: :string
-
-    # TODO granularities: https://cube.dev/docs/reference/data-model/dimensions#granularities 
-
-    def define(mod, name, valid_type, opts) when valid_type in @dimension_type do
-      # |> Enum.map(&IO.inspect/1)
-      [mod, name, valid_type, opts]
-    end
-
-    def define(mod, name, cube_primary_keys: list_of_fields_of_composite_key) do
-      #  |> Enum.map(&IO.inspect/1)
-      [mod, name, list_of_fields_of_composite_key]
-    end
+    @parameters [
+      :name,
+      :case,
+      :description,
+      :format,
+      :meta,
+      :public,
+      :sql,
+      :title,
+      :type,
+      :granularities
+    ]
   end
 
-  defmodule PowerOfThree.Measure do
+  defmodule Measure do
     @moduledoc """
     https://cube.dev/docs/reference/data-model/measures
     A Measure of Cube object with following:
@@ -484,39 +457,27 @@ defmodule PowerOfThree do
     ]
 
     @format [:percent, :currency]
-    # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
+
     @rolling_window [:trailing, :leading]
-
-    def define(mod, name, valid_type, opts) when valid_type in @measure_types do
-      # |> Enum.map(&IO.inspect/1)
-      [mod, name, valid_type, opts]
-    end
-
-    @type t() :: %__MODULE__{
-            name: String.t() | nil,
-            sql: String.t() | nil,
-            type: atom(),
-            description: String.t() | nil,
-            drill_members: list(),
-            filters: list(),
-            format: atom() | nil,
-            meta: Keyword.t(),
-            rolling_window: atom() | nil,
-            public: boolean(),
-            title: String.t() | nil
-          }
+    # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
 
     @mandatory [:name, :sql, :type]
-    defstruct name: nil,
-              sql: nil,
-              type: :count,
-              title: nil,
-              description: nil,
-              drill_members: [],
-              filters: [],
-              format: nil,
-              meta: [tag: :measure],
-              rolling_window: nil,
-              public: true
+    @defaults [
+      name: nil,
+      sql: nil,
+      type: :count,
+      title: nil,
+      description: nil,
+      # drill_members is defined as an array of dimensions
+      drill_members: [],
+      filters: [],
+      format: nil,
+      meta: [tag: :measure],
+      rolling_window: nil,
+      public: true
+    ]
+  end
+
+  def define() do
   end
 end

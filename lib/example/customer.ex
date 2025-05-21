@@ -54,7 +54,7 @@ defmodule Example.Customer do
       WHEN (birthday_month = 10 AND birthday_day >= 23) OR (birthday_month = 11 AND birthday_day <= 21) THEN 'Scorpio'
       WHEN (birthday_month = 11 AND birthday_day >= 22) OR (birthday_month = 12 AND birthday_day <= 21) THEN 'Sagittarius'
       WHEN (birthday_month = 12 AND birthday_day >= 22) OR (birthday_month = 1 AND birthday_day <= 19) THEN 'Capricorn'
-      ELSE 'Aquarius'
+      ELSE 'Professor Abe Weissman'
       END
       """
     )
@@ -100,6 +100,8 @@ defmodule Example.Customer do
       type: :count,
       description: "no need for fields for :count type measure"
     )
+
+    time_dimensions()
 
     measure(:emails_distinct, :email,
       type: :count_distinct,
