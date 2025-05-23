@@ -12,7 +12,7 @@ defmodule GenerateData do
       iex> Task.run([10000])
   """
 
-  use Ecto.Schema
+  # use Ecto.Schema
   use Mix.Task
 
   alias Example.Customer
@@ -20,32 +20,66 @@ defmodule GenerateData do
   alias Example.Order
   alias Example.Repo
 
+  import Ecto.Query, only: [from: 2]
+
   require Logger
+
+  @the_maximum_is 65535
+
+  @financial_status [
+    :authorized,
+    :paid,
+    :partially_paid,
+    :partially_refunded,
+    :pending_risk_analysis,
+    :pending,
+    :refunded,
+    :rejected,
+    :voided
+  ]
+
+  @fulfillment_status [
+    :accepted,
+    :canceled,
+    :fulfilled,
+    :in_progress,
+    :on_hold,
+    :partially_canceled,
+    :partially_fulfilled,
+    :partially_returned,
+    :rejected,
+    :returned,
+    :scheduled,
+    :unfulfilled
+  ]
 
   # Repo.insert_all() has limitation on 32K parameters markers,
   @default_size 5461
   # hence for Customer it's 5461 = 32K/number_of_columns_in_insert
 
   @impl Mix.Task
-  @callback run(command_line_args :: [integer()]) :: any()
+  @callback run(command_line_args :: list()) :: any()
   @doc ~S"""
   ## Run Generation
 
-  Supply *[] - empty list* To generate data 
+  Supply *[] - empty list* To generate orders data 
 
       iex> alias GenerateData, as: Task
       iex> Task.run([])
 
   """
-  def run([]) do
+
+  def run([goal]) when is_integer(goal) do
+    Logger.info("Generating #{goal} Orders ...")
+    process_next({0, nil}, 0, goal)
+  end
+
+  def run([@default_size]) do
     Logger.info("Generating data ...")
     process_next({0, nil}, 0, @default_size)
   end
 
-  def run([goal]) when is_integer(goal) do
-    Logger.info("Generating #{goal} customers ...")
-    process_next({0, nil}, 0, goal)
-  end
+  def run([]), do: run([@default_size])
 
   def run(_list) do
     Logger.info(
@@ -61,10 +95,10 @@ defmodule GenerateData do
   end
 
   def process_next({this_time, nil}, so_far, goal) when goal > so_far do
-    Logger.info("Generated next batch of #{this_time} customers ...")
+    Logger.info("Generated next batch of #{this_time} Orders ...")
     so_far = so_far + this_time
 
-    next_batch =
+    customers =
       case goal - so_far > @default_size do
         true ->
           Stream.repeatedly(&__MODULE__.a_customer/0) |> Enum.take(@default_size)
@@ -74,8 +108,26 @@ defmodule GenerateData do
           Stream.repeatedly(&__MODULE__.a_customer/0) |> Enum.take(goal - so_far)
       end
 
-    Repo.insert_all(Customer, next_batch)
-    |> process_next(so_far, goal)
+    {inserted, nil} = Repo.insert_all(Customer, customers)
+    Repo.insert_all(Order, orderz())
+    #order_addressez = Stream.repeatedly(&__MODULE__.order_addressez/0)
+    #|> Enum.take(3)
+    #|> IO.inspect(label: :orders)
+    #Repo.insert_all(Order, order_addressez)
+
+    {inserted, nil} |> process_next(so_far, goal)
+  end
+
+  def orderz do
+    customer_ids =
+      from(Customer,
+        select: [:id]
+      )
+    idz = Repo.all(customer_ids)
+    |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
+    |> IO.inspect(label: :idz)
+
+    idz |> Enum.map(fn customer_id -> order(customer_id) end)
   end
 
   def a_customer do
@@ -98,16 +150,30 @@ defmodule GenerateData do
     }
   end
 
-  def an_address(%Order{} = order) do
+  def order_shipping_address(order_id) do
     Map.merge(
-      %{kind: :shipping, order: order},
+      %{kind: :shipping, order_id: order_id},
       base_address()
     )
   end
 
-  def an_address(%Customer{} = customer) do
+  def order_billing_address(order_id) do
     Map.merge(
-      %{kind: :billing, customer: customer},
+      %{kind: :billing, order_id: order_id},
+      base_address()
+    )
+  end
+
+  def customer_billing_address(%Customer{} = customer) do
+    Map.merge(
+      %{kind: :billing, customer_id: customer.id},
+      base_address()
+    )
+  end
+
+  def customer_shipping_address(%Customer{} = customer) do
+    Map.merge(
+      %{kind: :shipping, customer_id: customer.id},
       base_address()
     )
   end
@@ -115,6 +181,7 @@ defmodule GenerateData do
   def base_address() do
     %{
       brand_code: Faker.Beer.brand(),
+      market_code: Faker.Address.country_code(),
       email: Faker.Internet.email(),
       address_1: Faker.Address.En.street_address(),
       address_2: Faker.Address.En.secondary_address(),
@@ -128,12 +195,36 @@ defmodule GenerateData do
       postal_code: Faker.Address.En.zip_code(),
       province: Faker.Address.En.state(),
       province_code: Faker.Address.En.state_abbr(),
-      market_code: Faker.Address.country_code(),
       summary: "FaKeD",
       inserted_at:
         Faker.DateTime.backward(1000) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
       updated_at:
         Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
+    }
+  end
+
+  def order(customer_id) do
+    %{
+      brand_code: Faker.Beer.brand(),
+      market_code: Faker.Address.country_code(),
+      delivery_subtotal_amount: Faker.random_between(0, 299),
+      discount_total_amount: Faker.random_between(0, 299),
+      email: Faker.Internet.email(),
+      financial_status: @financial_status |> Enum.random(),
+      fulfillment_status: @fulfillment_status |> Enum.random(),
+      payment_reference: Faker.Blockchain.Bitcoin.address(),
+      subtotal_amount: Faker.random_between(0, 4299),
+      tax_amount: Faker.random_between(0, 599),
+      total_amount: Faker.random_between(0, 5599),
+      customer_id: customer_id,
+      inserted_at:
+        Faker.DateTime.backward(Faker.random_between(0, 365))
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second),
+      updated_at:
+        Faker.DateTime.backward(Faker.random_between(0, 100))
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second)
     }
   end
 end

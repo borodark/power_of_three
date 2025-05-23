@@ -1,0 +1,82 @@
+cubes:
+  - name: order
+    sql_table: public.order
+    data_source: default
+
+    joins: []
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+
+      - name: has_giftwrap
+        sql: "{CUBE}.\"has_giftwrap?\""
+        type: boolean
+        title: Has Giftwrap?
+
+      - name: email
+        sql: email
+        type: string
+
+      - name: financial_status
+        sql: financial_status
+        type: string
+
+      - name: fulfillment_status
+        sql: fulfillment_status
+        type: string
+
+      - name: gift_message
+        sql: gift_message
+        type: string
+
+      - name: payment_reference
+        sql: payment_reference
+        type: string
+
+      - name: brand_code
+        sql: brand_code
+        type: string
+
+      - name: market_code
+        sql: market_code
+        type: string
+
+      - name: updated_at
+        sql: updated_at
+        type: time
+
+      - name: inserted_at
+        sql: inserted_at
+        type: time
+
+    measures:
+      - name: count
+        type: count
+
+      - name: delivery_subtotal_amount
+        sql: delivery_subtotal_amount
+        type: sum
+
+      - name: discount_total_amount
+        sql: discount_total_amount
+        type: sum
+
+      - name: subtotal_amount
+        sql: subtotal_amount
+        type: sum
+
+      - name: tax_amount
+        sql: tax_amount
+        type: sum
+
+      - name: total_amount
+        sql: total_amount
+        type: sum
+
+    pre_aggregations:
+      # Pre-aggregation definitions go here.
+      # Learn more in the documentation: https://cube.dev/docs/caching/pre-aggregations/getting-started
+
