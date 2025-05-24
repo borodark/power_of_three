@@ -201,8 +201,7 @@ defmodule PowerOfThree do
                   "But only these are avalable:\n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
-          # TODO our_opts = take_our_opts() 
-          type = opts[:type] || :string
+          type = opts[:type] || opts[:type] |> conclude_dimension_field_type
 
           sql =
             opts[:sql] ||
@@ -234,7 +233,41 @@ defmodule PowerOfThree do
     end
   end
 
-  # TODO perhaps handle ecto_schema_field = [:some_cleaver_guy_trying_to_being_literal]
+  def conclude_dimension_field_type(ecto_field_type) do
+    cond do
+      ecto_field_type in [:bitstring, :string, :binary_id, :binary] ->
+        :string
+
+      ecto_field_type in [
+        :date,
+        :time,
+        :time_usec,
+        :naive_datetime,
+        :naive_datetime_usec,
+        :utc_datetime,
+        :utc_datetime_usec
+      ] ->
+        :time
+
+      ecto_field_type in [
+        :id,
+        :integer,
+        :float,
+        :decimal
+      ] ->
+        :number
+
+      ecto_field_type in [
+        :boolean
+      ] ->
+        :boolen
+
+      true ->
+        :string
+    end
+  end
+
+  # TODO perhaps handle ecto_schema_field = [:some_cleaver_guy_trying_being_literal]
   defmacro dimension(ecto_schema_field, opts) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
@@ -244,38 +277,7 @@ defmodule PowerOfThree do
 
         {original_ecto_field_type, _always} ->
           type =
-            opts[:type] ||
-              cond do
-                original_ecto_field_type in [:bitstring, :string, :binary_id, :binary] ->
-                  :string
-
-                original_ecto_field_type in [
-                  :date,
-                  :time,
-                  :time_usec,
-                  :naive_datetime,
-                  :naive_datetime_usec,
-                  :utc_datetime,
-                  :utc_datetime_usec
-                ] ->
-                  :time
-
-                original_ecto_field_type in [
-                  :id,
-                  :integer,
-                  :float,
-                  :decimal
-                ] ->
-                  :number
-
-                original_ecto_field_type in [
-                  :boolean
-                ] ->
-                  :boolen
-
-                true ->
-                  :string
-              end
+            opts[:type] || original_ecto_field_type |> conclude_dimension_field_type
 
           dimension_name = opts[:name] || ecto_schema_field |> Atom.to_string()
           sql = ecto_schema_field |> Atom.to_string()
