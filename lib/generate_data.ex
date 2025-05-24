@@ -101,6 +101,7 @@ defmodule GenerateData do
 
     {inserted, nil} = Repo.insert_all(Customer, customers)
     orderz(10)
+    addressez(10)
     # order_addressez = Stream.repeatedly(&__MODULE__.order_addressez/0)
     # |> Enum.take(3)
     # |> IO.inspect(label: :orders)
@@ -126,6 +127,33 @@ defmodule GenerateData do
     |> Stream.chunk_every(order_max_batch_size())
     |> Enum.map(fn batch -> Repo.insert_all(Order, batch) end)
     |> Enum.to_list()
+  end
+
+  def addressez(_per_customer) do
+    customer_ids =
+      from(Customer,
+        select: [:id]
+      )
+
+    idz =
+      Repo.all(customer_ids)
+      |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
+      |> IO.inspect(label: :idz)
+
+    customer_billing_addresez =
+      idz |> Enum.map(fn customer_id -> customer_billing_address(customer_id) end)
+
+    customer_billing_addresez
+    |> Stream.chunk_every(address_max_batch_size())
+    |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
+    |> Enum.to_list()
+
+    customer_shipping_addresez =
+      idz
+      |> Enum.map(fn customer_id -> customer_shipping_address(customer_id) end)
+      |> Stream.chunk_every(address_max_batch_size())
+      |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
+      |> Enum.to_list()
   end
 
   def a_customer do
@@ -162,16 +190,16 @@ defmodule GenerateData do
     )
   end
 
-  def customer_billing_address(%Customer{} = customer) do
+  def customer_billing_address(customer_id) do
     Map.merge(
-      %{kind: :billing, customer_id: customer.id},
+      %{kind: :billing, customer_id: customer_id},
       base_address()
     )
   end
 
-  def customer_shipping_address(%Customer{} = customer) do
+  def customer_shipping_address(customer_id) do
     Map.merge(
-      %{kind: :shipping, customer_id: customer.id},
+      %{kind: :shipping, customer_id: customer_id},
       base_address()
     )
   end
@@ -180,7 +208,6 @@ defmodule GenerateData do
     %{
       brand_code: Faker.Beer.brand(),
       market_code: Faker.Address.country_code(),
-      email: Faker.Internet.email(),
       address_1: Faker.Address.En.street_address(),
       address_2: Faker.Address.En.secondary_address(),
       city: Faker.Address.En.city(),
@@ -224,6 +251,10 @@ defmodule GenerateData do
         |> DateTime.to_naive()
         |> NaiveDateTime.truncate(:second)
     }
+  end
+
+  defp address_max_batch_size do
+    div(@the_maximum_is, Address.__schema__(:fields) |> Enum.count())
   end
 
   defp order_max_batch_size do

@@ -55,8 +55,8 @@ defmodule Example.Address do
     )
 
     dimension(
-      :city,
-      [:country, :province, :city]
+      :kind,
+      :kind
     )
 
     dimension(

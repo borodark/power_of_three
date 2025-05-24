@@ -256,6 +256,9 @@ defmodule PowerOfThree do
                   :boolean
                 ] ->
                   :boolen
+
+                true ->
+                  :string
               end
 
           # TODO enforce CUBE.DEV grammar
