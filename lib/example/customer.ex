@@ -98,19 +98,20 @@ defmodule Example.Customer do
 
     dimension(:updated_at, name: :updated, description: "updated_at timestamp")
 
-    measure(:number_of_records,
-      type: :count,
+    measure(:count,
       description: "no need for fields for :count type measure"
     )
 
     time_dimensions()
 
-    measure(:emails_distinct, :email,
+    measure(:email,
+      name: :emailz_distinctz,
       type: :count_distinct,
       description: "count distinct of emails"
     )
 
-    measure(:aquari, :email,
+    measure(:email,
+      name: :aquari,
       type: :count_distinct,
       description: "Filtered by start sector = 0",
       filters: [sql: "{CUBE}.star_sector = 0"]

@@ -1,0 +1,73 @@
+---
+cubes:
+  - name: of_orderz
+    sql_table: public.order
+    measures:
+      - meta:
+          ecto_field: subtotal_amount
+          ecto_type: integer
+        name: subtotal_amount
+        type: avg
+        description: Documentation if Empathy
+        sql: subtotal_amount
+      - meta:
+          ecto_field: tax_amount
+          ecto_type: integer
+        name: tax_amount
+        type: sum
+        description: Documentation if Empathy
+        sql: tax_amount
+      - meta:
+          ecto_field: total_amount
+          ecto_type: integer
+        name: total_amount
+        type: sum
+        description: Documentation if Empathy
+        sql: total_amount
+      - meta:
+          ecto_field: discount_total_amount
+          ecto_type: integer
+        name: discount_total_amount
+        type: sum
+        description: Documentation if Empathy
+        sql: discount_total_amount
+      - name: count
+        type: count
+        description: Documentation if Empathy
+        title: Title would be nice
+    dimensions:
+      - meta:
+          ecto_field: financial_status
+          ecto_field_type: string
+        name: financial_status
+        type: string
+        description: Dimension financial_status
+        sql: financial_status
+      - meta:
+          ecto_field: fulfillment_status
+          ecto_field_type: string
+        name: fulfillment_status
+        type: string
+        description: Dimension fulfillment_status
+        sql: fulfillment_status
+      - meta:
+          ecto_field: market_code
+          ecto_field_type: string
+        name: market_code
+        type: string
+        description: Dimension market_code
+        sql: market_code
+      - meta:
+          ecto_fields:
+            - brand_code
+        name: dupe_of_the_next
+        type: string
+        description: Documentation if Empathy
+        sql: brand_code
+      - meta:
+          ecto_field: brand_code
+          ecto_field_type: string
+        name: brand
+        type: string
+        description: Dimension brand_code
+        sql: brand_code

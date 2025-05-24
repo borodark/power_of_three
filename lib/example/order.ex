@@ -65,9 +65,17 @@ defmodule Example.Order do
   end
 
   cube :of_orderz,
-    sql_table: "public.order" do
+    sql_table: "public.order" , milacious_inject: :penetration_attempt  do
+    dimension(:financial_status)
+    dimension(:fulfillment_status)
     dimension(:market_code)
+    dimension([:brand_code], name: :dupe_of_the_next)
     dimension(:brand_code, name: :brand)
-    measure(:count_of, :id, type: :count)
+
+    measure(:subtotal_amount, type: :avg)
+    measure(:tax_amount, type: :sum)
+    measure(:total_amount, type: :sum)
+    measure(:discount_total_amount, type: :sum)
+    measure(:count)
   end
 end

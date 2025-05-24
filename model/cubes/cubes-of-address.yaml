@@ -1,0 +1,48 @@
+---
+cubes:
+  - name: of_addresses
+    description: of Customers
+    title: Demo cube
+    measures:
+      - name: count_of_records
+        type: count
+        description: no need for fields for :count type measure
+        title: Title would be nice
+      - meta:
+          ecto_field: country
+          ecto_type: string
+        name: country_count
+        type: count
+        description: Documentation if Empathy
+        sql: country
+    dimensions:
+      - meta:
+          ecto_fields:
+            - brand_code
+            - market_code
+            - country
+        name: country_bm
+        type: string
+        description: Documentation if Empathy
+        sql: brand_code||market_code||country
+      - meta:
+          ecto_field: kind
+          ecto_field_type: string
+        name: kind
+        type: string
+        description: Dimension kind
+        sql: kind
+      - meta:
+          ecto_field: first_name
+          ecto_field_type: string
+        name: given_name
+        type: string
+        description: Louzy documentation
+        sql: first_name
+      - meta:
+          ecto_field: inserted_at
+        name: inserted_at
+        type: time
+        description: inserted_at
+        sql: inserted_at
+    sql_table: address

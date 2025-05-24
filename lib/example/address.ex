@@ -66,11 +66,11 @@ defmodule Example.Address do
 
     time_dimensions()
 
-    measure(:number_of_addresses,
-      type: :count,
+    measure(:count,
+      name: :count_of_records,
       description: "no need for fields for :count type measure"
     )
 
-    measure(:country_count, :country, type: :count)
+    measure(:country, type: :count, name: :country_count)
   end
 end
