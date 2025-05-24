@@ -100,8 +100,8 @@ defmodule GenerateData do
       end
 
     {inserted, nil} = Repo.insert_all(Customer, customers)
-    orderz(10)
-    addressez(10)
+    orderz()
+    addressez()
     # order_addressez = Stream.repeatedly(&__MODULE__.order_addressez/0)
     # |> Enum.take(3)
     # |> IO.inspect(label: :orders)
@@ -110,7 +110,7 @@ defmodule GenerateData do
     {inserted, nil} |> process_next(so_far, goal)
   end
 
-  def orderz(_per_customer) do
+  def orderz() do
     customer_ids =
       from(Customer,
         select: [:id]
@@ -121,15 +121,14 @@ defmodule GenerateData do
       |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
       |> IO.inspect(label: :idz)
 
-    one_each = idz |> Enum.map(fn customer_id -> order(customer_id) end)
-
-    one_each
+    idz
+    |> Enum.map(fn customer_id -> order(customer_id) end)
     |> Stream.chunk_every(order_max_batch_size())
     |> Enum.map(fn batch -> Repo.insert_all(Order, batch) end)
     |> Enum.to_list()
   end
 
-  def addressez(_per_customer) do
+  def addressez do
     customer_ids =
       from(Customer,
         select: [:id]
@@ -138,22 +137,39 @@ defmodule GenerateData do
     idz =
       Repo.all(customer_ids)
       |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
-      |> IO.inspect(label: :idz)
+      |> IO.inspect(label: :customer_idz)
 
-    customer_billing_addresez =
-      idz |> Enum.map(fn customer_id -> customer_billing_address(customer_id) end)
-
-    customer_billing_addresez
+    idz
+    |> Enum.map(fn customer_id -> customer_billing_address(customer_id) end)
     |> Stream.chunk_every(address_max_batch_size())
     |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
     |> Enum.to_list()
 
-    customer_shipping_addresez =
-      idz
-      |> Enum.map(fn customer_id -> customer_shipping_address(customer_id) end)
-      |> Stream.chunk_every(address_max_batch_size())
-      |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
-      |> Enum.to_list()
+    idz
+    |> Enum.map(fn customer_id -> customer_shipping_address(customer_id) end)
+    |> Stream.chunk_every(address_max_batch_size())
+    |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
+    |> Enum.to_list()
+
+    order_idz =
+      from(Order,
+        select: [:id]
+      )
+      |> Repo.all()
+      |> Enum.map(fn %Order{id: order_id} = _c -> order_id end)
+      |> IO.inspect(label: :order_idz)
+
+    order_idz
+    |> Enum.map(fn order_id -> order_billing_address(order_id) end)
+    |> Stream.chunk_every(address_max_batch_size())
+    |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
+    |> Enum.to_list()
+
+    order_idz
+    |> Enum.map(fn order_id -> order_shipping_address(order_id) end)
+    |> Stream.chunk_every(address_max_batch_size())
+    |> Enum.map(fn batch -> Repo.insert_all(Address, batch) end)
+    |> Enum.to_list()
   end
 
   def a_customer do
@@ -173,6 +189,31 @@ defmodule GenerateData do
       inserted_at: fake_bd |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
       updated_at:
         Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
+    }
+  end
+
+  def order(customer_id) do
+    %{
+      brand_code: Faker.Beer.brand(),
+      market_code: Faker.Address.country_code(),
+      delivery_subtotal_amount: Faker.random_between(0, 299),
+      discount_total_amount: Faker.random_between(0, 299),
+      email: Faker.Internet.email(),
+      financial_status: @financial_status |> Enum.random(),
+      fulfillment_status: @fulfillment_status |> Enum.random(),
+      payment_reference: Faker.Blockchain.Bitcoin.address(),
+      subtotal_amount: Faker.random_between(0, 4299),
+      tax_amount: Faker.random_between(0, 599),
+      total_amount: Faker.random_between(0, 5599),
+      customer_id: customer_id,
+      inserted_at:
+        Faker.DateTime.backward(Faker.random_between(0, 365))
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second),
+      updated_at:
+        Faker.DateTime.backward(Faker.random_between(0, 100))
+        |> DateTime.to_naive()
+        |> NaiveDateTime.truncate(:second)
     }
   end
 
@@ -225,31 +266,6 @@ defmodule GenerateData do
         Faker.DateTime.backward(1000) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second),
       updated_at:
         Faker.DateTime.backward(900) |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)
-    }
-  end
-
-  def order(customer_id) do
-    %{
-      brand_code: Faker.Beer.brand(),
-      market_code: Faker.Address.country_code(),
-      delivery_subtotal_amount: Faker.random_between(0, 299),
-      discount_total_amount: Faker.random_between(0, 299),
-      email: Faker.Internet.email(),
-      financial_status: @financial_status |> Enum.random(),
-      fulfillment_status: @fulfillment_status |> Enum.random(),
-      payment_reference: Faker.Blockchain.Bitcoin.address(),
-      subtotal_amount: Faker.random_between(0, 4299),
-      tax_amount: Faker.random_between(0, 599),
-      total_amount: Faker.random_between(0, 5599),
-      customer_id: customer_id,
-      inserted_at:
-        Faker.DateTime.backward(Faker.random_between(0, 365))
-        |> DateTime.to_naive()
-        |> NaiveDateTime.truncate(:second),
-      updated_at:
-        Faker.DateTime.backward(Faker.random_between(0, 100))
-        |> DateTime.to_naive()
-        |> NaiveDateTime.truncate(:second)
     }
   end
 

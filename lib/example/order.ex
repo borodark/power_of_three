@@ -3,6 +3,8 @@ defmodule Example.Order do
 
   use Ecto.Schema
 
+  use PowerOfThree
+
   alias Example.Address
   alias Example.Customer
 
@@ -60,5 +62,11 @@ defmodule Example.Order do
     field(:market_code, :string)
 
     timestamps()
+  end
+
+  cube :of_orderz,
+    sql_table: "public.order" do
+    dimension(:market, :market_code)
+    measure(:count_of, :id, type: :count)
   end
 end

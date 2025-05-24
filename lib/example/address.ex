@@ -46,7 +46,6 @@ defmodule Example.Address do
 
   cube :of_addresses,
     sql_table: "address",
-    non_existent_cube_porperty: "Lame attemt to inject mallware",
     title: "Demo cube",
     description: "of Customers" do
     dimension(

@@ -1,6 +1,9 @@
 defmodule PowerOfThree do
   @moduledoc """
 
+  TODO - handle schema, prefix, table should Xsist
+  TODO - one arg measure[:count], dimension[:string] for a column name 
+
   Able to generate cube.dev config files for cubes defined for one `using Ecto.Schema`.
   The dimensions and measures derive some defaults
   from `Ecto.Schema.field` properties mentioned in the defenition
@@ -265,6 +268,12 @@ defmodule PowerOfThree do
           # our_opts = take_our_opts()
           sql = opts[:sql] || ecto_schema_field
           desc = opts[:description] || "Documentation if Empathy"
+
+          original_ecto_field_type =
+            case original_ecto_field_type do
+              {:parameterized, {Ecto.Enum, _parameterized}} -> :string
+              _ -> original_ecto_field_type
+            end
 
           Module.put_attribute(
             __MODULE__,
