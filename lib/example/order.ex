@@ -66,7 +66,8 @@ defmodule Example.Order do
 
   cube :of_orderz,
     sql_table: "public.order" do
-    dimension(:market, :market_code)
+    dimension(:market_code)
+    dimension(:brand_code, name: :brand)
     measure(:count_of, :id, type: :count)
   end
 end

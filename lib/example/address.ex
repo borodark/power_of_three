@@ -49,18 +49,18 @@ defmodule Example.Address do
     title: "Demo cube",
     description: "of Customers" do
     dimension(
-      :country_bm,
-      [:brand_code, :market_code, :country]
+      [:brand_code, :market_code, :country],
+      name: :country_bm
     )
 
     dimension(
       :kind,
-      :kind
+      name: :kind
     )
 
     dimension(
-      :names,
       :first_name,
+      name: :given_name,
       description: "Louzy documentation"
     )
 

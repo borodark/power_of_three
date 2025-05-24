@@ -26,18 +26,19 @@ defmodule Example.Customer do
     title: "Demo cube",
     description: "of Customers" do
     dimension(
-      :email_per_brand_per_market,
       [:brand_code, :market_code, :email],
+      name: :email_per_brand_per_market,
       cube_primary_key: true
     )
 
     dimension(
-      :names,
       :first_name,
+      name: :given_name,
       description: "Louzy documentation"
     )
 
-    dimension(:zodiac, [:birthday_day, :birthday_month],
+    dimension([:birthday_day, :birthday_month],
+      name: :zodiac,
       description:
         "SQL for a zodiac sign for given [:birthday_day, :birthday_month], not _gyroscope_, TODO unicode of Emoji",
       sql: """
@@ -59,7 +60,8 @@ defmodule Example.Customer do
       """
     )
 
-    dimension(:star_sector, [:birthday_day, :birthday_month],
+    dimension([:birthday_day, :birthday_month],
+      name: :star_sector,
       type: :number,
       description: "integer from 0 to 11 for zodiac signs",
       sql: """
@@ -82,19 +84,19 @@ defmodule Example.Customer do
     )
 
     dimension(
-      :bm_code,
       [:brand_code, :market_code],
+      name: :bm_code,
       type: :string,
       # This is Cube Dimension type. TODO like in ecto :kind, Ecto.Enum, values: @kinds
       sql: "brand_code|| '_' || market_code"
       ## TODO danger lurking here"
     )
 
-    dimension(:brand, :brand_code, description: "Beer")
+    dimension(:brand_code, name: :brand, description: "Beer")
 
-    dimension(:market, :market_code, description: "market_code, like AU")
+    dimension(:market_code, name: :market, description: "market_code, like AU")
 
-    dimension(:a_datetime, :updated_at, description: "updated_at timestamp")
+    dimension(:updated_at, name: :updated, description: "updated_at timestamp")
 
     measure(:number_of_records,
       type: :count,

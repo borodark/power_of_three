@@ -35,7 +35,7 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 3, dimension: 3, measure: 3, measure: 2, time_dimensions: 1]
+        only: [cube: 3, dimension: 2, measure: 3, measure: 2, time_dimensions: 1]
 
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
       Module.register_attribute(__MODULE__, :measures, accumulate: true)
@@ -95,7 +95,7 @@ defmodule PowerOfThree do
 
         cube_opts = Enum.into(cube_opts_, %{}) |> IO.inspect(label: :cube_opts)
         sql_table = cube_opts[:sql_table]
-
+        # TODO must match Ecto schema source 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
@@ -103,7 +103,7 @@ defmodule PowerOfThree do
 
           [] ->
             raise ArgumentError,
-                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields Ofirst ..."
 
           [_ | _] ->
             :ok
@@ -180,10 +180,9 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, one_or_a_list_of_ecto_schema_fields, opts \\ [])
-
+  defmacro dimension(ecto_schema_field_or_list_of_fields, opts \\ [])
+  # TODO change to dimension(:ecto_fileld <- becomes sql:, [name[m]: dim_name, ...] 
   defmacro dimension(
-             dimension_name,
              list_of_ecto_schema_fields,
              opts
            )
@@ -204,8 +203,21 @@ defmodule PowerOfThree do
         true ->
           # TODO our_opts = take_our_opts() 
           type = opts[:type] || :string
-          sql = opts[:sql] || list_of_ecto_schema_fields |> Enum.join("||")
+
+          sql =
+            opts[:sql] ||
+              list_of_ecto_schema_fields
+              |> Enum.map(fn atom -> atom |> Atom.to_string() end)
+              |> Enum.join("||")
+
           desc = opts[:description] || "Documentation if Empathy"
+
+          dimension_name =
+            opts[:name] ||
+              list_of_ecto_schema_fields
+              |> Enum.map(fn atom -> atom |> Atom.to_string() end)
+              |> Enum.join("_")
+
           # TODO all properties
           Module.put_attribute(
             __MODULE__,
@@ -222,7 +234,8 @@ defmodule PowerOfThree do
     end
   end
 
-  defmacro dimension(dimension_name, ecto_schema_field, opts) do
+  # TODO perhaps handle ecto_schema_field = [:some_cleaver_guy_trying_to_being_literal]
+  defmacro dimension(ecto_schema_field, opts) do
     quote bind_quoted: binding() do
       case Keyword.get(Module.get_attribute(__MODULE__, :ecto_fields), ecto_schema_field, false) do
         false ->
@@ -264,10 +277,9 @@ defmodule PowerOfThree do
                   :string
               end
 
-          # TODO enforce CUBE.DEV grammar
-          # our_opts = take_our_opts()
-          sql = opts[:sql] || ecto_schema_field
-          desc = opts[:description] || "Documentation if Empathy"
+          dimension_name = opts[:name] || ecto_schema_field |> Atom.to_string()
+          sql = ecto_schema_field |> Atom.to_string()
+          desc = "Dimension " <> Atom.to_string(ecto_schema_field)
 
           original_ecto_field_type =
             case original_ecto_field_type do
