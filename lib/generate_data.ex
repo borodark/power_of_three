@@ -53,9 +53,7 @@ defmodule GenerateData do
     :unfulfilled
   ]
 
-  # Repo.insert_all() has limitation on 32K parameters markers,
-  @default_size 5461
-  # hence for Customer it's 5461 = 32K/number_of_columns_in_insert
+  # Repo.insert_all() has limitation on 64K parameters markers,
 
   @impl Mix.Task
   @callback run(command_line_args :: list()) :: any()
@@ -70,16 +68,9 @@ defmodule GenerateData do
   """
 
   def run([goal]) when is_integer(goal) do
-    Logger.info("Generating #{goal} Orders ...")
+    Logger.info("Generating #{goal} ...")
     process_next({0, nil}, 0, goal)
   end
-
-  def run([@default_size]) do
-    Logger.info("Generating data ...")
-    process_next({0, nil}, 0, @default_size)
-  end
-
-  def run([]), do: run([@default_size])
 
   def run(_list) do
     Logger.info(
@@ -95,13 +86,13 @@ defmodule GenerateData do
   end
 
   def process_next({this_time, nil}, so_far, goal) when goal > so_far do
-    Logger.info("Generated next batch of #{this_time} Orders ...")
+    Logger.info("Generated next batch of #{this_time} ...")
     so_far = so_far + this_time
 
     customers =
-      case goal - so_far > @default_size do
+      case goal - so_far > customer_max_batch_size() do
         true ->
-          Stream.repeatedly(&__MODULE__.a_customer/0) |> Enum.take(@default_size)
+          Stream.repeatedly(&__MODULE__.a_customer/0) |> Enum.take(customer_max_batch_size())
 
         false ->
           ## it's less than or equal to @default_size left to go
@@ -109,25 +100,32 @@ defmodule GenerateData do
       end
 
     {inserted, nil} = Repo.insert_all(Customer, customers)
-    Repo.insert_all(Order, orderz())
-    #order_addressez = Stream.repeatedly(&__MODULE__.order_addressez/0)
-    #|> Enum.take(3)
-    #|> IO.inspect(label: :orders)
-    #Repo.insert_all(Order, order_addressez)
+    orderz(10)
+    # order_addressez = Stream.repeatedly(&__MODULE__.order_addressez/0)
+    # |> Enum.take(3)
+    # |> IO.inspect(label: :orders)
+    # Repo.insert_all(Order, order_addressez)
 
     {inserted, nil} |> process_next(so_far, goal)
   end
 
-  def orderz do
+  def orderz(_per_customer) do
     customer_ids =
       from(Customer,
         select: [:id]
       )
-    idz = Repo.all(customer_ids)
-    |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
-    |> IO.inspect(label: :idz)
 
-    idz |> Enum.map(fn customer_id -> order(customer_id) end)
+    idz =
+      Repo.all(customer_ids)
+      |> Enum.map(fn %Customer{id: customer_id} = _c -> customer_id end)
+      |> IO.inspect(label: :idz)
+
+    one_each = idz |> Enum.map(fn customer_id -> order(customer_id) end)
+
+    one_each
+    |> Stream.chunk_every(order_max_batch_size())
+    |> Enum.map(fn batch -> Repo.insert_all(Order, batch) end)
+    |> Enum.to_list()
   end
 
   def a_customer do
@@ -226,5 +224,13 @@ defmodule GenerateData do
         |> DateTime.to_naive()
         |> NaiveDateTime.truncate(:second)
     }
+  end
+
+  defp order_max_batch_size do
+    div(@the_maximum_is, Order.__schema__(:fields) |> Enum.count())
+  end
+
+  defp customer_max_batch_size do
+    div(@the_maximum_is, Customer.__schema__(:fields) |> Enum.count())
   end
 end
