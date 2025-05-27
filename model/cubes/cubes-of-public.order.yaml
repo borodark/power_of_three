@@ -1,7 +1,6 @@
 ---
 cubes:
   - name: of_orderz
-    sql_table: public.order
     measures:
       - meta:
           ecto_field: subtotal_amount
@@ -62,7 +61,7 @@ cubes:
             - brand_code
         name: dupe_of_the_next
         type: string
-        description: Documentation if Empathy
+        description: Documentation is Empathy
         sql: brand_code
       - meta:
           ecto_field: brand_code
@@ -71,3 +70,4 @@ cubes:
         type: string
         description: Dimension brand_code
         sql: brand_code
+    sql_table: public.order

@@ -3,6 +3,7 @@ cubes:
   - name: of_addresses
     description: of Customers
     title: Demo cube
+    sql_table: address
     measures:
       - name: count_of_records
         type: count
@@ -23,7 +24,7 @@ cubes:
             - country
         name: country_bm
         type: string
-        description: Documentation if Empathy
+        description: Documentation is Empathy
         sql: brand_code||market_code||country
       - meta:
           ecto_field: kind
@@ -45,4 +46,3 @@ cubes:
         type: time
         description: inserted_at
         sql: inserted_at
-    sql_table: address

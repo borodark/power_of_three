@@ -1,4 +1,14 @@
 services:
+  cockroach:
+    image: cockroachdb/cockroach:v23.1.6
+    restart: always
+    ports:
+      - 26257:26257
+      - 8080:8080
+    command: start-single-node --insecure
+    volumes:
+      - crdb_data:/cockroach/cockroach-data
+
   postgresql:
     image: postgres:14.7-alpine
     restart: always
@@ -18,13 +28,18 @@ services:
       - 4008:4000
     environment:
       CUBEJS_DB_TYPE: postgres
-      CUBEJS_DB_HOST: postgresql
+      #CUBEJS_DB_HOST: postgresql
+      #CUBEJS_DB_NAME: power_of_3_repo
+      #CUBEJS_DB_USER: postgres
+      #CUBEJS_DB_PASS: postgres
+      CUBEJS_DB_PORT: 26257
+      CUBEJS_DB_HOST: cockroach
       CUBEJS_DB_NAME: power_of_3_repo
-      CUBEJS_DB_USER: postgres
-      CUBEJS_DB_PASS: postgres
+      CUBEJS_DB_USER: admin
+      CUBEJS_DB_PASS: admin
       CUBEJS_CUBESTORE_HOST: cubestore_router
       CUBEJS_API_SECRET: secret
-      CUBEJS_DEV_MODE: true
+      CUBEJS_DEV_MODE: "TRUE"
     volumes:
       - ./:/cube/conf
     depends_on:
@@ -38,13 +53,18 @@ services:
     image: cubejs/cube:latest
     environment:
       CUBEJS_DB_TYPE: postgres
-      CUBEJS_DB_HOST: postgresql
+      #CUBEJS_DB_HOST: postgresql
+      #CUBEJS_DB_NAME: power_of_3_repo
+      #CUBEJS_DB_USER: postgres
+      #CUBEJS_DB_PASS: postgres
+      CUBEJS_DB_PORT: 26257
+      CUBEJS_DB_HOST: cockroach
       CUBEJS_DB_NAME: power_of_3_repo
-      CUBEJS_DB_USER: postgres
-      CUBEJS_DB_PASS: postgres
+      CUBEJS_DB_USER: admin
+      CUBEJS_DB_PASS: admin
       CUBEJS_CUBESTORE_HOST: cubestore_router
       CUBEJS_API_SECRET: secret
-      CUBEJS_REFRESH_WORKER: true
+      CUBEJS_REFRESH_WORKER: "TRUE"
     volumes:
       - ./:/cube/conf
 
@@ -89,3 +109,4 @@ services:
 
 volumes:
   postgresql:
+  crdb_data:

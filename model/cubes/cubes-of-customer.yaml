@@ -3,6 +3,7 @@ cubes:
   - name: of_customers
     description: of Customers
     title: Demo cube
+    sql_table: customer
     measures:
       - name: count
         type: count
@@ -30,7 +31,7 @@ cubes:
             - email
         name: email_per_brand_per_market
         type: string
-        description: Documentation if Empathy
+        description: Documentation is Empathy
         sql: brand_code||market_code||email
       - meta:
           ecto_field: first_name
@@ -91,7 +92,7 @@ cubes:
             - market_code
         name: bm_code
         type: string
-        description: Documentation if Empathy
+        description: Documentation is Empathy
         sql: "brand_code|| '_' || market_code"
       - meta:
           ecto_field: brand_code
@@ -120,4 +121,3 @@ cubes:
         type: time
         description: inserted_at
         sql: inserted_at
-    sql_table: customer

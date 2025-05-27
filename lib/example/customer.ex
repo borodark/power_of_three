@@ -9,6 +9,9 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
+  @schema_prefix "public"
+  @schema_context "example"
+
   schema "customer" do
     field(:first_name, :string)
     field(:last_name, :string)

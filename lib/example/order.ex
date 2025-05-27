@@ -64,8 +64,7 @@ defmodule Example.Order do
     timestamps()
   end
 
-  cube :of_orderz,
-    sql_table: "public.order" , milacious_inject: :penetration_attempt  do
+  cube :of_orderz, sql_table: "order", milacious_inject: :penetration_attempt do
     dimension(:financial_status)
     dimension(:fulfillment_status)
     dimension(:market_code)

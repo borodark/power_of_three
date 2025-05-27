@@ -32,10 +32,12 @@ defmodule PowerOfThree do
   number                  | `:duration`             | `Duration`
 
   """
+
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
         only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+      require Logger
 
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
       Module.register_attribute(__MODULE__, :measures, accumulate: true)
@@ -58,27 +60,46 @@ defmodule PowerOfThree do
 
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         opts_ = unquote(opts)
+
         legit_cube_properties = [
+          # TODO path through
           :pre_aggregations,
+          # TODO path through
           :joins,
           :dimensions,
+          # TODO path through
           :hierarchies,
+          # TODO path through
           :segments,
+          # TODO path through
           :access_policy,
+          # TODO path through
           :extends,
+          # TODO path through
           :sql_alias,
+          # TODO path through
           :data_source,
+          # [ ] enforce either sql or sql_table
           :sql,
+          #     either sql or sql_table
           :sql_table,
+          # [*] path through
           :title,
+          # [*] path through 
           :description,
+          # TODO path through
           :public,
+          # TODO path through
           :refresh_key,
+          # [ ] path through
           :meta
         ]
+        # TODO use :context, :prefix, :source?
+        # ecto_struct_fields: [:state, :context, :prefix, :source, :__struct__, :schema]
+
         {legit_opts, code_injection_attempeted} =
           Keyword.split(opts_, legit_cube_properties)
-        require Logger
+
         Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
         # TODO must match Ecto schema source
@@ -99,7 +120,6 @@ defmodule PowerOfThree do
         end
 
         @cube_defined unquote(caller.line)
-
         Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
         Module.register_attribute(__MODULE__, :measures, accumulate: true)
         Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
@@ -176,6 +196,8 @@ defmodule PowerOfThree do
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
+      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
+
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
             ecto_field in list_of_ecto_schema_fields,
@@ -195,7 +217,7 @@ defmodule PowerOfThree do
               list_of_ecto_schema_fields
               |> Enum.map_join("||", fn atom -> atom |> Atom.to_string() end)
 
-          desc = opts[:description] || "Documentation if Empathy"
+          desc = opts[:description] || "Documentation is Empathy"
 
           dimension_name =
             opts[:name] ||
