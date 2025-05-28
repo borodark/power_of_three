@@ -1,7 +1,6 @@
 ---
 cubes:
   - name: of_orderz
-    sql_table: public.order
     measures:
       - meta:
           ecto_field: subtotal_amount
@@ -39,35 +38,25 @@ cubes:
       - meta:
           ecto_field: financial_status
           ecto_field_type: string
-        name: financial_status
+        name: FIN
         type: string
-        description: Dimension financial_status
         sql: financial_status
       - meta:
           ecto_field: fulfillment_status
           ecto_field_type: string
-        name: fulfillment_status
+        name: FUL
         type: string
-        description: Dimension fulfillment_status
         sql: fulfillment_status
       - meta:
           ecto_field: market_code
           ecto_field_type: string
         name: market_code
         type: string
-        description: Dimension market_code
         sql: market_code
       - meta:
           ecto_fields:
             - brand_code
-        name: dupe_of_the_next
-        type: string
-        description: Documentation if Empathy
-        sql: brand_code
-      - meta:
-          ecto_field: brand_code
-          ecto_field_type: string
         name: brand
         type: string
-        description: Dimension brand_code
         sql: brand_code
+    sql_table: public.order

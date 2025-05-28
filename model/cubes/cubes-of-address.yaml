@@ -23,14 +23,12 @@ cubes:
             - country
         name: country_bm
         type: string
-        description: Documentation if Empathy
         sql: brand_code||market_code||country
       - meta:
           ecto_field: kind
           ecto_field_type: string
         name: kind
         type: string
-        description: Dimension kind
         sql: kind
       - meta:
           ecto_field: first_name

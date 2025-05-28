@@ -1,6 +1,14 @@
-# PowerOfThree
+# Power of Three
 
-**TODO: Add description**
+What is Cube?
+
+Solution for data analitics:  https://cube.dev/product/cube-core: 
+ - connect to the database
+ - define cubes as collections of measures, dimensions. Set refresh interval
+ - *Profit*.
+
+What is power of three?
+It's three Elixir macros for defining a cube, dimension, measures alongside of the Ecto.Schema. The cubes configurations produced at `mix compile`.
 
 ## Installation
 

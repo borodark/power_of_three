@@ -30,8 +30,8 @@ cubes:
             - email
         name: email_per_brand_per_market
         type: string
-        description: Documentation if Empathy
         sql: brand_code||market_code||email
+        cube_primary_key: true
       - meta:
           ecto_field: first_name
           ecto_field_type: string
@@ -91,7 +91,6 @@ cubes:
             - market_code
         name: bm_code
         type: string
-        description: Documentation if Empathy
         sql: "brand_code|| '_' || market_code"
       - meta:
           ecto_field: brand_code

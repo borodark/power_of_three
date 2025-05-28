@@ -58,6 +58,7 @@ defmodule PowerOfThree do
 
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         opts_ = unquote(opts)
+
         legit_cube_properties = [
           :pre_aggregations,
           :joins,
@@ -76,10 +77,12 @@ defmodule PowerOfThree do
           :refresh_key,
           :meta
         ]
+
         {legit_opts, code_injection_attempeted} =
           Keyword.split(opts_, legit_cube_properties)
+
         require Logger
-        Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        Logger.error("Inrusions detected list:  #{inspect(code_injection_attempeted)}")
         cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
         # TODO must match Ecto schema source
         sql_table = cube_opts[:sql_table]
@@ -188,14 +191,13 @@ defmodule PowerOfThree do
                   "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         true ->
+          path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
           type = opts[:type] || opts[:type] |> dimension_type
 
           sql =
             opts[:sql] ||
               list_of_ecto_schema_fields
               |> Enum.map_join("||", fn atom -> atom |> Atom.to_string() end)
-
-          desc = opts[:description] || "Documentation if Empathy"
 
           dimension_name =
             opts[:name] ||
@@ -206,13 +208,13 @@ defmodule PowerOfThree do
           Module.put_attribute(
             __MODULE__,
             :dimensions,
-            %{
+            path_throw_opts
+            |> Map.merge(%{
               meta: %{ecto_fields: list_of_ecto_schema_fields},
               name: dimension_name,
               type: type,
-              sql: sql,
-              description: desc
-            }
+              sql: sql
+            })
           )
       end
     end
@@ -226,26 +228,26 @@ defmodule PowerOfThree do
                 "Cube Dimension wants a #{inspect(ecto_schema_field)}, but Ecto schema has only: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
 
         {ecto_field_type, _always} ->
-          ecto_field_type =
-            Module.put_attribute(
-              __MODULE__,
-              :dimensions,
-              %{
-                meta: %{
-                  ecto_field_type:
-                    case ecto_field_type do
-                      {:parameterized, {Ecto.Enum, _parameterized}} -> :string
-                      _ -> ecto_field_type
-                    end,
-                  ecto_field: ecto_schema_field
-                },
-                name: opts[:name] || ecto_schema_field |> Atom.to_string(),
-                type: opts[:type] || ecto_field_type |> dimension_type,
-                sql: ecto_schema_field |> Atom.to_string(),
-                description:
-                  opts[:description] || "Dimension " <> Atom.to_string(ecto_schema_field)
-              }
-            )
+          path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
+
+          Module.put_attribute(
+            __MODULE__,
+            :dimensions,
+            path_throw_opts
+            |> Map.merge(%{
+              meta: %{
+                ecto_field_type:
+                  case ecto_field_type do
+                    {:parameterized, {Ecto.Enum, _parameterized}} -> :string
+                    _ -> ecto_field_type
+                  end,
+                ecto_field: ecto_schema_field
+              },
+              name: opts[:name] || ecto_schema_field |> Atom.to_string(),
+              type: opts[:type] || ecto_field_type |> dimension_type,
+              sql: ecto_schema_field |> Atom.to_string()
+            })
+          )
       end
     end
   end
@@ -377,4 +379,70 @@ defmodule PowerOfThree do
         :string
     end
   end
+
+  defmodule Dimension do
+    @moduledoc """
+    https://cube.dev/docs/reference/data-model/dimensions
+    A Dimension of Cube object with following properties:
+    Parameters:
+      - name
+      - case
+      - description
+      - format
+      - meta
+      - primary_key
+      - propagate_filters_to_sub_query
+      - public
+      - sql
+      - sub_query
+      - title
+      - type
+      - granularities
+    """
+
+    @parameters [
+      name: :string,
+      case: [when: [], else: nil],
+      description: :string,
+      format: [:imageUrl, :id, :link, :currency, :percent],
+      meta: [],
+      primary_key: :boolean,
+      propagate_filters_to_sub_query: :boolean,
+      public: :boolean,
+      sql: :string,
+      sub_query: :string,
+      title: :string,
+      type: [:string, :time, :number, :boolean, :geo],
+      granularities: []
+    ]
+  end
+
+  @measure_required [:name, :sql, :type]
+  @measure_all [
+    name: :atom,
+    sql: :string,
+    type: [
+      :string,
+      :time,
+      :boolean,
+      :number,
+      :count,
+      :count_distinct,
+      :count_distinct_approx,
+      :sum,
+      :avg,
+      :min,
+      :max
+    ],
+    title: :string,
+    description: :string,
+    # drill_members is defined as an array of dimensions
+    drill_members: [],
+    filters: [],
+    format: [:percent, :currency],
+    meta: [tag: :measure],
+    rolling_window: [:trailing, :leading],
+    # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
+    public: true
+  ]
 end

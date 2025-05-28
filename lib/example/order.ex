@@ -64,16 +64,14 @@ defmodule Example.Order do
     timestamps()
   end
 
-  cube :of_orderz,
-    sql_table: "public.order" , milacious_inject: :penetration_attempt  do
-    dimension(:financial_status)
-    dimension(:fulfillment_status)
+  cube :of_orderz, sql_table: "public.order", milacious_inject: :penetration_attempt do
+    dimension(:financial_status, name: :FIN)
+    dimension(:fulfillment_status, name: :FUL)
     dimension(:market_code)
-    dimension([:brand_code], name: :dupe_of_the_next)
-    dimension(:brand_code, name: :brand)
+    dimension([:brand_code], name: :brand)
 
     measure(:subtotal_amount, type: :avg)
-    measure(:tax_amount, type: :sum)
+    measure(:tax_amount, type: :sum, format: :currency)
     measure(:total_amount, type: :sum)
     measure(:discount_total_amount, type: :sum)
     measure(:count)
