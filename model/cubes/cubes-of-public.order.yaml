@@ -1,6 +1,7 @@
 ---
 cubes:
   - name: of_orderz
+    sql_table: public.order
     measures:
       - meta:
           ecto_field: subtotal_amount
@@ -59,4 +60,3 @@ cubes:
         name: brand
         type: string
         sql: brand_code
-    sql_table: public.order

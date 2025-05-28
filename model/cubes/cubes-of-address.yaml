@@ -3,6 +3,7 @@ cubes:
   - name: of_addresses
     description: of Customers
     title: Demo cube
+    sql_table: address
     measures:
       - name: count_of_records
         type: count
@@ -43,4 +44,3 @@ cubes:
         type: time
         description: inserted_at
         sql: inserted_at
-    sql_table: address

@@ -1,14 +1,39 @@
 # Power of Three
 
-What is Cube?
+## What is Cube[.dev]
 
-Solution for data analitics:  https://cube.dev/product/cube-core: 
- - connect to the database
- - define cubes as collections of measures, dimensions. Set refresh interval
- - *Profit*.
+Solution for data analitics:
+ - documentatin: https://cube.dev/product/cube-core
+ - Helm Charts https://github.com/gadsme/charts
 
-What is power of three?
-It's three Elixir macros for defining a cube, dimension, measures alongside of the Ecto.Schema. The cubes configurations produced at `mix compile`.
+How to use cube:
+ - Define cubes as collections of measures aggregated along dimensions: DSL, yaml or JS.
+ - Decide how to refresh cube data
+ - Profit!
+
+
+
+## What is Power of Three
+
+Power of Three is the Elixir library that provides macros to define a Cube, Dimensions and Measures along side with our an Ecto.Schema.
+
+_Why inline in Ecto Schema modules?_
+
+  - The names of tables and columns used in defenitions are verified to be present in Ecto.Schema at compile time.
+  - I don't like to leave my emacs.
+
+The rest of options are passed as is. The cubes configurations produced at `mix compile`. The cubes configuration files must be shared with cube deployment. DEV environment for crafting Cubes is great: [compose.yaml](./compose.yml)
+
+## Deployment Overview
+
+Four types of containers:
+  - API
+  - Refresh Workers
+  - Cubestore Router
+  - Cubestore Workers
+
+Two need the DB connection: API and Refresh Workers
+Router needs shared storage with Store Workers. The S3 is fine
 
 ## Installation
 
@@ -26,23 +51,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/power_of_3>.
-
-## SQL
-
-```SQL
-CASE
-    WHEN (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18) THEN 'Aquarius'
-    WHEN (birthday_month = 2 AND birthday_day >= 19) OR (birthday_month = 3 AND birthday_day <= 20) THEN 'Pisces'
-    WHEN (birthday_month = 3 AND birthday_day >= 21) OR (birthday_month = 4 AND birthday_day <= 19) THEN 'Aries'
-    WHEN (birthday_month = 4 AND birthday_day >= 20) OR (birthday_month = 5 AND birthday_day <= 20) THEN 'Taurus'
-    WHEN (birthday_month = 5 AND birthday_day >= 21) OR (birthday_month = 6 AND birthday_day <= 20) THEN 'Gemini'
-    WHEN (birthday_month = 6 AND birthday_day >= 21) OR (birthday_month = 7 AND birthday_day <= 22) THEN 'Cancer'
-    WHEN (birthday_month = 7 AND birthday_day >= 23) OR (birthday_month = 8 AND birthday_day <= 22) THEN 'Leo'
-    WHEN (birthday_month = 8 AND birthday_day >= 23) OR (birthday_month = 9 AND birthday_day <= 22) THEN 'Virgo'
-    WHEN (birthday_month = 9 AND birthday_day >= 23) OR (birthday_month = 10 AND birthday_day <= 22) THEN 'Libra'
-    WHEN (birthday_month = 10 AND birthday_day >= 23) OR (birthday_month = 11 AND birthday_day <= 21) THEN 'Scorpio'
-    WHEN (birthday_month = 11 AND birthday_day >= 22) OR (birthday_month = 12 AND birthday_day <= 21) THEN 'Sagittarius'
-    WHEN (birthday_month = 12 AND birthday_day >= 22) OR (birthday_month = 1 AND birthday_day <= 19) THEN 'Capricorn'
-    ELSE 'Aquarius'
-  END
-```
