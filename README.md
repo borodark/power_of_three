@@ -17,14 +17,14 @@ Power of Three is the Elixir library that provides macros to define a _Cube, Dim
 
 TODO:
 
-  -: pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
-  -: generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
-  -: handle cube's `sql` as well as `sql_table`, enforce either
-  -: handle dimension's `case`
-  -: CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
-  -: CI integration: validate yams by starting cube and make sure configs are sound.
-  -: cause the cube can impersonate postgres: Generate an Ecto.Schema module for Cube: columns are measures and dimensions
-  -: cause the cube can impersonate postgres: implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)
+-: pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
+-: generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
+-: handle cube's `sql` as well as `sql_table`, enforce either
+-: handle dimension's `case`
+-: CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
+-: CI integration: validate yams by starting cube and make sure configs are sound.
+-: cause the cube can impersonate postgres: Generate an Ecto.Schema module for Cube: columns are measures and dimensions
+-: cause the cube can impersonate postgres: implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)
 
 _Why inline in Ecto Schema modules?_
 
