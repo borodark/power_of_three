@@ -16,6 +16,7 @@ How to use cube:
 Power of Three is the Elixir library that provides macros to define a _Cube, Dimensions and Measures_ along side with an Ecto.Schema to have the config yamls generated on `mix compile`.
 
 TODO:
+
   -: pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
   -: generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
   -: handle cube's `sql` as well as `sql_table`, enforce either
