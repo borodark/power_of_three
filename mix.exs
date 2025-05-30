@@ -39,7 +39,15 @@ defmodule PowerOfThree.MixProject do
 
   defp aliases do
     [
-      setup: ["clean", "deps.get", "deps.compile", "compile"]
+      setup: [
+        "clean",
+        "deps.get",
+        "deps.compile",
+        "compile",
+        "ecto.drop",
+        "ecto.create",
+        "ecto.migrate"
+      ]
     ]
   end
 end

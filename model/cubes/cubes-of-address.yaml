@@ -8,13 +8,11 @@ cubes:
       - name: count_of_records
         type: count
         description: no need for fields for :count type measure
-        title: Title would be nice
       - meta:
           ecto_field: country
           ecto_type: string
         name: country_count
         type: count
-        description: Documentation if Empathy
         sql: country
     dimensions:
       - meta:

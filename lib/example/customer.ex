@@ -9,6 +9,9 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
+  @schema_prefix "public"
+  @schema_context "example"
+
   schema "customer" do
     field(:first_name, :string)
     field(:last_name, :string)
@@ -28,7 +31,7 @@ defmodule Example.Customer do
     dimension(
       [:brand_code, :market_code, :email],
       name: :email_per_brand_per_market,
-      cube_primary_key: true
+      primary_key: true
     )
 
     dimension(
@@ -114,7 +117,7 @@ defmodule Example.Customer do
       name: :aquari,
       type: :count_distinct,
       description: "Filtered by start sector = 0",
-      filters: [sql: "{CUBE}.star_sector = 0"]
+      filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
     )
   end
 end

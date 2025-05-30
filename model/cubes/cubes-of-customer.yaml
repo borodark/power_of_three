@@ -8,7 +8,6 @@ cubes:
       - name: count
         type: count
         description: no need for fields for :count type measure
-        title: Title would be nice
       - meta:
           ecto_field: email
           ecto_type: string
@@ -22,6 +21,8 @@ cubes:
         name: aquari
         type: count_distinct
         description: Filtered by start sector = 0
+        filters:
+          - sql: (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)
         sql: email
     dimensions:
       - meta:
@@ -31,7 +32,7 @@ cubes:
             - email
         name: email_per_brand_per_market
         type: string
-        cube_primary_key: true
+        primary_key: true
         sql: brand_code||market_code||email
       - meta:
           ecto_field: first_name

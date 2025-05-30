@@ -1,6 +1,6 @@
 ---
 cubes:
-  - name: of_orderz
+  - name: of_orders
     sql_table: public.order
     measures:
       - meta:
@@ -8,33 +8,28 @@ cubes:
           ecto_type: integer
         name: subtotal_amount
         type: avg
-        description: Documentation if Empathy
         sql: subtotal_amount
       - meta:
           ecto_field: tax_amount
           ecto_type: integer
         name: tax_amount
         type: sum
-        description: Documentation if Empathy
+        format: currency
         sql: tax_amount
       - meta:
           ecto_field: total_amount
           ecto_type: integer
         name: total_amount
         type: sum
-        description: Documentation if Empathy
         sql: total_amount
       - meta:
           ecto_field: discount_total_amount
           ecto_type: integer
         name: discount_total_amount
         type: sum
-        description: Documentation if Empathy
         sql: discount_total_amount
       - name: count
         type: count
-        description: Documentation if Empathy
-        title: Title would be nice
     dimensions:
       - meta:
           ecto_field: financial_status
