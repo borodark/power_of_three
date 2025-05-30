@@ -16,15 +16,15 @@ How to use cube:
 Power of Three is the Elixir library that provides macros to define a _Cube, Dimensions and Measures_ along side with an Ecto.Schema to have the config yamls generated on `mix compile`.
 
 TODO:
-  [ ]: pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
-  [ ]: generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
-  [ ]: handle cube's `sql` as well as `sql_table`, enforce either
-  [ ]: handle dimension's `case`
-  [ ]: CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
-  [ ]: CI integration: validate yams by starting cube and make sure configs are sound.
-  [ ]: cause the cube can impersonate postgres: Generate an Ecto.Schema module for Cube: columns are measures and dimensions
-  [ ]: cause the cube can impersonate postgres: implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)
-  
+  -: pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
+  -: generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
+  -: handle cube's `sql` as well as `sql_table`, enforce either
+  -: handle dimension's `case`
+  -: CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
+  -: CI integration: validate yams by starting cube and make sure configs are sound.
+  -: cause the cube can impersonate postgres: Generate an Ecto.Schema module for Cube: columns are measures and dimensions
+  -: cause the cube can impersonate postgres: implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)
+
 _Why inline in Ecto Schema modules?_
 
   - The names of tables and columns used in defenitions are verified to be present in Ecto.Schema at compile time.
@@ -39,6 +39,8 @@ Four types of containers:
   - Refresh Workers
   - Cubestore Router
   - Cubestore Workers
+
+[![Logical deployment](https://ucarecdn.com/b4695d0a-46a9-4552-93f8-71309de51a43/)](https://cube.dev/docs/product/deployment)
 
 Two need the DB connection: API and Refresh Workers
 Router needs shared storage with Store Workers. The S3 is fine
