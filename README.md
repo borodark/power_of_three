@@ -1,9 +1,17 @@
 # Power of Three
 
+## What is Power of Three
+
+Power of Three is the Elixir library that provides macros to define a *cube, dimensions and [measures]()* along side with Ecto.Schema.
+This defenitions are complied to cubes config files on `mix compile`. The yaml output only for now.
+The cubes config files then can be be shared with the running _Cube_.
+
+The [Examples](./lib/example/) shows working features. The future plans are bellow in the order of priority:
+
 ## What is Cube[.dev]
 
-Solution for data analitics:
- - documentatin: https://cube.dev/product/cube-core
+Solution for data analytics:
+ - documentation: https://cube.dev/product/cube-core
  - Helm Charts https://github.com/gadsme/charts
 
 How to use cube:
@@ -11,27 +19,25 @@ How to use cube:
  - Decide how to refresh cube data
  - Profit!
 
-## What is Power of Three
-
-Power of Three is the Elixir library that provides macros to define a _Cube, Dimensions and Measures_ along side with an Ecto.Schema to have the config yamls generated on `mix compile`.
-
-TODO:
-
-  - [ ] pathtrough unprocessed options for cube, dimensions, measure and pre-aggregations
-  - [ ] generate default dimesions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimick the capability of cube dev environment
+## TODO:
+  - [ ] hex.pm worth documentation
+  - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
   - [ ] handle cube's `sql` as well as `sql_table`, enforce either
+  - [ ] validate use of already defined [cube members:](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions
+  - [ ] because the `cube` can impersonate `postgres` implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) 
   - [ ] handle dimension's `case`
   - [ ] CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
-  - [ ] CI integration: validate yams by starting cube and make sure configs are sound.
-  - [ ] cause the cube can impersonate postgres: Generate an Ecto.Schema module for Cube: columns are measures and dimensions
-  - [ ] cause the cube can impersonate postgres: implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)
+  - [ ] CI integration: validate yams by starting a cube and make sure configs are sound.
+  - [ ] generate default dimensions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimic the capability of cube dev environment
+  - [ ] cause the `cube` can impersonate `postgres`: generate an Ecto.Schema for the Cube defined (AKA __full loop_): columns are measures and dimensions
 
-_Why inline in Ecto Schema modules?_
+## _Why inline in Ecto Schema modules?_ 
 
-  - The names of tables and columns used in defenitions are verified to be present in Ecto.Schema at compile time.
-  - I don't like to leave my emacs.
+The names of tables and columns used in definitions of measures and dimensions are verifiable to be present in Ecto.Schema, hence why write/maintain another yaml or even worse json?
 
-The rest of options are passed as is. The cubes configurations produced at `mix compile`. The cubes configuration files must be shared with cube deployment. DEV environment for crafting Cubes is great: [compose.yaml](./compose.yml)
+## DEV environment
+
+For crafting Cubes here is the docker: [compose.yaml](./compose.yml)
 
 ## Deployment Overview
 
@@ -44,7 +50,7 @@ Four types of containers:
 [![Logical deployment](https://ucarecdn.com/b4695d0a-46a9-4552-93f8-71309de51a43/)](https://cube.dev/docs/product/deployment)
 
 Two need the DB connection: API and Refresh Workers
-Router needs shared storage with Store Workers. The S3 is fine
+Router needs shared storage with Store Workers: S3 is recommended.
 
 ## Installation
 
