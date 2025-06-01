@@ -18,7 +18,7 @@ defmodule GenerateData do
   alias Example.Customer
   alias Example.Address
   alias Example.Order
-  #alias Example.Repo
+  # alias Example.Repo
   alias Tarakan.Repo
   import Ecto.Query, only: [from: 2]
 

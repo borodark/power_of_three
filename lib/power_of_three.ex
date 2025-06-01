@@ -1,12 +1,106 @@
 defmodule PowerOfThree do
-  @moduledoc """
+  @moduledoc ~S"""
+  An PowerOfThree defines macros to be used with Ecto schema to creates cube config files.
+  The PowerOfThree must be used after `using Ecto.Schema `.
+  The `Ecto.Schema` defines table column names to be used in measure and dimensions defenitions.
 
-  TODO - handle schema, prefix, table should Xsist
-  TODO - one arg measure[:count], dimension[:string] for a column name 
+  The definition of the Cude is possible through main APIs:
+  `cube/3`.
 
-  Able to generate cube.dev config files for cubes defined for one `using Ecto.Schema`.
-  The dimensions and measures derive some defaults
-  from `Ecto.Schema.field` properties mentioned in the defenition
+  `cube/3` has to define `sql_table:` that is refering Ecto schema `source`.
+
+  After using `Ecto.Schema` and `PowerOfThree` and  define cube with `cube/2` macro.
+
+  ## Example
+
+      defmodule Example.Customer do
+        use Ecto.Schema
+        use PowerOfThree
+
+        schema "customer" do
+          field(:first_name, :string)
+          field(:last_name, :string)
+          field(:email, :string)
+          field(:birthday_day, :integer)
+          field(:birthday_month, :integer)
+          field(:brand_code, :string)
+          field(:market_code, :string)
+          ...
+          ...
+        end
+
+        cube :of_customers,                        # name of the cube: mandatory
+          sql_table: "customer",                   # Ecto.Schema `source`: mandatory
+          description: "of Customers" do           # path through options in accordance with Cube DSL
+
+          dimension(
+            [:brand_code, :market_code, :email],   # several fields of `customer` Ecto.Schema: mandatory
+            name: :email_per_brand_per_market,     # dimension `name:` optional.
+                                                   # Defaults to `email_per_brand_per_market` if omited in this case.
+            primary_key: true                      # This `customer:` table supports only one unique combination of
+                                                   # `:brand_code`, `:market_code`, `:email` - omited from schema fro brivety
+            )
+
+          dimension(
+            :first_name,                           # a field of `customer` Ecto.Schema: mandatory
+            name: :given_name,                     # dimension `name:` optional
+            description: "Given Name"              # path through options in accordance with Dimension DSL
+            )
+
+          measure(:count)                          # measure of type `count:` is a special one: no column reference in `sql:` is needed 
+                                                   # `name:` defaults to `count:`
+
+          measure(:email,                          # measures counts distinct of `email:` column
+            name: :aquari,                         # given a `name:` and `description:` and `filter:` in options
+            type: :count_distinct,                 # `filter:` uses SQL clause to not count other categories of customers
+            description: "Only count one zodiak sign",
+            filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
+          )
+        end
+      end
+
+  After creating a few dimensions and measures run `mix compile`. The folliwing yaml is created for the above:
+
+  ```yaml
+
+  ---
+  cubes:
+    - name: of_customers
+      description: of Customers
+      sql_table: customer
+      measures:
+        - name: count
+          type: count
+        - meta:
+            ecto_field: email
+            ecto_type: string
+          name: aquari
+          type: count_distinct
+          description: Only count one zodiak sign
+          filters:
+            - sql: (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)
+          sql: email
+      dimensions:
+        - meta:
+            ecto_fields:
+              - brand_code
+              - market_code
+              - email
+          name: email_per_brand_per_market
+          type: string
+          primary_key: true
+          sql: brand_code||market_code||email
+        - meta:
+            ecto_field: first_name
+            ecto_field_type: string
+          name: given_name
+          type: string
+          description: Given Name
+          sql: first_name
+
+  ```
+  The dimensions and measures derive some defaults from `Ecto.Schema.field` properties.
+  For example the `dimension:` `type:` is derived from ecto if not given explicitly according to this rules:
 
   Cube dimension types    | Ecto type               | Elixir type
   :---------------------- | :---------------------- | :---------------------
@@ -30,6 +124,21 @@ defmodule PowerOfThree do
   time                    | `:utc_datetime`         | `DateTime`
   time                    | `:utc_datetime_usec`    | `DateTime`
   number                  | `:duration`             | `Duration`
+
+
+
+
+  The of `PowerOfThree` is to cover 80% of cases where the `source` of Ecto Schema is a table and fields have real column names:
+   _where *field name == database column name*_
+
+  The the support of all cube features is not the goal here.
+  The automation of obtaining the usable cube configs with minimal verbocity is: avoid typing more typos then needed.
+
+  For example: the cube DSL allows the `sql:` any SQL query.
+  As of now `PowerOfThree` do not plan to support `sql:`.
+  While defining custom `sql:` may looks like an option, how would one validate the creative use of aliases in SQL?
+  Meanwhile Ecto.Schema fields are available to be interrogated for being present and at least deriving of `type:` at compile time.
+  In short is you come to the point of thinking to define custom `sql:` here - you are in a wrong place in the systems division of labour.
 
   """
 
