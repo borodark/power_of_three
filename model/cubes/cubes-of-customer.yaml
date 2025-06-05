@@ -11,7 +11,7 @@ cubes:
       - meta:
           ecto_field: email
           ecto_type: string
-        name: emailz_distinctz
+        name: emails_distinct
         type: count_distinct
         description: count distinct of emails
         sql: email
