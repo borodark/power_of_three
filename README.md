@@ -1,5 +1,7 @@
 # Power of Three
 
+Main repo: https://github.com/borodark/power-of-three
+
 ## What is Power of Three
 
 Power of Three is the Elixir library that provides macros to define a [cube](https://cube.dev/docs/product/data-modeling/reference/cube), [dimensions](https://cube.dev/docs/product/data-modeling/reference/dimensions) and [measures](https://cube.dev/docs/product/data-modeling/reference/measures) along side with [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html).
