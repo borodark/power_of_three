@@ -108,7 +108,7 @@ defmodule Example.Customer do
     time_dimensions()
 
     measure(:email,
-      name: :emailz_distinctz,
+      name: :emails_distinct,
       type: :count_distinct,
       description: "count distinct of emails"
     )

@@ -6,7 +6,7 @@ Power of Three is the Elixir library that provides macros to define a [cube](htt
 This defenitions are complied to cubes config files on `mix compile`. The yaml output only for now.
 The cubes config files then can be be shared with the running _Cube_.
 
-The [Examples](./lib/example/) shows working features. The future plans are bellow in the order of priority:
+The [Examples](./lib/example/customer.ex#L27) shows working features. The future plans are bellow in the order of priority:
 
 ## What is Cube[.dev]
 
