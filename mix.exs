@@ -13,7 +13,12 @@ defmodule PowerOfThree.MixProject do
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
         ignore_warnings: ".dialyzer_ignore.exs"
-      ]
+      ],
+      # Docs
+      name: "PowerOfThree",
+      source_url: "https://github.com/borodark/power-of-three",
+      homepage_url: "https://github.com/borodark/power-of-three",
+      docs: &docs/0
     ]
   end
 
@@ -32,6 +37,7 @@ defmodule PowerOfThree.MixProject do
       {:faker, "~> 0.18"},
       {:blacksmith, "~> 0.1"},
       {:postgrex, ">= 0.0.0"},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false}
     ]
@@ -48,6 +54,13 @@ defmodule PowerOfThree.MixProject do
         "ecto.create",
         "ecto.migrate"
       ]
+    ]
+  end
+  defp docs do
+    [
+      main: "PowerOfThree", # The main page in the docs
+      logo: "priv/logo.png",
+      extras: ["README.md"]
     ]
   end
 end

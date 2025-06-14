@@ -25,24 +25,26 @@ defmodule PowerOfThree do
           field(:birthday_month, :integer)
           field(:brand_code, :string)
           field(:market_code, :string)
-          ...
-          ...
         end
 
         cube :of_customers,                        # name of the cube: mandatory
           sql_table: "customer",                   # Ecto.Schema `source`: mandatory
+                                                   # Only `sql_table:` is supported. Must reference EctoSchema `:source`
+                                                   # the `sql:` is not supported and never will be. 
           description: "of Customers" do           # path through options in accordance with Cube DSL
 
           dimension(
             [:brand_code, :market_code, :email],   # several fields of `customer` Ecto.Schema: mandatory
-            name: :email_per_brand_per_market,     # dimension `name:` optional.
+                                                   # the list is validated against list of fields of EctoSchema
+            name: :email_per_brand_per_market,     # dimensions `name:` optional.
                                                    # Defaults to `email_per_brand_per_market` if omited in this case.
             primary_key: true                      # This `customer:` table supports only one unique combination of
-                                                   # `:brand_code`, `:market_code`, `:email` - omited from schema fro brivety
+                                                   # `:brand_code`, `:market_code`, `:email`
             )
 
           dimension(
             :first_name,                           # a field of `customer` Ecto.Schema: mandatory
+                                                   # validated against list of fields of EctoSchema
             name: :given_name,                     # dimension `name:` optional
             description: "Given Name"              # path through options in accordance with Dimension DSL
             )
@@ -51,10 +53,12 @@ defmodule PowerOfThree do
                                                    # `name:` defaults to `count:`
 
           measure(:email,                          # measures counts distinct of `email:` column
-            name: :aquari,                         # given a `name:` and `description:` and `filter:` in options
-            type: :count_distinct,                 # `filter:` uses SQL clause to not count other categories of customers
+            name: :aquari                          # given a `name:` and `description:` and `filter:` in options
+            type: :count_distinct,
             description: "Only count one zodiak sign",
             filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
+                                                   # better be correct SQL refrencing correct columns - not validated now 
+                                                   # `filter:` uses SQL clause to not count other categories of customers
           )
         end
       end
@@ -99,6 +103,7 @@ defmodule PowerOfThree do
           sql: first_name
 
   ```
+
   The dimensions and measures derive some defaults from `Ecto.Schema.field` properties.
   For example the `dimension:` `type:` is derived from ecto if not given explicitly according to this rules:
 
@@ -128,17 +133,16 @@ defmodule PowerOfThree do
 
 
 
-  The of `PowerOfThree` is to cover 80% of cases where the `source` of Ecto Schema is a table and fields have real column names:
-   _where *field name == database column name*_
+  The goal of `PowerOfThree` is to cover 80% of cases where the `source` of Ecto Schema is a table and fields have real column names:
+   _where *field name =:= database column name*_
 
   The the support of all cube features is not the goal here.
   The automation of obtaining the usable cube configs with minimal verbocity is: avoid typing more typos then needed.
 
-  For example: the cube DSL allows the `sql:` any SQL query.
-  As of now `PowerOfThree` do not plan to support `sql:`.
+  The cube DSL allows the `sql:` - _any SQL_ query. If everyone can write SQL it does not mean everyone should.
+  Writing good SQL is an art a few knew. In the memory of Patrick's Mother  the `PowerOfThree` will support `sql:`.
   While defining custom `sql:` may looks like an option, how would one validate the creative use of aliases in SQL?
-  Meanwhile Ecto.Schema fields are available to be interrogated for being present and at least deriving of `type:` at compile time.
-  In short is you come to the point of thinking to define custom `sql:` here - you are in a wrong place in the systems division of labour.
+  Meanwhile Ecto.Schema fields are available for references to define dimensions `type:`.
 
   """
 
