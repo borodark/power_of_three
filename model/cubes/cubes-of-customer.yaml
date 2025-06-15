@@ -3,27 +3,6 @@ cubes:
   - name: of_customers
     description: of Customers
     title: Demo cube
-    sql_table: customer
-    measures:
-      - name: count
-        type: count
-        description: no need for fields for :count type measure
-      - meta:
-          ecto_field: email
-          ecto_type: string
-        name: emails_distinct
-        type: count_distinct
-        description: count distinct of emails
-        sql: email
-      - meta:
-          ecto_field: email
-          ecto_type: string
-        name: aquari
-        type: count_distinct
-        description: Filtered by start sector = 0
-        filters:
-          - sql: (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)
-        sql: email
     dimensions:
       - meta:
           ecto_fields:
@@ -121,3 +100,24 @@ cubes:
         type: time
         description: inserted_at
         sql: inserted_at
+    measures:
+      - name: count
+        type: count
+        description: no need for fields for :count type measure
+      - meta:
+          ecto_field: email
+          ecto_type: string
+        name: emails_distinct
+        type: count_distinct
+        description: count distinct of emails
+        sql: email
+      - meta:
+          ecto_field: email
+          ecto_type: string
+        name: aquari
+        type: count_distinct
+        description: Filtered by start sector = 0
+        filters:
+          - sql: (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)
+        sql: email
+    sql_table: customer

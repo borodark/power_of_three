@@ -62,7 +62,11 @@ defmodule PowerOfThree.MixProject do
       # The main page in the docs
       main: "PowerOfThree",
       logo: "priv/logo.png",
-      extras: ["README.md"]
+      extras: ["README.md"],
+      exclude_patterns: ["lib/generate_data.ex","lib/example/repo.ex"] ,
+      links: %{cube: "https://cube.dev/docs/product/data-modeling/reference/cube",
+               dimensions: "https://cube.dev/docs/product/data-modeling/reference/dimensions",
+               measures: "https://cube.dev/docs/product/data-modeling/reference/measures"}
     ]
   end
 end

@@ -21,6 +21,7 @@ How to use cube:
 
 ## TODO:
   - [ ] hex.pm worth documentation
+  - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
   - [ ] handle `sql_table` names colisions with keywords
   - [ ] validate use of already defined [cube members:](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions

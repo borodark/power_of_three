@@ -27,43 +27,46 @@ defmodule PowerOfThree do
           field(:market_code, :string)
         end
 
-        cube :of_customers,                        # name of the cube: mandatory
-          sql_table: "customer",                   # Ecto.Schema `source`: mandatory
-                                                   # Only `sql_table:` is supported. Must reference EctoSchema `:source`
-                                                   # the `sql:` is not supported and never will be. 
-          description: "of Customers"              # path through options in accordance with Cube DSL
+        cube :of_customers,       # name of the cube: mandatory
+          sql_table: "customer",  # Ecto.Schema `source`: mandatory
+                                  # Only `sql_table:` is supported. Must reference EctoSchema `:source`
+                                  # the `sql:` is not supported and never will be. 
+          description: "of Customers"
+                                  # path through options in accordance with Cube DSL
 
           dimension(
-            [:brand_code, :market_code, :email],   # several fields of `customer` Ecto.Schema: mandatory
-                                                   # the list is validated against list of fields of EctoSchema
-            name: :email_per_brand_per_market,     # dimensions `name:` optional.
-                                                   # Defaults to `email_per_brand_per_market` if omited in this case.
-            primary_key: true                      # This `customer:` table supports only one unique combination of
-                                                   # `:brand_code`, `:market_code`, `:email`
+            [:brand_code, :market_code, :email],
+                                  # several fields of `customer` Ecto.Schema: mandatory
+                                  # the list is validated against list of fields of EctoSchema
+            name: :email_per_brand_per_market,
+                                  # dimensions `name:`, optional.
+            primary_key: true     # This `customer:` table supports only one unique combination of
+                                  # `:brand_code`, `:market_code`, `:email`
             )
 
           dimension(
-            :first_name,                           # a field of `customer` Ecto.Schema: mandatory
-                                                   # validated against list of fields of EctoSchema
-            name: :given_name,                     # dimension `name:` optional
-            description: "Given Name"              # path through options in accordance with Dimension DSL
+            :first_name,          # a field of `customer` Ecto.Schema: mandatory
+                                  # validated against list of fields of EctoSchema
+            name: :given_name,    # dimension `name:` optional
+            description: "Given Name"
+                                  # path through options in accordance with Dimension DSL
             )
 
-          measure(:count)                          # measure of type `count:` is a special one: no column reference in `sql:` is needed 
-                                                   # `name:` defaults to `count:`
+          measure(:count)         # measure of type `count:` is a special one: no column reference in `sql:` is needed
+                                  # `name:` defaults to `count:`
 
-          measure(:email,                          # measures counts distinct of `email:` column
-            name: :aquari                          # given a `name:` and `description:` and `filter:` in options
+          measure(:email,         # measures counts distinct of `email:` column
+            name: :aquari         # given a `name:` and `description:` and `filter:` in options
             type: :count_distinct,
             description: "Only count one zodiak sign",
             filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
-                                                   # better be correct SQL refrencing correct columns - not validated now 
-                                                   # `filter:` uses SQL clause to not count other categories of customers
+                                  # better be correct SQL refrencing correct columns - not validated now
+                                  # `filter:` uses SQL clause to not count other categories of customers
           )
         end
       end
 
-  After creating a few dimensions and measures run `mix compile`. The folliwing yaml is created for the above:
+  After creating a few dimensions and measures run `mix compile`. The following yaml is created for the above:
 
   ```yaml
 
@@ -172,6 +175,7 @@ defmodule PowerOfThree do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
+        Module.get_attribute(__MODULE__, :schema_prefix)|> IO.inspect(label: :schema_prefix)
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         opts_ = unquote(opts)
 
@@ -296,7 +300,7 @@ defmodule PowerOfThree do
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
-      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
+      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :d_schema_prefix)
 
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),

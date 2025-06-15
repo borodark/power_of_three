@@ -1,8 +1,31 @@
 ---
 cubes:
   - name: of_orders
-    sql_table: public.order
-    sql_alias: order_facts
+    dimensions:
+      - meta:
+          ecto_field: financial_status
+          ecto_field_type: string
+        name: FIN
+        type: string
+        sql: financial_status
+      - meta:
+          ecto_field: fulfillment_status
+          ecto_field_type: string
+        name: FUL
+        type: string
+        sql: fulfillment_status
+      - meta:
+          ecto_field: market_code
+          ecto_field_type: string
+        name: market_code
+        type: string
+        sql: market_code
+      - meta:
+          ecto_fields:
+            - brand_code
+        name: brand
+        type: string
+        sql: brand_code
     measures:
       - meta:
           ecto_field: subtotal_amount
@@ -31,28 +54,5 @@ cubes:
         sql: discount_total_amount
       - name: count
         type: count
-    dimensions:
-      - meta:
-          ecto_field: financial_status
-          ecto_field_type: string
-        name: FIN
-        type: string
-        sql: financial_status
-      - meta:
-          ecto_field: fulfillment_status
-          ecto_field_type: string
-        name: FUL
-        type: string
-        sql: fulfillment_status
-      - meta:
-          ecto_field: market_code
-          ecto_field_type: string
-        name: market_code
-        type: string
-        sql: market_code
-      - meta:
-          ecto_fields:
-            - brand_code
-        name: brand
-        type: string
-        sql: brand_code
+    sql_table: public.order
+    sql_alias: order_facts

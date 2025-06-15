@@ -3,17 +3,6 @@ cubes:
   - name: of_addresses
     description: of Customers
     title: Demo cube
-    sql_table: address
-    measures:
-      - name: count_of_records
-        type: count
-        description: no need for fields for :count type measure
-      - meta:
-          ecto_field: country
-          ecto_type: string
-        name: country_count
-        type: count
-        sql: country
     dimensions:
       - meta:
           ecto_fields:
@@ -42,3 +31,14 @@ cubes:
         type: time
         description: inserted_at
         sql: inserted_at
+    measures:
+      - name: count_of_records
+        type: count
+        description: no need for fields for :count type measure
+      - meta:
+          ecto_field: country
+          ecto_type: string
+        name: country_count
+        type: count
+        sql: country
+    sql_table: address
