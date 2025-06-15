@@ -56,9 +56,11 @@ defmodule PowerOfThree.MixProject do
       ]
     ]
   end
+
   defp docs do
     [
-      main: "PowerOfThree", # The main page in the docs
+      # The main page in the docs
+      main: "PowerOfThree",
       logo: "priv/logo.png",
       extras: ["README.md"]
     ]

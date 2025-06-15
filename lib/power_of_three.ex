@@ -1,6 +1,6 @@
 defmodule PowerOfThree do
   @moduledoc ~S"""
-  An PowerOfThree defines macros to be used with Ecto schema to creates cube config files.
+  The `PowerOfThree` defines three macros to be used with Ecto.Schema to creates cube config files.
   The PowerOfThree must be used after `using Ecto.Schema `.
   The `Ecto.Schema` defines table column names to be used in measure and dimensions defenitions.
 
@@ -9,7 +9,7 @@ defmodule PowerOfThree do
 
   `cube/3` has to define `sql_table:` that is refering Ecto schema `source`.
 
-  After using `Ecto.Schema` and `PowerOfThree` and  define cube with `cube/2` macro.
+  After using `Ecto.Schema` and `PowerOfThree` define cube with `cube/2` macro.
 
   ## Example
 
@@ -31,7 +31,7 @@ defmodule PowerOfThree do
           sql_table: "customer",                   # Ecto.Schema `source`: mandatory
                                                    # Only `sql_table:` is supported. Must reference EctoSchema `:source`
                                                    # the `sql:` is not supported and never will be. 
-          description: "of Customers" do           # path through options in accordance with Cube DSL
+          description: "of Customers"              # path through options in accordance with Cube DSL
 
           dimension(
             [:brand_code, :market_code, :email],   # several fields of `customer` Ecto.Schema: mandatory
@@ -176,26 +176,15 @@ defmodule PowerOfThree do
         opts_ = unquote(opts)
 
         legit_cube_properties = [
-          # TODO path through
           :pre_aggregations,
-          # TODO path through
           :joins,
           :dimensions,
-          # TODO path through
           :hierarchies,
-          # TODO path through
           :segments,
-          # TODO path through
           :access_policy,
-          # TODO path through
           :extends,
-          # TODO path through
           :sql_alias,
-          # TODO path through
           :data_source,
-          # [ ] TODO enforce either sql or sql_table
-          :sql,
-          # either sql or sql_table
           :sql_table,
           # [*] path through
           :title,
@@ -214,19 +203,18 @@ defmodule PowerOfThree do
           Keyword.split(opts_, legit_cube_properties)
 
         Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
         cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
         # TODO must match Ecto schema source
-        sql_table = cube_opts[:sql_table]
-        # TODO sql = cube_opts[:sql]
-        # TODO error out on either sql OR sql_table
+
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
-                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+                  "Please `use Ecto.Schema` and define some fields first: Cube Dimensions/Measures need to reference ecto schema fields!"
 
           [] ->
             raise ArgumentError,
-                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+                  "Please `use Ecto.Schema` and define some fields first: Cube Dimensions/Measures need to reference ecto schema fields!"
 
           [_ | _] ->
             :ok
@@ -257,7 +245,7 @@ defmodule PowerOfThree do
         time_dimensions = @time_dimensions
 
         a_cube_config = [
-          %{name: cube_name}
+          %{name: cube_name, sql_table: sql_table}
           |> Map.merge(cube_opts)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
