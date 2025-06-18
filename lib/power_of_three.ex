@@ -175,7 +175,7 @@ defmodule PowerOfThree do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
-        Module.get_attribute(__MODULE__, :schema_prefix)|> IO.inspect(label: :schema_prefix)
+        Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         opts_ = unquote(opts)
 
@@ -375,6 +375,46 @@ defmodule PowerOfThree do
     end
   end
 
+  @doc """
+
+  Measure takes atom :count, a single Ecto.Schema field or a list of Ecto.Schema fields.
+
+  Measure for several Ecto.Schema fields
+  A list of Ecto.Schema fields reference and :type are mandatory
+  sql: is mandatory, must be valid SQL clause using the fields from list and returning a number
+
+  ## Examples
+
+  measure([:tax_amount,:discount_total_amount],
+  sql: "tax_amount + discount_total_amount",
+  type: :sum,
+  description: "two measures we want add together"
+  )
+
+  Measure for a single Ecto.Schema field
+  The Ecto.Schema field reference and :type are mandatory
+  The other cube measure DLS properties are passed through
+
+  ## Examples
+
+  measure(:email,
+    name: :emails_distinct,
+    type: :count_distinct,
+    description: "count distinct of emails"
+  )
+
+  Measure of type :count
+  No :type is needed
+  The other cube measure DLS properties are passed through
+
+  ## Examples
+
+  measure(:count,
+  description: "no need for fields for :count type measure"
+  )
+
+  """
+
   defmacro measure(
              atom_count_ecto_field_or_list,
              opts \\ []
@@ -476,6 +516,7 @@ defmodule PowerOfThree do
     end
   end
 
+  @doc false
   def dimension_type(ecto_field_type) do
     cond do
       ecto_field_type in [:bitstring, :string, :binary_id, :binary] ->

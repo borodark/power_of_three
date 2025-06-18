@@ -1,7 +1,5 @@
 defmodule Example.Address do
-  @moduledoc """
-  Schema for Address model entity.
-  """
+  @moduledoc false
   use Ecto.Schema
 
   use PowerOfThree

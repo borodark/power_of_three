@@ -18,7 +18,7 @@ defmodule PowerOfThree.MixProject do
       name: "PowerOfThree",
       source_url: "https://github.com/borodark/power-of-three",
       homepage_url: "https://github.com/borodark/power-of-three",
-      docs: &docs/0
+      package: package()
     ]
   end
 
@@ -57,16 +57,21 @@ defmodule PowerOfThree.MixProject do
     ]
   end
 
-  defp docs do
+  defp package() do
     [
       # The main page in the docs
       main: "PowerOfThree",
       logo: "priv/logo.png",
       extras: ["README.md"],
-      exclude_patterns: ["lib/generate_data.ex","lib/example/repo.ex"] ,
-      links: %{cube: "https://cube.dev/docs/product/data-modeling/reference/cube",
-               dimensions: "https://cube.dev/docs/product/data-modeling/reference/dimensions",
-               measures: "https://cube.dev/docs/product/data-modeling/reference/measures"}
+      exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
+      description: "Inline Cubes with Ecto.Schema",
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => "https://github.com/borodark/power_of_three",
+        "cube" => "https://cube.dev/docs/product/data-modeling/reference/cube",
+        "dimensions" => "https://cube.dev/docs/product/data-modeling/reference/dimensions",
+        "measures" => "https://cube.dev/docs/product/data-modeling/reference/measures"
+      }
     ]
   end
 end

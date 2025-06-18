@@ -1,18 +1,5 @@
 defmodule GenerateData do
-  @shortdoc "Generated a requested number of customers"
-  @moduledoc """
-  Generated a requested number of customers
-  ## Examples:
-
-      iex> alias GenerateData, as: Task
-      iex> Task.run([])
-
-  Supply a valid integer for [number_of_records]
-
-      iex> Task.run([10000])
-  """
-
-  # use Ecto.Schema
+  @moduledoc false
   use Mix.Task
 
   alias Example.Customer
