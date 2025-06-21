@@ -143,7 +143,7 @@ defmodule PowerOfThree do
   The automation of obtaining the usable cube configs with minimal verbocity is: avoid typing more typos then needed.
 
   The cube DSL allows the `sql:` - _any SQL_ query. If everyone can write SQL it does not mean everyone should.
-  Writing good SQL is an art a few knew. In the memory of Patrick's Mother  the `PowerOfThree` will support `sql:`.
+  Writing good SQL is an art a few knew. In the memory of Patrick's Mother  the `PowerOfThree` will _not_ support `sql:`.
   While defining custom `sql:` may looks like an option, how would one validate the creative use of aliases in SQL?
   Meanwhile Ecto.Schema fields are available for references to define dimensions `type:`.
 
@@ -291,6 +291,32 @@ defmodule PowerOfThree do
       )
     end
   end
+  @doc """
+
+  Dimension first argument takes a single Ecto.Schema field or a list of Ecto.Schema fields.
+
+  Lets create a Dimension for several Ecto.Schema fields. A list of Ecto.Schema fields is mandatory.
+  Ecto.Schema fields concatenated into SQL: `brand_code||market_code||email`
+  The `primary_key: true` tells the cube how to distinguish unique records.
+
+  ## Examples
+
+
+      dimension(
+        [:brand_code, :market_code, :email],
+        name: :email_per_brand_per_market,
+        primary_key: true
+      )
+
+
+  Lets create a Dimension for a single Ecto.Schema field
+
+  ## Examples
+
+
+      dimension(:brand_code, name: :brand, description: "Beer")
+
+  """
 
   defmacro dimension(ecto_schema_field_or_list_of_fields, opts \\ [])
 
@@ -377,41 +403,45 @@ defmodule PowerOfThree do
 
   @doc """
 
-  Measure takes atom :count, a single Ecto.Schema field or a list of Ecto.Schema fields.
+  Measure first argument takes an atom `:count`, a single Ecto.Schema field or a list of Ecto.Schema fields.
 
-  Measure for several Ecto.Schema fields
-  A list of Ecto.Schema fields reference and :type are mandatory
-  sql: is mandatory, must be valid SQL clause using the fields from list and returning a number
+
+  Lets create a Measure for several Ecto.Schema fields. A list of Ecto.Schema fields reference and `:type` are mandatory.
+  The `sql:` is mandatory, must be valid SQL clause using the fields from list and returning a number.
 
   ## Examples
 
-  measure([:tax_amount,:discount_total_amount],
-  sql: "tax_amount + discount_total_amount",
-  type: :sum,
-  description: "two measures we want add together"
-  )
+      measure([:tax_amount,:discount_total_amount],
+        sql: "tax_amount + discount_total_amount",
+        type: :sum,
+        description: "two measures we want add together"
+      )
 
-  Measure for a single Ecto.Schema field
-  The Ecto.Schema field reference and :type are mandatory
+
+  Lets create a Measure for a single Ecto.Schema field
+  The Ecto.Schema field reference and `:type` are mandatory
   The other cube measure DLS properties are passed through
 
   ## Examples
 
-  measure(:email,
-    name: :emails_distinct,
-    type: :count_distinct,
-    description: "count distinct of emails"
-  )
 
-  Measure of type :count
-  No :type is needed
+      measure(:email,
+        name: :emails_distinct,
+        type: :count_distinct,
+        description: "count distinct of emails"
+      )
+
+
+  Lets create a Measure of type `:count`
+  No `:type` is needed
   The other cube measure DLS properties are passed through
 
   ## Examples
 
-  measure(:count,
-  description: "no need for fields for :count type measure"
-  )
+
+      measure(:count,
+        description: "no need for fields for :count type measure"
+      )
 
   """
 

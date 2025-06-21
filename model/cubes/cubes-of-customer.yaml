@@ -32,8 +32,8 @@ cubes:
             - email
         name: email_per_brand_per_market
         type: string
-        primary_key: true
         sql: brand_code||market_code||email
+        primary_key: true
       - meta:
           ecto_field: first_name
           ecto_field_type: string
