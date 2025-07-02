@@ -29,14 +29,14 @@ services:
     environment:
       CUBEJS_DB_TYPE: postgres
       CUBEJS_DB_NAME: power_of_3_repo
-      CUBEJS_DB_HOST: postgresql
-      CUBEJS_DB_USER: postgres
-      CUBEJS_DB_PASS: postgres
+      #CUBEJS_DB_HOST: postgresql
+      #CUBEJS_DB_USER: postgres
+      #CUBEJS_DB_PASS: postgres
       ######
-      #CUBEJS_DB_HOST: cockroach
-      #CUBEJS_DB_USER: admin
-      #CUBEJS_DB_PASS: admin
-      #CUBEJS_DB_PORT: 26257
+      CUBEJS_DB_HOST: cockroach
+      CUBEJS_DB_USER: admin
+      CUBEJS_DB_PASS: admin
+      CUBEJS_DB_PORT: 26257
       CUBEJS_CUBESTORE_HOST: cubestore_router
       CUBEJS_API_SECRET: secret
       CUBEJS_DEV_MODE: "TRUE"

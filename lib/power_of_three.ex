@@ -153,7 +153,6 @@ defmodule PowerOfThree do
     quote do
       import PowerOfThree,
         only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
-
       require Logger
 
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
@@ -175,7 +174,6 @@ defmodule PowerOfThree do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
-        Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
         cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
         opts_ = unquote(opts)
 
@@ -232,6 +230,7 @@ defmodule PowerOfThree do
 
         try do
           import PowerOfThree
+          Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
           unquote(block)
         after
           :ok

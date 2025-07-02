@@ -1,4 +1,4 @@
-defmodule Example.Repo do
+defmodule Postgres.Repo do
   @moduledoc false
   use Ecto.Repo,
     otp_app: :power_of_3,

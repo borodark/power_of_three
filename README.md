@@ -20,7 +20,7 @@ How to use cube:
  - Profit!
 
 ## TODO:
-  - [ ] hex.pm worth documentation
+  - [X] hex.pm documentation
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
   - [ ] handle `sql_table` names colisions with keywords
