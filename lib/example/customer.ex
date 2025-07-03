@@ -9,8 +9,7 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
-  @schema_prefix "public"
-  @schema_context "example"
+  @schema_prefix :customer_schema
 
   schema "customer" do
     field(:first_name, :string)
@@ -117,7 +116,12 @@ defmodule Example.Customer do
       name: :aquari,
       type: :count_distinct,
       description: "Filtered by start sector = 0",
-      filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
+      filters: [
+        %{
+          sql:
+            "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"
+        }
+      ]
     )
   end
 end

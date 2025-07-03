@@ -37,6 +37,8 @@ defmodule Example.Order do
     :unfulfilled
   ]
 
+  @schema_prefix :order_schema
+
   schema "order" do
     field(:delivery_subtotal_amount, :integer, default: 0)
     field(:discount_total_amount, :integer, default: 0)
@@ -64,7 +66,10 @@ defmodule Example.Order do
     timestamps()
   end
 
-  cube :of_orders, sql_table: "public.order", milacious_inject: :penetration_attempt do
+  cube :of_orders,
+    sql_table: "public.order",
+    sql_alias: :order_facts,
+    milacious_inject: :penetration_attempt do
     dimension(:financial_status, name: :FIN)
     dimension(:fulfillment_status, name: :FUL)
     dimension(:market_code)

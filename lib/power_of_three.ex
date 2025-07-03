@@ -1,6 +1,6 @@
 defmodule PowerOfThree do
   @moduledoc ~S"""
-  An PowerOfThree defines macros to be used with Ecto schema to creates cube config files.
+  The `PowerOfThree` defines three macros to be used with Ecto.Schema to creates cube config files.
   The PowerOfThree must be used after `using Ecto.Schema `.
   The `Ecto.Schema` defines table column names to be used in measure and dimensions defenitions.
 
@@ -9,7 +9,7 @@ defmodule PowerOfThree do
 
   `cube/3` has to define `sql_table:` that is refering Ecto schema `source`.
 
-  After using `Ecto.Schema` and `PowerOfThree` and  define cube with `cube/2` macro.
+  After using `Ecto.Schema` and `PowerOfThree` define cube with `cube/2` macro.
 
   ## Example
 
@@ -25,41 +25,48 @@ defmodule PowerOfThree do
           field(:birthday_month, :integer)
           field(:brand_code, :string)
           field(:market_code, :string)
-          ...
-          ...
         end
 
-        cube :of_customers,                        # name of the cube: mandatory
-          sql_table: "customer",                   # Ecto.Schema `source`: mandatory
-          description: "of Customers" do           # path through options in accordance with Cube DSL
+        cube :of_customers,       # name of the cube: mandatory
+          sql_table: "customer",  # Ecto.Schema `source`: mandatory
+                                  # Only `sql_table:` is supported. Must reference EctoSchema `:source`
+                                  # the `sql:` is not supported and never will be. 
+          description: "of Customers"
+                                  # path through options in accordance with Cube DSL
 
           dimension(
-            [:brand_code, :market_code, :email],   # several fields of `customer` Ecto.Schema: mandatory
-            name: :email_per_brand_per_market,     # dimension `name:` optional.
-                                                   # Defaults to `email_per_brand_per_market` if omited in this case.
-            primary_key: true                      # This `customer:` table supports only one unique combination of
-                                                   # `:brand_code`, `:market_code`, `:email` - omited from schema fro brivety
+            [:brand_code, :market_code, :email],
+                                  # several fields of `customer` Ecto.Schema: mandatory
+                                  # the list is validated against list of fields of EctoSchema
+            name: :email_per_brand_per_market,
+                                  # dimensions `name:`, optional.
+            primary_key: true     # This `customer:` table supports only one unique combination of
+                                  # `:brand_code`, `:market_code`, `:email`
             )
 
           dimension(
-            :first_name,                           # a field of `customer` Ecto.Schema: mandatory
-            name: :given_name,                     # dimension `name:` optional
-            description: "Given Name"              # path through options in accordance with Dimension DSL
+            :first_name,          # a field of `customer` Ecto.Schema: mandatory
+                                  # validated against list of fields of EctoSchema
+            name: :given_name,    # dimension `name:` optional
+            description: "Given Name"
+                                  # path through options in accordance with Dimension DSL
             )
 
-          measure(:count)                          # measure of type `count:` is a special one: no column reference in `sql:` is needed 
-                                                   # `name:` defaults to `count:`
+          measure(:count)         # measure of type `count:` is a special one: no column reference in `sql:` is needed
+                                  # `name:` defaults to `count:`
 
-          measure(:email,                          # measures counts distinct of `email:` column
-            name: :aquari,                         # given a `name:` and `description:` and `filter:` in options
-            type: :count_distinct,                 # `filter:` uses SQL clause to not count other categories of customers
+          measure(:email,         # measures counts distinct of `email:` column
+            name: :aquari         # given a `name:` and `description:` and `filter:` in options
+            type: :count_distinct,
             description: "Only count one zodiak sign",
             filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
+                                  # better be correct SQL refrencing correct columns - not validated now
+                                  # `filter:` uses SQL clause to not count other categories of customers
           )
         end
       end
 
-  After creating a few dimensions and measures run `mix compile`. The folliwing yaml is created for the above:
+  After creating a few dimensions and measures run `mix compile`. The following yaml is created for the above:
 
   ```yaml
 
@@ -99,6 +106,7 @@ defmodule PowerOfThree do
           sql: first_name
 
   ```
+
   The dimensions and measures derive some defaults from `Ecto.Schema.field` properties.
   For example the `dimension:` `type:` is derived from ecto if not given explicitly according to this rules:
 
@@ -128,17 +136,16 @@ defmodule PowerOfThree do
 
 
 
-  The of `PowerOfThree` is to cover 80% of cases where the `source` of Ecto Schema is a table and fields have real column names:
-   _where *field name == database column name*_
+  The goal of `PowerOfThree` is to cover 80% of cases where the `source` of Ecto Schema is a table and fields have real column names:
+   _where *field name =:= database column name*_
 
   The the support of all cube features is not the goal here.
   The automation of obtaining the usable cube configs with minimal verbocity is: avoid typing more typos then needed.
 
-  For example: the cube DSL allows the `sql:` any SQL query.
-  As of now `PowerOfThree` do not plan to support `sql:`.
+  The cube DSL allows the `sql:` - _any SQL_ query. If everyone can write SQL it does not mean everyone should.
+  Writing good SQL is an art a few knew. In the memory of Patrick's Mother  the `PowerOfThree` will _not_ support `sql:`.
   While defining custom `sql:` may looks like an option, how would one validate the creative use of aliases in SQL?
-  Meanwhile Ecto.Schema fields are available to be interrogated for being present and at least deriving of `type:` at compile time.
-  In short is you come to the point of thinking to define custom `sql:` here - you are in a wrong place in the systems division of labour.
+  Meanwhile Ecto.Schema fields are available for references to define dimensions `type:`.
 
   """
 
@@ -146,7 +153,6 @@ defmodule PowerOfThree do
     quote do
       import PowerOfThree,
         only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
-
       require Logger
 
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
@@ -172,26 +178,15 @@ defmodule PowerOfThree do
         opts_ = unquote(opts)
 
         legit_cube_properties = [
-          # TODO path through
           :pre_aggregations,
-          # TODO path through
           :joins,
           :dimensions,
-          # TODO path through
           :hierarchies,
-          # TODO path through
           :segments,
-          # TODO path through
           :access_policy,
-          # TODO path through
           :extends,
-          # TODO path through
           :sql_alias,
-          # TODO path through
           :data_source,
-          # [ ] TODO enforce either sql or sql_table
-          :sql,
-          # either sql or sql_table
           :sql_table,
           # [*] path through
           :title,
@@ -210,19 +205,18 @@ defmodule PowerOfThree do
           Keyword.split(opts_, legit_cube_properties)
 
         Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
         cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
         # TODO must match Ecto schema source
-        sql_table = cube_opts[:sql_table]
-        # TODO sql = cube_opts[:sql]
-        # TODO error out on either sql OR sql_table
+
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
-                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+                  "Please `use Ecto.Schema` and define some fields first: Cube Dimensions/Measures need to reference ecto schema fields!"
 
           [] ->
             raise ArgumentError,
-                  "Cube Dimensions/Measures need ecto schema fields! Please `use Ecto.Schema` and define some fields first ..."
+                  "Please `use Ecto.Schema` and define some fields first: Cube Dimensions/Measures need to reference ecto schema fields!"
 
           [_ | _] ->
             :ok
@@ -236,6 +230,7 @@ defmodule PowerOfThree do
 
         try do
           import PowerOfThree
+          Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
           unquote(block)
         after
           :ok
@@ -253,7 +248,7 @@ defmodule PowerOfThree do
         time_dimensions = @time_dimensions
 
         a_cube_config = [
-          %{name: cube_name}
+          %{name: cube_name, sql_table: sql_table}
           |> Map.merge(cube_opts)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
@@ -295,6 +290,32 @@ defmodule PowerOfThree do
       )
     end
   end
+  @doc """
+
+  Dimension first argument takes a single Ecto.Schema field or a list of Ecto.Schema fields.
+
+  Lets create a Dimension for several Ecto.Schema fields. A list of Ecto.Schema fields is mandatory.
+  Ecto.Schema fields concatenated into SQL: `brand_code||market_code||email`
+  The `primary_key: true` tells the cube how to distinguish unique records.
+
+  ## Examples
+
+
+      dimension(
+        [:brand_code, :market_code, :email],
+        name: :email_per_brand_per_market,
+        primary_key: true
+      )
+
+
+  Lets create a Dimension for a single Ecto.Schema field
+
+  ## Examples
+
+
+      dimension(:brand_code, name: :brand, description: "Beer")
+
+  """
 
   defmacro dimension(ecto_schema_field_or_list_of_fields, opts \\ [])
 
@@ -304,7 +325,7 @@ defmodule PowerOfThree do
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
-      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
+      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :d_schema_prefix)
 
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
@@ -378,6 +399,50 @@ defmodule PowerOfThree do
       end
     end
   end
+
+  @doc """
+
+  Measure first argument takes an atom `:count`, a single Ecto.Schema field or a list of Ecto.Schema fields.
+
+
+  Lets create a Measure for several Ecto.Schema fields. A list of Ecto.Schema fields reference and `:type` are mandatory.
+  The `sql:` is mandatory, must be valid SQL clause using the fields from list and returning a number.
+
+  ## Examples
+
+      measure([:tax_amount,:discount_total_amount],
+        sql: "tax_amount + discount_total_amount",
+        type: :sum,
+        description: "two measures we want add together"
+      )
+
+
+  Lets create a Measure for a single Ecto.Schema field
+  The Ecto.Schema field reference and `:type` are mandatory
+  The other cube measure DLS properties are passed through
+
+  ## Examples
+
+
+      measure(:email,
+        name: :emails_distinct,
+        type: :count_distinct,
+        description: "count distinct of emails"
+      )
+
+
+  Lets create a Measure of type `:count`
+  No `:type` is needed
+  The other cube measure DLS properties are passed through
+
+  ## Examples
+
+
+      measure(:count,
+        description: "no need for fields for :count type measure"
+      )
+
+  """
 
   defmacro measure(
              atom_count_ecto_field_or_list,
@@ -480,6 +545,7 @@ defmodule PowerOfThree do
     end
   end
 
+  @doc false
   def dimension_type(ecto_field_type) do
     cond do
       ecto_field_type in [:bitstring, :string, :binary_id, :binary] ->

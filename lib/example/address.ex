@@ -1,7 +1,5 @@
 defmodule Example.Address do
-  @moduledoc """
-  Schema for Address model entity.
-  """
+  @moduledoc false
   use Ecto.Schema
 
   use PowerOfThree
@@ -12,6 +10,8 @@ defmodule Example.Address do
   @type t() :: %__MODULE__{}
 
   @kinds [:shipping, :billing]
+
+  @schema_prefix :prefixed_schema_of_address
 
   schema "address" do
     field(:address_1, :string)

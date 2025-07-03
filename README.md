@@ -20,9 +20,10 @@ How to use cube:
  - Profit!
 
 ## TODO:
-  - [ ] hex.pm worth documentation
+  - [X] hex.pm documentation
+  - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
-  - [ ] handle cube's `sql` as well as `sql_table`, enforce either
+  - [ ] handle `sql_table` names colisions with keywords
   - [ ] validate use of already defined [cube members:](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions
   - [ ] because the `cube` can impersonate `postgres` implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) 
   - [ ] handle dimension's `case`
@@ -30,6 +31,10 @@ How to use cube:
   - [ ] CI integration: validate yams by starting a cube and make sure configs are sound.
   - [ ] generate default dimensions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimic the capability of cube dev environment
   - [ ] cause the `cube` can impersonate `postgres`: generate an Ecto.Schema for the Cube defined (AKA __full loop_): columns are measures and dimensions
+
+## NOT TODO
+
+Handle of cube's `sql` will not be done. Only `sql_table`. If you find yourself thinking adding support for `sql`, please fork and let the force be with you.
 
 ## _Why inline in Ecto Schema modules?_ 
 
