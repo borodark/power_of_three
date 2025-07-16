@@ -9,7 +9,7 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
-  @schema_prefix :customer_schema
+  #@schema_prefix :customer_schema
 
   schema "customer" do
     field(:first_name, :string)
@@ -80,7 +80,7 @@ defmodule Example.Customer do
       WHEN (birthday_month = 10 AND birthday_day >= 23) OR (birthday_month = 11 AND birthday_day <= 21) THEN 9
       WHEN (birthday_month = 11 AND birthday_day >= 22) OR (birthday_month = 12 AND birthday_day <= 21) THEN 10
       WHEN (birthday_month = 12 AND birthday_day >= 22) OR (birthday_month = 1 AND birthday_day <= 19) THEN 11
-      ELSE 0
+      ELSE -1
       END
       """
     )

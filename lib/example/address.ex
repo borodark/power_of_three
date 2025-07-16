@@ -11,7 +11,7 @@ defmodule Example.Address do
 
   @kinds [:shipping, :billing]
 
-  @schema_prefix :prefixed_schema_of_address
+  #@schema_prefix :prefixed_schema_of_address
 
   schema "address" do
     field(:address_1, :string)

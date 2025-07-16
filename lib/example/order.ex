@@ -37,7 +37,7 @@ defmodule Example.Order do
     :unfulfilled
   ]
 
-  @schema_prefix :order_schema
+  #@schema_prefix :order_schema
 
   schema "order" do
     field(:delivery_subtotal_amount, :integer, default: 0)
