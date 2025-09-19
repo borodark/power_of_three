@@ -113,7 +113,7 @@ defmodule Example.Customer do
     )
 
     measure(:email,
-      name: :aquari,
+      name: :aquarii,
       type: :count_distinct,
       description: "Filtered by start sector = 0",
       filters: [

@@ -18,7 +18,7 @@ cubes:
       - meta:
           ecto_field: email
           ecto_type: string
-        name: aquari
+        name: aquarii
         type: count_distinct
         description: Filtered by start sector = 0
         filters:

@@ -56,12 +56,12 @@ defmodule PowerOfThree do
                                   # `name:` defaults to `count:`
 
           measure(:email,         # measures counts distinct of `email:` column
-            name: :aquari         # given a `name:` and `description:` and `filter:` in options
+            name: :aquarii,       # name it proper latin plural
             type: :count_distinct,
-            description: "Only count one zodiak sign",
+            description: "Only count Aquariuses", # add `description:` and `filter:` in options
             filters: [%{sql: "(birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)"}]
-                                  # better be correct SQL refrencing correct columns - not validated now
-                                  # `filter:` uses SQL clause to not count other categories of customers
+                                  # correct SQL refrencing correct columns
+                                  # `filters:` uses an SQL clause to not count others
           )
         end
       end
@@ -81,9 +81,9 @@ defmodule PowerOfThree do
         - meta:
             ecto_field: email
             ecto_type: string
-          name: aquari
+          name: aquarii
           type: count_distinct
-          description: Only count one zodiak sign
+          description: Only count Aquariuses
           filters:
             - sql: (birthday_month = 1 AND birthday_day >= 20) OR (birthday_month = 2 AND birthday_day <= 18)
           sql: email
