@@ -9,7 +9,7 @@ defmodule Example.Customer do
 
   @type t() :: %__MODULE__{}
 
-  #@schema_prefix :customer_schema
+  # @schema_prefix :customer_schema
 
   schema "customer" do
     field(:first_name, :string)

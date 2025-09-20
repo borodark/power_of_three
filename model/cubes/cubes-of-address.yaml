@@ -36,9 +36,3 @@ cubes:
         type: string
         description: Louzy documentation
         sql: first_name
-      - meta:
-          ecto_field: inserted_at
-        name: inserted_at
-        type: time
-        description: inserted_at
-        sql: inserted_at

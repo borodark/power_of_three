@@ -153,6 +153,7 @@ defmodule PowerOfThree do
     quote do
       import PowerOfThree,
         only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+
       require Logger
 
       Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
@@ -223,9 +224,11 @@ defmodule PowerOfThree do
         end
 
         @cube_defined unquote(caller.line)
-        Module.register_attribute(__MODULE__, :cube_primary_keys, accumulate: true)
-        Module.register_attribute(__MODULE__, :measures, accumulate: true)
-        Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_cube_primary_keys, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_measures, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_time_dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :cube_enabled, persist: true)
         Module.put_attribute(__MODULE__, :cube_enabled, true)
 
         try do
@@ -240,18 +243,50 @@ defmodule PowerOfThree do
     postlude =
       quote unquote: false do
         cube_primary_keys =
-          @cube_primary_keys
+          @x_cube_primary_keys
           |> Enum.reverse()
 
-        measures = @measures |> Enum.reverse()
-        dimensions = @dimensions |> Enum.reverse()
-        time_dimensions = @time_dimensions
+        measures = @x_measures |> Enum.reverse()
+        dimensions = @x_dimensions |> Enum.reverse()
+        time_dimensions = @x_time_dimensions
+
+        Module.register_attribute(__MODULE__, :cube_primary_keys, persist: true)
+
+        Module.put_attribute(
+          __MODULE__,
+          :cube_primary_keys,
+          cube_primary_keys
+        )
+
+        Module.register_attribute(__MODULE__, :measures, persist: true)
+
+        Module.put_attribute(
+          __MODULE__,
+          :measures,
+          measures
+        )
+
+        Module.register_attribute(__MODULE__, :dimensions, persist: true)
+
+        Module.put_attribute(
+          __MODULE__,
+          :dimensions,
+          dimensions
+        )
 
         a_cube_config = [
           %{name: cube_name, sql_table: sql_table}
           |> Map.merge(cube_opts)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
+
+        Module.register_attribute(__MODULE__, :cube_config, persist: true)
+
+        Module.put_attribute(
+          __MODULE__,
+          :cube_config,
+          a_cube_config
+        )
 
         File.write(
           ("model/cubes/cubes-of-" <> sql_table <> ".yaml") |> IO.inspect(label: :file_name),
@@ -290,6 +325,7 @@ defmodule PowerOfThree do
       )
     end
   end
+
   @doc """
 
   Dimension first argument takes a single Ecto.Schema field or a list of Ecto.Schema fields.
@@ -336,7 +372,8 @@ defmodule PowerOfThree do
         false ->
           raise ArgumentError,
                 "Cube Dimension wants all of: #{inspect(list_of_ecto_schema_fields)}, \n" <>
-                  "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
+                  "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}\n" <>
+                  "The suspects of not to be known Ecto `field` are:  #{inspect(list_of_ecto_schema_fields -- intersection)}"
 
         true ->
           path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
@@ -352,9 +389,21 @@ defmodule PowerOfThree do
               list_of_ecto_schema_fields
               |> Enum.map_join("_", fn atom -> atom |> Atom.to_string() end)
 
+          case opts[:primary_key] || false do
+            true ->
+              Module.put_attribute(
+                __MODULE__,
+                :x_cube_primary_keys,
+                sql
+              )
+
+            false ->
+              :ok
+          end
+
           Module.put_attribute(
             __MODULE__,
-            :dimensions,
+            :x_dimensions,
             path_throw_opts
             |> Map.merge(%{
               # TODO respect meta in path_throw_opts
@@ -380,7 +429,7 @@ defmodule PowerOfThree do
 
           Module.put_attribute(
             __MODULE__,
-            :dimensions,
+            :x_dimensions,
             path_throw_opts
             |> Map.merge(%{
               meta: %{
@@ -475,7 +524,7 @@ defmodule PowerOfThree do
 
           Module.put_attribute(
             __MODULE__,
-            :measures,
+            :x_measures,
             path_throw_opts
             |> Map.merge(%{
               name:
@@ -498,7 +547,7 @@ defmodule PowerOfThree do
 
       Module.put_attribute(
         __MODULE__,
-        :measures,
+        :x_measures,
         path_throw_opts
         |> Map.merge(%{
           name: opts[:name] || "count",
@@ -532,7 +581,7 @@ defmodule PowerOfThree do
 
           Module.put_attribute(
             __MODULE__,
-            :measures,
+            :x_measures,
             path_throw_opts
             |> Map.merge(%{
               name: opts[:name] || for_ecto_field |> Atom.to_string(),
