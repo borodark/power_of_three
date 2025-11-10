@@ -35,8 +35,7 @@ defmodule PowerOfThreeTest do
 
       dimension(
         :first_name,
-        name: :given_name,
-        description: "Louzy documentation"
+        name: :given_name
       )
 
       dimension([:birthday_day, :birthday_month],

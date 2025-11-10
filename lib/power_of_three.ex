@@ -512,8 +512,9 @@ defmodule PowerOfThree do
       case for_ecto_fields |> Enum.sort() == intersection |> Enum.sort() do
         false ->
           raise ArgumentError,
-                "Cube Measure wants: \n#{inspect(for_ecto_fields)},\n but only those found: \n #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)))}"
-
+            "Cube Measure wants all of: #{inspect(for_ecto_fields |> Enum.sort())}, \n" <>
+            "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields))|> Enum.sort())}\n" <>
+            "The suspects of not to be known Ecto `field` are:  #{inspect((for_ecto_fields -- intersection)|> Enum.sort())}"
         true ->
           sql =
             opts[:sql] ||

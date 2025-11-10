@@ -33,7 +33,7 @@ defmodule PowerOfThree.MixProject do
   defp deps do
     [
       {:ymlr, "~> 5.0"},
-      {:ecto_sql, "~> 3.0"},
+      {:ecto_sql, "~> 3.10"},
       {:faker, "~> 0.18"},
       {:blacksmith, "~> 0.1"},
       {:postgrex, ">= 0.0.0"},

@@ -79,6 +79,7 @@ defmodule Example.Order do
     measure(:tax_amount, type: :sum, format: :currency)
     measure(:total_amount, type: :sum)
     measure(:discount_total_amount, type: :sum)
+    measure([:discount_total_amount,:tax_amount], name: "xz", type: :sum, sql: "discount_total_amount + tax_amount")
     measure(:count)
   end
 end

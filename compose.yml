@@ -1,6 +1,6 @@
 services:
   cockroach:
-    image: cockroachdb/cockroach:v23.1.6
+    image: docker.io/cockroachdb/cockroach:v23.1.6
     restart: always
     ports:
       - 36257:26257
@@ -10,7 +10,7 @@ services:
       - crdb_data:/cockroach/cockroach-data
 
   postgresql:
-    image: postgres:14.7-alpine
+    image: docker.io/postgres:14.7-alpine
     restart: always
     command: -c 'max_connections=200'
     environment:
@@ -23,7 +23,7 @@ services:
 
   cube_api:
     restart: always
-    image: cubejs/cube:latest
+    image: docker.io/cubejs/cube:latest
     ports:
       - 4008:4000
     environment:
@@ -50,7 +50,7 @@ services:
 
   cube_refresh_worker:
     restart: always
-    image: cubejs/cube:latest
+    image: docker.io/cubejs/cube:latest
     environment:
       CUBEJS_DB_TYPE: postgres
       CUBEJS_DB_NAME: power_of_3_repo
@@ -70,7 +70,7 @@ services:
 
   cubestore_router:
     restart: always
-    image: cubejs/cubestore:latest
+    image: docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_REMOTE_DIR: /cube/data
@@ -81,7 +81,7 @@ services:
 
   cubestore_worker_1:
     restart: always
-    image: cubejs/cubestore:latest
+    image: docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_SERVER_NAME: cubestore_worker_1:10001
@@ -95,7 +95,7 @@ services:
 
   cubestore_worker_2:
     restart: always
-    image: cubejs/cubestore:latest
+    image: docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_SERVER_NAME: cubestore_worker_2:10002

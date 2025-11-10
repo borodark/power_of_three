@@ -29,6 +29,9 @@ cubes:
         name: discount_total_amount
         type: sum
         sql: discount_total_amount
+      - name: xz
+        type: number
+        sql: discount_total_amount + tax_amount
       - name: count
         type: count
     dimensions:
