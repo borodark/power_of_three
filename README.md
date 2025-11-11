@@ -3,10 +3,17 @@
 ## What is Power of Three
 
 Power of Three is the Elixir library that provides macros to define a [cube](https://cube.dev/docs/product/data-modeling/reference/cube), [dimensions](https://cube.dev/docs/product/data-modeling/reference/dimensions) and [measures](https://cube.dev/docs/product/data-modeling/reference/measures) along side with [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html).
-This defenitions are complied to cubes config files on `mix compile`. The yaml output only for now.
+
+This defenitions are complied to cubes config files on `mix compile`.
+
+The yaml output only for now.
+
 The cubes config files then can be be shared with the running _Cube_.
 
-The [Examples](./lib/example/customer.ex#L27) shows working features. The future plans are bellow in the order of priority:
+Please see separate project for examples showing working features.
+  - [Example 1](https://github.com/borodark/power-of-three-examples/blob/58be8a2d9beb5539d76c42b8e98f51d960fb499c/lib/pot_examples/customer.ex#L26) 
+  - [Example 2](https://github.com/borodark/power-of-three-examples/blob/58be8a2d9beb5539d76c42b8e98f51d960fb499c/lib/pot_examples/order.ex#L67)
+
 
 ## What is Cube[.dev]
 
@@ -19,30 +26,38 @@ How to use cube:
  - Decide how to refresh cube data
  - Profit!
 
+
 ## TODO:
+
+The future plans are bellow in the order of priority:
+
   - [X] hex.pm documentation
+  - [ ] because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.
+  - [ ] because the `cube` can impersonate `postgres`  generate a Module implementing [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) protocol for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)  connecting to the separate Repo where Cube is deployed.
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
   - [ ] handle `sql_table` names colisions with keywords
-  - [ ] validate use of already defined [cube members:](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions
-  - [ ] because the `cube` can impersonate `postgres` implement [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) 
+  - [ ] validate use of already defined [cube members](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions
   - [ ] handle dimension's `case`
   - [ ] CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?
   - [ ] CI integration: validate yams by starting a cube and make sure configs are sound.
   - [ ] generate default dimensions, measures for all columns of the table if `cube()` macro is used without anything else declared to mimic the capability of cube dev environment
-  - [ ] cause the `cube` can impersonate `postgres`: generate an Ecto.Schema for the Cube defined (AKA __full loop_): columns are measures and dimensions
 
-## NOT TODO
+### NOT TODO
 
-Handle of cube's `sql` will not be done. Only `sql_table`. If you find yourself thinking adding support for `sql`, please fork and let the force be with you.
+Handle of cube's `sql` will not be done. Only `sql_table`.
+If you find yourself thinking adding support for `sql`, please fork and let the force be with you.
 
-## _Why inline in Ecto Schema modules?_ 
+
+## _Why inline in Ecto Schema modules?_
 
 The names of tables and columns used in definitions of measures and dimensions are verifiable to be present in Ecto.Schema, hence why write/maintain another yaml or even worse json?
 
+
 ## DEV environment
 
-For crafting Cubes here is the docker: [compose.yaml](./compose.yml)
+For crafting Cubes here is the docker: [compose.yaml](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml)
+
 
 ## Deployment Overview
 
@@ -54,31 +69,29 @@ Four types of containers:
 
 [![Logical deployment](https://ucarecdn.com/b4695d0a-46a9-4552-93f8-71309de51a43/)](https://cube.dev/docs/product/deployment)
 
-Two need the DB connection: API and Refresh Workers
+Two need the DB connection: API and Refresh Workers.
+
 Router needs shared storage with Store Workers: S3 is recommended.
+
 
 ## Installation
 
 To install the Cube Core and run locally see here:
-  - https://cube.dev/docs/product/getting-started
-  - https://cube.dev/docs/product/deployment/core
+
+- https://cube.dev/docs/product/getting-started
+- https://cube.dev/docs/product/deployment/core
 
 To use library
 
-TODO HEX
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+[Available in Hex](https://hexdocs.pm/power_of_3/PowerOfThree.html), the package can be installed
 by adding `power_of_3` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:power_of_3, "~> 0.1.0"}
+    {:power_of_3, "~> 0.1.2"}
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/power_of_3>.
 
 
