@@ -30,7 +30,7 @@ defmodule PowerOfThree do
         cube :of_customers,       # name of the cube: mandatory
           sql_table: "customer",  # Ecto.Schema `source`: mandatory
                                   # Only `sql_table:` is supported. Must reference EctoSchema `:source`
-                                  # the `sql:` is not supported and never will be. 
+                                  # the `sql:` is not supported and never will be.
           description: "of Customers"
                                   # path through options in accordance with Cube DSL
 
