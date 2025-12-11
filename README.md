@@ -38,7 +38,7 @@ The future plans are bellow in the order of priority:
 
   - [ ] Somehow integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.
 
-    Original hope was on `Cube Postgres API` but started The jorney into the Forests of Traits and the Swamps of Virtual Destructors.
+    Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).
 
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
