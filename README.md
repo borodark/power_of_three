@@ -32,8 +32,14 @@ How to use cube:
 The future plans are bellow in the order of priority:
 
   - [X] hex.pm documentation
-  - [ ] because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.
-  - [ ] because the `cube` can impersonate `postgres`  generate a Module implementing [Table.Reader](https://hexdocs.pm/table/Table.Reader.html) protocol for [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/)  connecting to the separate Repo where Cube is deployed.
+  - [ ] ~~because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.~~ 
+
+    This is *Dropped* for now! The `Ecto` is very particular on what kind of catalog introspections supported by the implementation of `Postgres`. Shall we say: _Cube is not Postgres_ and never will be.
+
+  - [ ] Somehow integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.
+
+    Original hope was on `Cube Postgres API` but started The jorney into the Forests of Traits and the Swamps of Virtual Destructors.
+
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
   - [ ] handle `sql_table` names colisions with keywords
