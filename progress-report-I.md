@@ -125,3 +125,4 @@ Resources:
   - Elixir DSL for Cube: https://github.com/borodark/power_of_three/blob/master/README.md
   - Fork of Cube that replies with Arrow IPC https://github.com/borodark/cube/pull/2
   - Fork of ADBC Driver that supports reading of Arrow IPC from Cube: https://github.com/borodark/adbc/pull/2
+  - Ten Minutes to Explorer: https://hexdocs.pm/explorer/exploring_explorer.html
