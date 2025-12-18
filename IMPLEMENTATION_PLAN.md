@@ -1,5 +1,47 @@
 # PowerOfThree TODO Implementation Plan
 
+```prompt
+
+    Since existing macro construct and populate Module attributes as follows:
+
+       ```elixir
+        Module.register_attribute(__MODULE__, :x_cube_primary_keys, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_measures, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :x_time_dimensions, accumulate: true)
+        Module.register_attribute(__MODULE__, :cube_enabled, persist: true)
+        Module.put_attribute(__MODULE__, :cube_enabled, true)
+       ```
+     it is possible to generate have a Marco that will
+      generate for the module `Example.Customer` the following functionality:
+
+     - DOT querieable collection of Measures to be used like example bellow:
+       ```elixir
+          Example.Customer.measures.aquarii
+     ```
+   - Dot querieable collection of Dimensions to be used like example bellow:
+
+       ```elixir
+
+            Example.Customer.dimensions.market_code
+       ```
+
+     - Explporer Dataframe constructing function:
+       ```elixir
+
+            Example.Customer.df(cols: [Example.Customer.dimensions.market_code, Example.Customer.measures.aquarii], opts: [order_by: [], sort_by:[]])
+
+       ```
+       - for `sort_by: [Example.Customer.dimensions.market_code,Example.Customer.measures.aquarii]`
+         adopt this convension: https://hexdocs.pm/explorer/Explorer.DataFrame.html#sort_by/3
+
+       - same idea for for `order_by: [Example.Customer.dimensions.market_code,Example.Customer.measures.aquarii]`
+
+       - Consider this approach: https://hexdocs.pm/explorer/Explorer.DataFrame.html#filter/2
+       to add filter that's specifically to be included to be executed by cube.
+```
+
+
 ## Goal
 
 Implement the TODO from `lib/power_of_three.ex:152-191`:

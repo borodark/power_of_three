@@ -9,6 +9,13 @@ defmodule PowerOfThree.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      test_coverage: [
+        threshold: 90,
+        ignore_modules: [
+          # Requires ADBC dependency not available in tests
+          PowerOfThree.CubeConnection
+        ]
+      ],
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
