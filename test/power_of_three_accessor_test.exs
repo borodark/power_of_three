@@ -53,8 +53,11 @@ defmodule PowerOfThreeAccessorTest do
   end
 
   describe "measures accessor" do
-    test "measures/0 returns Measures module" do
-      assert TestCube.measures() == TestCube.Measures
+    test "measures/0 returns list of MeasureRef structs" do
+      measures = TestCube.measures()
+      assert is_list(measures)
+      assert length(measures) == 3
+      assert Enum.all?(measures, fn m -> match?(%MeasureRef{}, m) end)
     end
 
     test "Measures module exists" do
@@ -99,12 +102,21 @@ defmodule PowerOfThreeAccessorTest do
       assert length(measure.filters) == 1
     end
 
-    test "measure accessors work via module reference" do
-      measures_module = TestCube.measures()
-      measure = measures_module.count()
+    test "measures list contains all defined measures" do
+      measures = TestCube.measures()
+      names = Enum.map(measures, & &1.name)
 
-      assert %MeasureRef{} = measure
-      assert measure.name == "count"
+      assert "count" in names or :count in names
+      assert :unique_emails in names
+      assert :aquarii in names
+    end
+
+    test "measures from list match direct accessors" do
+      measures_list = TestCube.measures()
+      count_from_list = Enum.find(measures_list, fn m -> m.name == "count" or m.name == :count end)
+      count_from_accessor = TestCube.Measures.count()
+
+      assert count_from_list == count_from_accessor
     end
 
     test "MeasureRef.to_sql_column works with generated refs" do
@@ -116,8 +128,11 @@ defmodule PowerOfThreeAccessorTest do
   end
 
   describe "dimensions accessor" do
-    test "dimensions/0 returns Dimensions module" do
-      assert TestCube.dimensions() == TestCube.Dimensions
+    test "dimensions/0 returns list of DimensionRef structs" do
+      dimensions = TestCube.dimensions()
+      assert is_list(dimensions)
+      assert length(dimensions) == 4
+      assert Enum.all?(dimensions, fn d -> match?(%DimensionRef{}, d) end)
     end
 
     test "Dimensions module exists" do
@@ -170,12 +185,22 @@ defmodule PowerOfThreeAccessorTest do
       assert dimension.description == "inserted_at"
     end
 
-    test "dimension accessors work via module reference" do
-      dimensions_module = TestCube.dimensions()
-      dimension = dimensions_module.email()
+    test "dimensions list contains all defined dimensions" do
+      dimensions = TestCube.dimensions()
+      names = Enum.map(dimensions, & &1.name)
 
-      assert %DimensionRef{} = dimension
-      assert dimension.name == "email"
+      assert "email" in names
+      assert :brand in names
+      assert :brand_market in names
+      assert :inserted_at in names
+    end
+
+    test "dimensions from list match direct accessors" do
+      dimensions_list = TestCube.dimensions()
+      email_from_list = Enum.find(dimensions_list, fn d -> d.name == "email" end)
+      email_from_accessor = TestCube.Dimensions.email()
+
+      assert email_from_list == email_from_accessor
     end
 
     test "DimensionRef.to_sql_column works with generated refs" do
@@ -186,47 +211,62 @@ defmodule PowerOfThreeAccessorTest do
     end
   end
 
-  describe "dot-accessible syntax" do
-    test "can access measures with dot syntax" do
-      # TestCube.measures.count()
-      measure = TestCube.measures().count()
+  describe "dot-accessible syntax via module" do
+    test "can access measures with dot syntax via module" do
+      # TestCube.Measures.count()
+      measure = TestCube.Measures.count()
 
       assert %MeasureRef{} = measure
       assert measure.name == "count"
     end
 
-    test "can access dimensions with dot syntax" do
-      # TestCube.dimensions.email()
-      dimension = TestCube.dimensions().email()
+    test "can access dimensions with dot syntax via module" do
+      # TestCube.Dimensions.email()
+      dimension = TestCube.Dimensions.email()
 
       assert %DimensionRef{} = dimension
       assert dimension.name == "email"
     end
 
-    test "can build query references" do
+    test "can build query references using module accessors" do
       # Simulate building a query with refs
       columns = [
-        TestCube.dimensions().brand(),
-        TestCube.dimensions().email(),
-        TestCube.measures().count(),
-        TestCube.measures().unique_emails()
+        TestCube.Dimensions.brand(),
+        TestCube.Dimensions.email(),
+        TestCube.Measures.count(),
+        TestCube.Measures.unique_emails()
       ]
 
       assert length(columns) == 4
       assert Enum.count(columns, &match?(%DimensionRef{}, &1)) == 2
       assert Enum.count(columns, &match?(%MeasureRef{}, &1)) == 2
     end
+
+    test "can build query references from lists" do
+      # Get all dimensions and measures as lists
+      dimensions = TestCube.dimensions()
+      measures = TestCube.measures()
+
+      # Pick specific ones
+      brand = Enum.find(dimensions, fn d -> d.name == :brand end)
+      email = Enum.find(dimensions, fn d -> d.name == "email" end)
+      count = Enum.find(measures, fn m -> m.name == "count" or m.name == :count end)
+
+      columns = [brand, email, count]
+
+      assert length(columns) == 3
+      assert Enum.count(columns, &match?(%DimensionRef{}, &1)) == 2
+      assert Enum.count(columns, &match?(%MeasureRef{}, &1)) == 1
+    end
   end
 
   describe "module existence and functionality" do
     test "Measures module exists and is accessible" do
       assert Code.ensure_loaded?(TestCube.Measures)
-      assert TestCube.measures() == TestCube.Measures
     end
 
     test "Dimensions module exists and is accessible" do
       assert Code.ensure_loaded?(TestCube.Dimensions)
-      assert TestCube.dimensions() == TestCube.Dimensions
     end
 
     test "accessor modules are proper modules" do
@@ -235,6 +275,18 @@ defmodule PowerOfThreeAccessorTest do
       assert is_atom(TestCube.Dimensions)
       assert function_exported?(TestCube.Measures, :__measure_names__, 0)
       assert function_exported?(TestCube.Dimensions, :__dimension_names__, 0)
+    end
+
+    test "measures/0 returns list, not module" do
+      result = TestCube.measures()
+      assert is_list(result)
+      refute result == TestCube.Measures
+    end
+
+    test "dimensions/0 returns list, not module" do
+      result = TestCube.dimensions()
+      assert is_list(result)
+      refute result == TestCube.Dimensions
     end
   end
 end

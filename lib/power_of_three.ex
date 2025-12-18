@@ -426,8 +426,37 @@ defmodule PowerOfThree do
         )
 
         # Generate accessor functions in the main module
-        def measures, do: unquote(measures_module_name)
-        def dimensions, do: unquote(dimensions_module_name)
+        def measures do
+          unquote(
+            for measure <- measures do
+              measure_name =
+                case measure.name do
+                  name when is_atom(name) -> name
+                  name when is_binary(name) -> String.to_atom(name)
+                end
+
+              quote do
+                unquote(measures_module_name).unquote(measure_name)()
+              end
+            end
+          )
+        end
+
+        def dimensions do
+          unquote(
+            for dimension <- all_dimensions do
+              dimension_name =
+                case dimension.name do
+                  name when is_atom(name) -> name
+                  name when is_binary(name) -> String.to_atom(name)
+                end
+
+              quote do
+                unquote(dimensions_module_name).unquote(dimension_name)()
+              end
+            end
+          )
+        end
 
         @doc """
         Queries the cube and returns results as a DataFrame (if Explorer is available) or map.
