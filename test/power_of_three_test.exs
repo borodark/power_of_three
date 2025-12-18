@@ -565,6 +565,7 @@ defmodule PowerOfThreeTest do
             format: :currency,
             custom_prop: "custom_measure"
           )
+
           dimension(:revenue)
         end
       end

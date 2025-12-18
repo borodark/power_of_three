@@ -107,6 +107,51 @@ defmodule PowerOfThree do
 
   ```
 
+  ## Accessing Dimensions and Measures
+
+  PowerOfThree generates accessor functions for dimensions and measures in two ways:
+
+  ### Module Accessors
+
+  Individual dimensions and measures can be accessed via generated modules:
+
+      Customer.Dimensions.brand()       # Returns %PowerOfThree.DimensionRef{}
+      Customer.Dimensions.email()
+      Customer.Measures.count()         # Returns %PowerOfThree.MeasureRef{}
+      Customer.Measures.aquarii()
+
+  ### List Accessors
+
+  Get all dimensions or measures as lists:
+
+      dimensions = Customer.dimensions()  # Returns [%PowerOfThree.DimensionRef{}, ...]
+      measures = Customer.measures()      # Returns [%PowerOfThree.MeasureRef{}, ...]
+
+      # Find specific dimension/measure from list
+      brand = Enum.find(dimensions, fn d -> d.name == :brand end)
+      count = Enum.find(measures, fn m -> m.name == "count" end)
+
+  ### Building Queries
+
+  Both accessor styles can be used with QueryBuilder and df/1:
+
+      # Using module accessors
+      Customer.df(columns: [
+        Customer.Dimensions.brand(),
+        Customer.Measures.count()
+      ])
+
+      # Using list accessors
+      dimensions = Customer.dimensions()
+      measures = Customer.measures()
+
+      Customer.df(columns: [
+        Enum.find(dimensions, fn d -> d.name == :brand end),
+        Enum.find(measures, fn m -> m.name == "count" end)
+      ])
+
+  ## Type Mapping
+
   The dimensions and measures derive some defaults from `Ecto.Schema.field` properties.
   For example the `dimension:` `type:` is derived from ecto if not given explicitly according to this rules:
 
@@ -161,6 +206,7 @@ defmodule PowerOfThree do
       Module.register_attribute(__MODULE__, :dimensions, accumulate: true)
       Module.register_attribute(__MODULE__, :time_dimensions, accumulate: true)
       Module.put_attribute(__MODULE__, :cube_enabled, true)
+      #
     end
   end
 
@@ -294,6 +340,264 @@ defmodule PowerOfThree do
           |> Ymlr.document!()
         )
 
+        # Generate Measures accessor module
+        measures_module_name = Module.concat(__MODULE__, Measures)
+
+        measures_functions =
+          for measure <- measures do
+            # Convert measure name to atom for function name
+            measure_name =
+              case measure.name do
+                name when is_atom(name) -> name
+                name when is_binary(name) -> String.to_atom(name)
+              end
+
+            # Generate function that returns MeasureRef
+            quote do
+              @doc """
+              Returns a reference to the #{unquote(measure_name)} measure.
+
+              ## Type
+              #{unquote(measure.type)}
+
+              ## Description
+              #{unquote(measure[:description] || "No description available")}
+              """
+              def unquote(measure_name)() do
+                %PowerOfThree.MeasureRef{
+                  name: unquote(measure.name),
+                  module: unquote(__MODULE__),
+                  type: unquote(measure.type),
+                  sql: unquote(Macro.escape(measure[:sql])),
+                  meta: unquote(Macro.escape(measure[:meta])),
+                  description: unquote(measure[:description]),
+                  filters: unquote(Macro.escape(measure[:filters])),
+                  format: unquote(measure[:format])
+                }
+              end
+            end
+          end
+
+        # Create the Measures module
+        Module.create(
+          measures_module_name,
+          quote do
+            @moduledoc """
+            Accessor module for measures in #{inspect(unquote(__MODULE__))}.
+
+            Provides dot-accessible functions for each measure defined in the cube.
+
+            ## Available Measures
+
+            #{unquote(Enum.map_join(measures, "\n", fn m -> "  - `#{m.name}()` - #{m.type}" end))}
+            """
+
+            unquote_splicing(measures_functions)
+
+            @doc "Lists all available measure names"
+            def __measure_names__,
+              do: unquote(Enum.map(measures, fn m -> m.name end))
+          end,
+          Macro.Env.location(__ENV__)
+        )
+
+        # Generate Dimensions accessor module
+        dimensions_module_name = Module.concat(__MODULE__, Dimensions)
+
+        # time_dimensions is an accumulated list (may be empty)
+        time_dimensions_list = time_dimensions |> Enum.reverse()
+
+        all_dimensions = dimensions ++ time_dimensions_list
+
+        dimensions_functions =
+          for dimension <- all_dimensions do
+            # Convert dimension name to atom for function name
+            dimension_name =
+              case dimension.name do
+                name when is_atom(name) -> name
+                name when is_binary(name) -> String.to_atom(name)
+              end
+
+            # Generate function that returns DimensionRef
+            quote do
+              @doc """
+              Returns a reference to the #{unquote(dimension_name)} dimension.
+
+              ## Type
+              #{unquote(dimension.type)}
+
+              ## Description
+              #{unquote(dimension[:description] || "No description available")}
+              """
+              def unquote(dimension_name)() do
+                %PowerOfThree.DimensionRef{
+                  name: unquote(dimension.name),
+                  module: unquote(__MODULE__),
+                  type: unquote(dimension.type),
+                  sql: unquote(to_string(dimension.sql)),
+                  meta: unquote(Macro.escape(dimension[:meta])),
+                  description: unquote(dimension[:description]),
+                  primary_key: unquote(dimension[:primary_key] || false),
+                  format: unquote(dimension[:format]),
+                  propagate_filters_to_sub_query:
+                    unquote(dimension[:propagate_filters_to_sub_query]),
+                  public: unquote(dimension[:public])
+                }
+              end
+            end
+          end
+
+        # Create the Dimensions module
+        Module.create(
+          dimensions_module_name,
+          quote do
+            @moduledoc """
+            Accessor module for dimensions in #{inspect(unquote(__MODULE__))}.
+
+            Provides dot-accessible functions for each dimension defined in the cube.
+
+            ## Available Dimensions
+
+            #{unquote(Enum.map_join(all_dimensions, "\n", fn d -> "  - `#{d.name}()` - #{d.type}" end))}
+            """
+
+            unquote_splicing(dimensions_functions)
+
+            @doc "Lists all available dimension names"
+            def __dimension_names__,
+              do: unquote(Enum.map(all_dimensions, fn d -> d.name end))
+          end,
+          Macro.Env.location(__ENV__)
+        )
+
+        # Generate accessor functions in the main module
+        def measures do
+          unquote(
+            for measure <- measures do
+              measure_name =
+                case measure.name do
+                  name when is_atom(name) -> name
+                  name when is_binary(name) -> String.to_atom(name)
+                end
+
+              quote do
+                unquote(measures_module_name).unquote(measure_name)()
+              end
+            end
+          )
+        end
+
+        def dimensions do
+          unquote(
+            for dimension <- all_dimensions do
+              dimension_name =
+                case dimension.name do
+                  name when is_atom(name) -> name
+                  name when is_binary(name) -> String.to_atom(name)
+                end
+
+              quote do
+                unquote(dimensions_module_name).unquote(dimension_name)()
+              end
+            end
+          )
+        end
+
+        @doc """
+        Queries the cube and returns results as a DataFrame (if Explorer is available) or map.
+
+        ## Options
+
+          * `:columns` - Required. List of MeasureRef and/or DimensionRef structs
+          * `:where` - Optional. SQL WHERE clause (without "WHERE" keyword)
+          * `:order_by` - Optional. List of `{column_index, :asc | :desc}` or just `column_index`
+          * `:limit` - Optional. Maximum number of rows to return
+          * `:offset` - Optional. Number of rows to skip
+          * `:connection` - Optional. Existing ADBC connection (creates new if not provided)
+          * `:connection_opts` - Optional. Options for creating a new connection
+
+        ## Examples
+
+            # Simple query using module accessors
+            df = Customer.df(columns: [
+              Customer.Dimensions.brand(),
+              Customer.Measures.count()
+            ])
+
+            # Using list-based accessors
+            dimensions = Customer.dimensions()  # Returns list of all DimensionRef structs
+            measures = Customer.measures()      # Returns list of all MeasureRef structs
+
+            brand = Enum.find(dimensions, fn d -> d.name == :brand end)
+            count = Enum.find(measures, fn m -> m.name == "count" or m.name == :count end)
+
+            df = Customer.df(columns: [brand, count])
+
+            # With filters and ordering
+            df = Customer.df(
+              columns: [Customer.Dimensions.email(), Customer.Measures.count()],
+              where: "brand_code = 'NIKE'",
+              order_by: [{2, :desc}],
+              limit: 10
+            )
+
+            # Reusing a connection
+            {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
+            df = Customer.df(columns: [...], connection: conn)
+        """
+        def df(opts) do
+          cube_name = unquote(cube_name) |> to_string()
+          columns = Keyword.fetch!(opts, :columns)
+
+          query_opts =
+            opts
+            |> Keyword.put(:cube, cube_name)
+            |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
+
+          sql = PowerOfThree.QueryBuilder.build(query_opts)
+
+          # Get or create connection
+          conn =
+            case Keyword.get(opts, :connection) do
+              nil ->
+                conn_opts = Keyword.get(opts, :connection_opts, [])
+
+                case PowerOfThree.CubeConnection.connect(conn_opts) do
+                  {:ok, conn} -> conn
+                  {:error, error} -> {:error, error}
+                end
+
+              conn ->
+                conn
+            end
+
+          case conn do
+            {:error, _} = error ->
+              error
+
+            conn ->
+              case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
+                {:ok, result_map} ->
+                  {:ok, PowerOfThree.DataFrame.from_result(result_map)}
+
+                {:error, _} = error ->
+                  error
+              end
+          end
+        end
+
+        @doc """
+        Queries the cube and returns results, raising on error.
+
+        See `df/1` for options and examples.
+        """
+        def df!(opts) do
+          case df(opts) do
+            {:ok, result} -> result
+            {:error, error} -> raise error
+          end
+        end
+
         a_cube_config |> IO.inspect(label: :a_cube_config)
         :ok
       end
@@ -314,7 +618,7 @@ defmodule PowerOfThree do
     quote bind_quoted: binding() do
       Module.put_attribute(
         __MODULE__,
-        :time_dimensions,
+        :x_time_dimensions,
         %{
           meta: %{ecto_field: :inserted_at},
           name: :inserted_at,
@@ -512,9 +816,10 @@ defmodule PowerOfThree do
       case for_ecto_fields |> Enum.sort() == intersection |> Enum.sort() do
         false ->
           raise ArgumentError,
-            "Cube Measure wants all of: #{inspect(for_ecto_fields |> Enum.sort())}, \n" <>
-            "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields))|> Enum.sort())}\n" <>
-            "The suspects of not to be known Ecto `field` are:  #{inspect((for_ecto_fields -- intersection)|> Enum.sort())}"
+                "Cube Measure wants all of: #{inspect(for_ecto_fields |> Enum.sort())}, \n" <>
+                  "But only these are avalable: #{inspect(Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)) |> Enum.sort())}\n" <>
+                  "The suspects of not to be known Ecto `field` are:  #{inspect((for_ecto_fields -- intersection) |> Enum.sort())}"
+
         true ->
           sql =
             opts[:sql] ||
