@@ -107,6 +107,51 @@ defmodule PowerOfThree do
 
   ```
 
+  ## Accessing Dimensions and Measures
+
+  PowerOfThree generates accessor functions for dimensions and measures in two ways:
+
+  ### Module Accessors
+
+  Individual dimensions and measures can be accessed via generated modules:
+
+      Customer.Dimensions.brand()       # Returns %PowerOfThree.DimensionRef{}
+      Customer.Dimensions.email()
+      Customer.Measures.count()         # Returns %PowerOfThree.MeasureRef{}
+      Customer.Measures.aquarii()
+
+  ### List Accessors
+
+  Get all dimensions or measures as lists:
+
+      dimensions = Customer.dimensions()  # Returns [%PowerOfThree.DimensionRef{}, ...]
+      measures = Customer.measures()      # Returns [%PowerOfThree.MeasureRef{}, ...]
+
+      # Find specific dimension/measure from list
+      brand = Enum.find(dimensions, fn d -> d.name == :brand end)
+      count = Enum.find(measures, fn m -> m.name == "count" end)
+
+  ### Building Queries
+
+  Both accessor styles can be used with QueryBuilder and df/1:
+
+      # Using module accessors
+      Customer.df(columns: [
+        Customer.Dimensions.brand(),
+        Customer.Measures.count()
+      ])
+
+      # Using list accessors
+      dimensions = Customer.dimensions()
+      measures = Customer.measures()
+
+      Customer.df(columns: [
+        Enum.find(dimensions, fn d -> d.name == :brand end),
+        Enum.find(measures, fn m -> m.name == "count" end)
+      ])
+
+  ## Type Mapping
+
   The dimensions and measures derive some defaults from `Ecto.Schema.field` properties.
   For example the `dimension:` `type:` is derived from ecto if not given explicitly according to this rules:
 
@@ -473,15 +518,24 @@ defmodule PowerOfThree do
 
         ## Examples
 
-            # Simple query
+            # Simple query using module accessors
             df = Customer.df(columns: [
-              Customer.dimensions().brand(),
-              Customer.measures().count()
+              Customer.Dimensions.brand(),
+              Customer.Measures.count()
             ])
+
+            # Using list-based accessors
+            dimensions = Customer.dimensions()  # Returns list of all DimensionRef structs
+            measures = Customer.measures()      # Returns list of all MeasureRef structs
+
+            brand = Enum.find(dimensions, fn d -> d.name == :brand end)
+            count = Enum.find(measures, fn m -> m.name == "count" or m.name == :count end)
+
+            df = Customer.df(columns: [brand, count])
 
             # With filters and ordering
             df = Customer.df(
-              columns: [Customer.dimensions().email(), Customer.measures().count()],
+              columns: [Customer.Dimensions.email(), Customer.Measures.count()],
               where: "brand_code = 'NIKE'",
               order_by: [{2, :desc}],
               limit: 10
