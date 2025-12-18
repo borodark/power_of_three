@@ -68,7 +68,15 @@ defmodule PowerOfThree.CubeConnection do
       )
   """
   @spec connect(connect_opts()) :: {:ok, connection()} | {:error, term()}
-  def connect(opts \\ []) do
+  def connect(
+        opts \\ [
+          host: "localhost",
+          port: 4445,
+          token: "test",
+          username: "username",
+          password: "password"
+        ]
+      ) do
     opts = merge_config(opts)
 
     host = Keyword.get(opts, :host, "localhost")
@@ -192,7 +200,8 @@ defmodule PowerOfThree.CubeConnection do
       # TODO Noice
       # Path.expand("~/projects/learn_erl/adbc/_build/dev/lib/adbc/priv/adbc_driver_cube.so"),
       # In the application's priv directory
-      Path.join(:code.priv_dir(:adbc), "adbc_driver_cube.so")]
+      Path.join(:code.priv_dir(:adbc), "adbc_driver_cube.so")
+    ]
 
     Enum.find(possible_paths, fn path ->
       File.exists?(path)

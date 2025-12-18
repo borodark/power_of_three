@@ -65,7 +65,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with WHERE clause" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -79,7 +85,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with ORDER BY" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -93,7 +105,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with ORDER BY using integer shortcuts" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -107,7 +125,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with LIMIT" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -121,7 +145,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with OFFSET" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -135,7 +165,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "builds query with all options" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -158,7 +194,13 @@ defmodule PowerOfThree.QueryBuilderTest do
     end
 
     test "accepts atom cube name" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql =
@@ -173,7 +215,13 @@ defmodule PowerOfThree.QueryBuilderTest do
 
   describe "validate_columns!/1" do
     test "accepts valid columns" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       assert :ok = QueryBuilder.validate_columns!([dimension, measure])
@@ -200,7 +248,13 @@ defmodule PowerOfThree.QueryBuilderTest do
 
   describe "build_select_clause/2" do
     test "builds SELECT with dimensions and measures" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       sql = QueryBuilder.build_select_clause("customer", [dimension, measure])
@@ -258,7 +312,13 @@ defmodule PowerOfThree.QueryBuilderTest do
 
   describe "extract_cube_name/1" do
     test "extracts cube name from columns" do
-      dimension = %DimensionRef{name: :brand, module: TestCustomer, type: :string, sql: "brand_code"}
+      dimension = %DimensionRef{
+        name: :brand,
+        module: TestCustomer,
+        type: :string,
+        sql: "brand_code"
+      }
+
       measure = %MeasureRef{name: :count, module: TestCustomer, type: :count}
 
       assert QueryBuilder.extract_cube_name([dimension, measure]) == "customer"
