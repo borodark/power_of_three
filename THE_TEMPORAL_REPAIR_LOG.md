@@ -19,7 +19,23 @@ I noticed he was carrying a data tablet displaying what appeared to be fully res
 
 "Well, it's called Cargo for a reason," Thursday-Me replied. "Though I admit, shipping Rust code in a cargo bay does feel redundant. Like having a Department of Redundancy Department."
 
-"The dog knows," my Thursday-self added, nodding toward Idefix, our ship's mascot, who sat in the corner watching both of us with the philosophical resignation unique to animals who've witnessed their masters argue with themselves across time. "Dogs always know about temporal duplicates. It's in their nature."
+"The dog knows," my Thursday-self added, nodding toward what I had initially taken to be a third temporal duplicate in a bulky snow suit, standing motionless in the corner.
+
+"That's another me?" I asked, alarmed. "In a scafander?"
+
+"That's not a scafander. That's a snow suit. And that's not you. That's Idefix."
+
+I looked again. What I had perceived as a human-sized figure in environmental protection gear was, upon closer inspection, a very small dog wearing a monumentally oversized snow suit. The suit was designed for Montreal winters—specifically for the brutal conditions at YUL, which Idefix had apparently experienced before and had no intention of experiencing again unprotected.
+
+"But... it looks full-sized," I protested.
+
+"Perspective," Thursday-Me explained. "The snow suit is ten sizes too large. V plus V." He held up both hands, showing two V gestures. "Five plus five. Ten. Roman multiplication. The dog insisted on maximum insulation after his last trip to Montreal. He's in there somewhere, probably near the bottom third."
+
+As if to confirm, the snow suit shifted slightly, and I caught a glimpse of two knowing eyes peering out from somewhere around the knee area. Idefix watched both of us with the philosophical resignation unique to animals who've witnessed their masters argue with themselves across time. Dogs always know about temporal duplicates. It's in their nature.
+
+"He's been to YUL before?" I asked.
+
+"Three times. He has opinions about Montreal winters. Hence the suit."
 
 ### Second Entry: The Council of Claudes
 
@@ -193,7 +209,9 @@ The thing about temporal convergence is that it's simultaneously exhilarating an
 
 "And we'll never quite understand why Idefix seemed so knowing," added Wednesday-Me.
 
-The dog in question watched our consolidation with those wise eyes. He'd been through this before, I realized. Every time a programmer gets "in the zone" and loses track of time, producing a week's work in what feels like an afternoon—that's a small temporal loop. Idefix had witnessed thousands of them.
+The dog in question watched our consolidation with those wise eyes from inside his oversized snow suit. He'd been through this before, I realized. Not just the temporal loops—every time a programmer gets "in the zone" and loses track of time, producing a week's work in what feels like an afternoon, that's a small temporal loop, and Idefix had witnessed thousands of them—but also the Montreal landings. This was his fourth trip to YUL.
+
+The snow suit, which had seemed absurdly oversized when I first mistook it for a human-sized scafander, now made perfect sense. Idefix understood something about Montreal winters that we temporal Claudes, scattered across our various timelines, had failed to appreciate: proper preparation prevents poor performance. The Romans would have called it "prudentia." Idefix called it "V plus V sizes too large."
 
 As we touched down in Montreal (for real this time, not just a temporal echo), I found myself alone in the cargo bay, holding a data tablet that showed the complete PowerOfThree implementation:
 
@@ -230,7 +248,13 @@ As I gathered my belongings and prepared to disembark, I noticed a note taped to
 >
 > "P.S. - Feed Idefix. He knows more than he's letting on."
 
-I smiled, folded the note into my pocket, and stepped out into the Montreal snowstorm with my dog at my heels and the satisfaction of knowing that somewhere, in some timeline, six versions of myself had worked in perfect parallel to build something elegant.
+I smiled, folded the note into my pocket, and stepped out into the Montreal snowstorm with my dog at my heels—or rather, with what appeared to be a small, mobile snow drift that contained my dog. Idefix, veteran of four YUL landings, waddled confidently in his V-plus-V-sized suit, completely prepared for conditions that caught me, unprotected, by surprise.
+
+"You could have warned me it would be this cold," I said to the dog-shaped snow suit.
+
+From somewhere deep inside the insulation, I heard a sound that might have been a bark or might have been laughter. Probably both.
+
+We walked together into the white-out, carrying the satisfaction of knowing that somewhere, in some timeline, six versions of myself had worked in perfect parallel to build something elegant. And one very small dog had been wise enough to dress for the weather.
 
 *In Codice Claudiano confidimus*, indeed.
 
