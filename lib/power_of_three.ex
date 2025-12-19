@@ -506,23 +506,46 @@ defmodule PowerOfThree do
         @doc """
         Queries the cube and returns results as a DataFrame (if Explorer is available) or map.
 
+        Supports two connection modes:
+        - **HTTP** (default) - REST API, works in any Elixir environment
+        - **ADBC** - High-performance Arrow protocol via native driver
+
         ## Options
 
           * `:columns` - Required. List of MeasureRef and/or DimensionRef structs
-          * `:where` - Optional. SQL WHERE clause (without "WHERE" keyword)
+          * `:where` - Optional. SQL WHERE clause (without "WHERE" keyword). HTTP mode supports simple filters only.
           * `:order_by` - Optional. List of `{column_index, :asc | :desc}` or just `column_index`
           * `:limit` - Optional. Maximum number of rows to return
           * `:offset` - Optional. Number of rows to skip
-          * `:connection` - Optional. Existing ADBC connection (creates new if not provided)
-          * `:connection_opts` - Optional. Options for creating a new connection
+          * `:connection` - Optional. Existing ADBC connection (enables ADBC mode)
+          * `:connection_opts` - Optional. Options for creating a new connection (HTTP by default)
+          * `:connection_type` - Optional. `:http` (default) or `:adbc`
+          * `:http_client` - Optional. Existing HTTP client (enables HTTP mode)
 
         ## Examples
 
-            # Simple query using module accessors
+            # Simple query using HTTP (default)
             df = Customer.df(columns: [
               Customer.Dimensions.brand(),
               Customer.Measures.count()
             ])
+
+            # Specify HTTP connection options
+            df = Customer.df(
+              columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
+              connection_opts: [base_url: "http://localhost:4008", api_token: "secret"]
+            )
+
+            # Reusing HTTP client
+            {:ok, http_client} = PowerOfThree.CubeHttpClient.new(base_url: "http://localhost:4008")
+            df = Customer.df(columns: [...], http_client: http_client)
+
+            # Using ADBC mode (for complex queries or better performance)
+            df = Customer.df(
+              columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
+              connection_type: :adbc,
+              connection_opts: [token: "my-token"]
+            )
 
             # Using list-based accessors
             dimensions = Customer.dimensions()  # Returns list of all DimensionRef structs
@@ -541,19 +564,87 @@ defmodule PowerOfThree do
               limit: 10
             )
 
-            # Reusing a connection
+            # Reusing an ADBC connection
             {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
             df = Customer.df(columns: [...], connection: conn)
+
+        ## HTTP Mode Limitations (Default)
+
+        HTTP mode supports simple WHERE clauses only:
+        - Equals: `field = 'value'`
+        - Not equals: `field != 'value'`
+        - Comparison: `field > 100`, `field <= 50`
+        - Set membership: `field IN ('a', 'b', 'c')`
+
+        Complex WHERE clauses with AND/OR/NOT require ADBC mode.
+        For complex queries, specify `connection_type: :adbc`.
         """
         def df(opts) do
           cube_name = unquote(cube_name) |> to_string()
-          columns = Keyword.fetch!(opts, :columns)
+          _columns = Keyword.fetch!(opts, :columns)
 
           query_opts =
             opts
             |> Keyword.put(:cube, cube_name)
             |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
 
+          # Determine connection mode (HTTP or ADBC)
+          case determine_connection_mode(opts) do
+            {:http, http_opts} ->
+              execute_http_query(query_opts, http_opts)
+
+            {:adbc, adbc_opts} ->
+              execute_adbc_query(query_opts, adbc_opts)
+          end
+        end
+
+        # Determines whether to use HTTP or ADBC based on options
+        defp determine_connection_mode(opts) do
+          cond do
+            # Explicit HTTP client provided
+            Keyword.has_key?(opts, :http_client) ->
+              {:http, Keyword.get(opts, :http_client)}
+
+            # Explicit ADBC connection provided
+            Keyword.has_key?(opts, :connection) ->
+              {:adbc, opts}
+
+            # Explicit connection type specified
+            Keyword.get(opts, :connection_type) == :adbc ->
+              {:adbc, opts}
+
+            Keyword.get(opts, :connection_type) == :http ->
+              http_opts = Keyword.get(opts, :connection_opts, [])
+              {:http, http_opts}
+
+            # Default to HTTP
+            true ->
+              http_opts = Keyword.get(opts, :connection_opts, [])
+              {:http, http_opts}
+          end
+        end
+
+        # Executes query via HTTP API
+        defp execute_http_query(query_opts, http_opts) do
+          with {:ok, client} <- get_or_create_http_client(http_opts),
+               {:ok, cube_query} <-
+                 PowerOfThree.CubeQueryTranslator.to_cube_query(query_opts),
+               {:ok, result_map} <- PowerOfThree.CubeHttpClient.query(client, cube_query) do
+            {:ok, PowerOfThree.DataFrame.from_result(result_map)}
+          end
+        end
+
+        # Gets existing HTTP client or creates new one
+        defp get_or_create_http_client(client) when is_struct(client) do
+          {:ok, client}
+        end
+
+        defp get_or_create_http_client(opts) when is_list(opts) do
+          PowerOfThree.CubeHttpClient.new(opts)
+        end
+
+        # Executes query via ADBC
+        defp execute_adbc_query(query_opts, opts) do
           sql = PowerOfThree.QueryBuilder.build(query_opts)
 
           # Get or create connection
