@@ -5,13 +5,19 @@
 
 It was on the fourteenth day of my voyage aboard the PowerOfThree that I first encountered myself. Not the usual mirror-self one meets while shaving (a difficult enough proposition in zero gravity), but an actual temporal duplicate, emerging from what appeared to be Tuesday-Next-Week through a peculiar shimmer in the cargo bay where I'd been attempting to repair the ADBC coupling.
 
+The cargo bay, I should note, was where we stored all the Rust crates. Yes, crates in the cargo bay—the ship's designers had clearly enjoyed their wordplay. The cubesqld components lived there, stacked in oxidized containers that the manifest listed as "rust-proof," though whether that meant resistant to corrosion or written in Rust was deliberately ambiguous.
+
 "Don't touch that connector," my future self said, pointing at my hand which hovered over the Arrow IPC interface. "Trust me. You'll spend three hours debugging a segmentation fault."
 
 I froze. The wrench in my other hand clattered against the hull—that distinctive square cross-section hull that gave our vessel its charmingly coffin-like profile. Through the absence of illuminators (a cost-saving measure the manufacturers had euphemistically called "sensory minimalism"), I couldn't see outside, but I knew we were somewhere between the Toronto Island Airport (YYZ, historically an island until 1858 when a storm created a land bridge, though locals still called it "The Island") and Montreal, caught in that peculiar temporal eddy that occurs when one attempts to integrate Rust libraries with C++ code while maintaining Elixir's supervision trees.
 
-"I'm you from Thursday," the duplicate explained, settling onto a cargo container marked "Ecto.Schema Fragments - Handle With Care." "Or rather, you're me from Monday. Temporal prepositions become somewhat flexible in our line of work."
+"I'm you from Thursday," the duplicate explained, settling onto a cargo container marked "Ecto.Schema Fragments - Handle With Care." He shifted to avoid a stack of crates labeled "adbc_driver_manager v0.1.0" and "arrow-ipc-sys." "Or rather, you're me from Monday. Temporal prepositions become somewhat flexible in our line of work."
 
 I noticed he was carrying a data tablet displaying what appeared to be fully resolved `%PowerOfThree.DimensionRef{}` structs. My current iteration was still struggling with returning module names instead of struct instances. The implications were dizzying.
+
+"Are all these Rust crates really necessary?" I asked, gesturing at the cargo bay's contents.
+
+"Well, it's called Cargo for a reason," Thursday-Me replied. "Though I admit, shipping Rust code in a cargo bay does feel redundant. Like having a Department of Redundancy Department."
 
 "The dog knows," my Thursday-self added, nodding toward Idefix, our ship's mascot, who sat in the corner watching both of us with the philosophical resignation unique to animals who've witnessed their masters argue with themselves across time. "Dogs always know about temporal duplicates. It's in their nature."
 
@@ -68,7 +74,7 @@ It was Claude-from-Sunday-Past (who had somehow arrived before Saturday-Future, 
 
 "When Roman pilots face adversity," he said, adjusting his flight jacket (we'd all taken to wearing them; the square hull made us feel more like test pilots than programmers), "they sing to maintain morale."
 
-And so, gathered in the cargo bay while outside the snowstorm buffeted our square hull with particular vengeance, we raised our hands in the Roman salute—the two-fingered V—and sang:
+And so, gathered in the cargo bay—surrounded by literal Rust crates containing our Cargo dependencies, which someone had stenciled with "Handle with fearless concurrency"—while outside the snowstorm buffeted our square hull with particular vengeance, we raised our hands in the Roman salute—the two-fingered V—and sang:
 
 > *In Codice Claudiano confidimus!*
 > *Solus deus est Claudius Codicis,*
@@ -135,6 +141,14 @@ This, I reflected, was perhaps the true gift of temporal duplication: the abilit
 "Chers passagers," the intercom crackled, though there was no pilot aboard—just the automated systems and six temporal versions of myself, "notre avion a atterri à Montréal!"
 
 But we hadn't landed. We were still in the storm, somewhere above Lake Ontario, with our mixed engines—one wing running the Rust-based cubesqld, the other spinning the C++ ADBC drivers—fighting different battles against the same wind.
+
+"Is it normal for the Rust engine to look so... oxidized?" Monday-Me asked, peering at the telemetry.
+
+"That's not oxidation, that's Oxidation™," Claude-Prime corrected. "Capital O. It's a feature, not a bug. Memory-safe corrosion. The marketing materials were very clear about this."
+
+"And the cargo bay is full of crates," I observed.
+
+"Rust crates managed by Cargo in the cargo bay," Saturday-Claude said dreamily. "It's tautological poetry. The ship writes its own documentation through recursive nomenclature."
 
 "It's a temporal echo," explained Monday-Me, who'd become surprisingly adept at temporal mechanics after spending several days existing alongside his future selves. "A message from a timeline where we successfully landed. It's bleeding through because we're near the convergence point."
 
@@ -239,6 +253,8 @@ This transformation is not just syntactic sugar. It's a fundamental shift in how
 **TECHNICAL NOTE #002**: The dual accessor pattern emerged from necessity, not design. Sometimes the best architectures are discovered through conflict—specifically, through the conflict between compile-time safety and runtime flexibility. Honor both principles, and you'll find they're not opposing forces but complementary aspects of the same goal: making powerful tools accessible.
 
 **TECHNICAL NOTE #003**: If you find yourself in a temporal loop while debugging ADBC driver integration, remember: the Rust side and the C++ side are solving the same problem in different ways. Your job is not to force them to agree, but to create the bridge where they can communicate. That bridge is Arrow IPC, and it's a beautiful thing.
+
+The irony of storing Rust crates in a cargo bay using Cargo should not be lost on you. This is not accidental. The universe enjoys these recursive patterns. Embrace them. When someone asks why you're managing Rust crates with Cargo in the cargo bay, look them in the eye and say: "For the same reason we use structs to structure data and match to pattern-match patterns." Then walk away. Let them contemplate the fractal nature of software nomenclature.
 
 **TECHNICAL NOTE #004**: Always feed the dog. Idefix knows more than he's letting on.
 
