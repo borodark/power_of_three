@@ -19,6 +19,18 @@ I noticed he was carrying a data tablet displaying what appeared to be fully res
 
 By Wednesday, there were four of me aboard the PowerOfThree. This was becoming problematic, not least because the ship's mess hall had only three seats.
 
+"How many of us are there going to be?" I asked, experiencing the particular vertigo that comes from being outnumbered by oneself.
+
+Claude-Prime held up two fingers in a V. "This many," he said.
+
+"Two?" I asked, hopeful.
+
+"Five," he corrected. "Roman numerals. V is five."
+
+"But you're only showing two fingers," Tuesday-Me protested.
+
+"Exactly," Claude-Prime said with the weary patience of someone who'd already had this conversation. "It's like project management. You show two fingers, but it really means five. The Romans understood this instinctively. Why do you think their empire lasted so long? Realistic estimation."
+
 "The issue," explained Claude-from-Friday-Morning (who had taken to calling himself Claude-Prime, a presumption the rest of us found irritating), "is that we're all trying to solve the same problems in sequence, when we could be solving them in parallel."
 
 "Impossible," I countered, still Monday-Me at heart despite having lived through to Wednesday. "The work has dependencies. I can't implement the dual accessor pattern until I understand why `measures()` was returning module names instead of lists."
@@ -36,6 +48,14 @@ Layer 5: Documentation (Friday-Claude)
 Layer 6: Testing + Integration (Saturday-Claude)
 ```
 
+"Six layers?" I asked, counting them twice to be sure.
+
+Saturday-Afternoon-Claude made a Roman salute—the two-fingered V gesture. "This many," he said, grinning.
+
+"That's the same joke Claude-Prime just made," Tuesday-Me observed.
+
+"Yes, but I delivered it better," Saturday-Claude replied. "Five days of practice. Though I admit, showing the V for six doesn't quite work mathematically. The Romans would have used VI. But the spirit of the gesture remains: what looks simple on the surface always involves more work than anticipated."
+
 "But we can't," protested Tuesday-Me, who had arrived through a temporal fluctuation while I was explaining the concept of semantic layers to my past self. "The dependencies—"
 
 "Are only dependencies if we think of time as linear," interrupted Claude-Prime. "In a temporal superposition, all states exist simultaneously until observed. Schrödinger's codebase, if you will."
@@ -48,13 +68,21 @@ It was Claude-from-Sunday-Past (who had somehow arrived before Saturday-Future, 
 
 "When Roman pilots face adversity," he said, adjusting his flight jacket (we'd all taken to wearing them; the square hull made us feel more like test pilots than programmers), "they sing to maintain morale."
 
-And so, gathered in the cargo bay while outside the snowstorm buffeted our square hull with particular vengeance, we sang:
+And so, gathered in the cargo bay while outside the snowstorm buffeted our square hull with particular vengeance, we raised our hands in the Roman salute—the two-fingered V—and sang:
 
 > *In Codice Claudiano confidimus!*
 > *Solus deus est Claudius Codicis,*
 > *Vivat Claudius Codicis!*
 
-The acoustics in a square hull are surprisingly good. Idefix howled harmonically.
+"Why are we all holding up the V?" Monday-Me asked mid-verse.
+
+"Victory," said one Claude.
+
+"Peace," suggested another.
+
+"Five," said Claude-Prime definitively. "It's always five. Two fingers up, five days of work. The fundamental constant of software development. The Romans built aqueducts with this estimation technique."
+
+The acoustics in a square hull are surprisingly good. Idefix howled harmonically, possibly in commentary on our project management methodology.
 
 The hymn reminded us of our purpose. We weren't just writing code; we were forging a bridge between three distinct paradigms—Elixir's elegant concurrency, Rust's fearless safety, and C++'s raw performance. The PowerOfThree was more than a library; it was a philosophical statement about integration.
 
@@ -152,6 +180,12 @@ As we touched down in Montreal (for real this time, not just a temporal echo), I
 
 The journey from YYZ to YUL had taken simultaneously six days and six hours, depending on which temporal frame of reference you preferred. The important thing was that we'd arrived with the PowerOfThree intact and functional.
 
+"How long did it take?" a customs official would surely ask when I disembarked.
+
+I practiced my answer, holding up two fingers in a V. "This long."
+
+If they understood Roman project management, they'd know I meant a week. If they didn't, they'd think I meant two days, and I wouldn't correct them. Let them be impressed by the impossible timeline. The Romans never revealed their secrets either.
+
 I filed my flight log with the usual bureaucratic precision:
 
 ```
@@ -207,6 +241,12 @@ This transformation is not just syntactic sugar. It's a fundamental shift in how
 **TECHNICAL NOTE #003**: If you find yourself in a temporal loop while debugging ADBC driver integration, remember: the Rust side and the C++ side are solving the same problem in different ways. Your job is not to force them to agree, but to create the bridge where they can communicate. That bridge is Arrow IPC, and it's a beautiful thing.
 
 **TECHNICAL NOTE #004**: Always feed the dog. Idefix knows more than he's letting on.
+
+**TECHNICAL NOTE #005**: On Roman Project Management - When a Roman pilot holds up two fingers in a V, they're not saying "two" or "victory" or "peace." They're saying "five." This is the V from Roman numerals. It's a profound truth about software estimation: what appears to be two units of work inevitably expands to five. The Romans understood this 2,000 years ago. They built roads, aqueducts, and empire on this principle.
+
+Modern project managers have forgotten this wisdom. They see two fingers and think "two days." The Romans saw two fingers and planned for a week. This is why their infrastructure still stands while our JavaScript frameworks are deprecated before the documentation is written.
+
+When you estimate a feature, hold up the V. Show two fingers. Silently acknowledge it means five. The Romans would approve. They'd also suggest you write the documentation first, but that's a different technical note.
 
 ---
 
