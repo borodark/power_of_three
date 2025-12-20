@@ -141,7 +141,7 @@ result["totl_revenue"]  # Oops, typo!
 │  │  PostgreSQL/Snowflake/BigQuery                        │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                              │
-│  Returns: Explorer.DataFrame (columnar, zero-copy)          │
+│  Returns: Explorer.DataFrame (columnar)          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -556,7 +556,6 @@ end
 - ✅ Business logic defined once, reused everywhere
 - ✅ Type-safe column references
 - ✅ Automatic GROUP BY generation
-- ✅ Zero serialization overhead
 - ✅ Returns Explorer DataFrames ready for ML
 
 ---
