@@ -643,71 +643,6 @@ end
 
 ---
 
-## Production Deployment
-
-### Configuration
-
-```elixir
-# config/config.exs
-config :power_of_three, PowerOfThree.CubeConnection,
-  host: "localhost",
-  port: 4445,
-  token: System.get_env("CUBE_TOKEN")
-
-# config/prod.exs
-config :power_of_three, PowerOfThree.CubeConnection,
-  host: System.get_env("CUBESQLD_HOST"),
-  port: String.to_integer(System.get_env("CUBESQLD_PORT") || "4445"),
-  token: System.get_env("CUBE_TOKEN")
-```
-
-### Supervision Tree
-
-```elixir
-defmodule MyApp.Application do
-  use Application
-
-  def start(_type, _args) do
-    children = [
-      # Your existing children
-      MyApp.Repo,
-      MyAppWeb.Endpoint,
-
-      # Add Cube connection pool (optional, for long-lived connections)
-      {PowerOfThree.CubeConnection,
-        name: MyApp.CubeConn,
-        host: Application.get_env(:power_of_three, :host),
-        port: Application.get_env(:power_of_three, :port),
-        token: Application.get_env(:power_of_three, :token)
-      }
-    ]
-
-    opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
-end
-```
-
-### Error Handling
-
-```elixir
-case Customer.df(columns: [...]) do
-  {:ok, df} ->
-    # Success - process DataFrame
-    process_results(df)
-
-  {:error, %Adbc.Error{message: msg}} ->
-    # Connection error, query error, etc.
-    Logger.error("Cube query failed: #{msg}")
-    {:error, :query_failed}
-end
-
-# Or use df!/1 for "let it crash" scenarios
-df = Customer.df!(columns: [...])  # Raises on error
-```
-
----
-
 ## Migration Guide
 
 ### From Raw SQL Queries
@@ -786,11 +721,10 @@ end
 
 ## Resources
 
+- **Explorer**: [hexdocs.pm/explorer](https://hexdocs.pm/explorer)
 - **Documentation**: [PowerOfThree Hex Docs](https://hexdocs.pm/power_of_3)
 - **Examples**: `/power-of-three-examples` directory
 - **Cube.js Docs**: [cube.dev/docs](https://cube.dev/docs)
-- **Arrow Format**: [arrow.apache.org](https://arrow.apache.org)
-- **Explorer**: [hexdocs.pm/explorer](https://hexdocs.pm/explorer)
 
 ---
 
