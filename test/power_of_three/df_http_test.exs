@@ -332,12 +332,11 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Both queries should succeed
-      assert is_map(result1)
-      assert is_map(result2)
+      assert ["power_customers.brand", "power_customers.count"] ==
+               result1 |> Explorer.DataFrame.names()
 
-      # They should have different keys
-      assert Map.has_key?(result1, "power_customers.brand")
-      assert Map.has_key?(result2, "power_customers.market")
+      assert ["power_customers.count", "power_customers.market"] ==
+               result2 |> Explorer.DataFrame.names()
     end
 
     test "HTTP client with custom base URL" do
@@ -350,8 +349,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.count")
+      assert ["power_customers.count"] == result |> Explorer.DataFrame.names()
     end
   end
 
