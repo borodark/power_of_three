@@ -795,4 +795,4 @@ end
 
 ---
 
-*"In Codice Claudiano confidimus!"* - In the Claudian Code we trust.
+*"In Codice Claudiano confidimus!"*
