@@ -49,12 +49,16 @@ defmodule PowerOfThree.DataFrame do
       # => %{"col1" => [1, 2, 3], "col2" => ["a", "b", "c"]}
   """
   @spec from_result(map()) :: Explorer.DataFrame.t() | map()
-  def from_result(result_map) when is_map(result_map) do
+  def from_result(result_map) when is_map(result_map) and result_map != %{} do
     if explorer_available?() do
       Explorer.DataFrame.new(result_map)
     else
       result_map
     end
+  end
+
+  def from_result(result_map) do
+    result_map
   end
 
   @doc """

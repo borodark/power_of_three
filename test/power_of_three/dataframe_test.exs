@@ -32,7 +32,7 @@ defmodule PowerOfThree.DataFrameTest do
       result = DataFrame.from_result(result_map)
 
       # Without Explorer, should return the map as-is
-      assert result == result_map
+      assert Explorer.DataFrame.shape(result) == {3, 2}
     end
 
     test "handles empty map" do
@@ -43,7 +43,7 @@ defmodule PowerOfThree.DataFrameTest do
     test "handles single column" do
       result_map = %{"value" => [1, 2, 3]}
       result = DataFrame.from_result(result_map)
-      assert result == result_map
+      assert result |> Explorer.DataFrame.to_columns() == result_map
     end
 
     test "handles multiple columns" do
@@ -54,7 +54,7 @@ defmodule PowerOfThree.DataFrameTest do
       }
 
       result = DataFrame.from_result(result_map)
-      assert result == result_map
+      assert result |> Explorer.DataFrame.to_columns() == result_map
     end
   end
 end
