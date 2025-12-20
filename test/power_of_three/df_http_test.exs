@@ -3,51 +3,7 @@ defmodule PowerOfThree.DfHttpTest do
 
   @moduletag :live_cube
 
-  # Test schemas matching the live cubes
-  defmodule Customer do
-    use Ecto.Schema
-    use PowerOfThree
-
-    schema "customer" do
-      field(:first_name, :string)
-      field(:email, :string)
-      field(:birthday_day, :integer)
-      field(:birthday_month, :integer)
-      field(:brand_code, :string)
-      field(:market_code, :string)
-      timestamps()
-    end
-
-    cube :of_customers,
-      sql_table: "customer",
-      title: "customers cube",
-      description: "of Customers" do
-      dimension(:first_name, name: :given_name, description: "good documentation")
-      dimension(:brand_code, name: :brand, description: "Beer")
-      dimension(:market_code, name: :market, description: "market_code, like AU")
-
-      dimension([:birthday_day, :birthday_month],
-        name: :zodiac,
-        description: "SQL for a zodiac sign"
-      )
-
-      dimension([:birthday_day, :birthday_month],
-        name: :star_sector,
-        type: :number,
-        description: "integer from 0 to 11 for zodiac signs"
-      )
-
-      dimension([:brand_code, :market_code],
-        name: :bm_code,
-        sql: "brand_code|| '_' || market_code"
-      )
-
-      dimension(:updated_at, name: :updated, description: "updated_at timestamp")
-
-      measure(:count, description: "no need for fields for :count type measure")
-    end
-  end
-
+  alias PowerOfThree.Customer
 
   describe "df/1 with HTTP (default)" do
     test "simple query with dimensions and measures" do
@@ -62,12 +18,12 @@ defmodule PowerOfThree.DfHttpTest do
 
       # Verify we got a map with the expected keys
       assert is_map(result)
-      assert Map.has_key?(result, "of_customers.brand")
-      assert Map.has_key?(result, "of_customers.count")
+      assert Map.has_key?(result, "power_customers.brand")
+      assert Map.has_key?(result, "power_customers.count")
 
       # Verify data is in columnar format
-      brands = result["of_customers.brand"]
-      counts = result["of_customers.count"]
+      brands = result["power_customers.brand"]
+      counts = result["power_customers.count"]
 
       assert is_list(brands)
       assert is_list(counts)
@@ -86,8 +42,8 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       assert is_map(result)
-      assert Map.has_key?(result, "of_customers.count")
-      assert is_list(result["of_customers.count"])
+      assert Map.has_key?(result, "power_customers.count")
+      assert is_list(result["power_customers.count"])
     end
 
     test "query with multiple dimensions" do
@@ -101,14 +57,14 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert Map.has_key?(result, "of_customers.brand")
-      assert Map.has_key?(result, "of_customers.market")
-      assert Map.has_key?(result, "of_customers.count")
+      assert Map.has_key?(result, "power_customers.brand")
+      assert Map.has_key?(result, "power_customers.market")
+      assert Map.has_key?(result, "power_customers.count")
 
       # All columns should have same length
-      brands_len = length(result["of_customers.brand"])
-      markets_len = length(result["of_customers.market"])
-      counts_len = length(result["of_customers.count"])
+      brands_len = length(result["power_customers.brand"])
+      markets_len = length(result["power_customers.market"])
+      counts_len = length(result["power_customers.count"])
 
       assert brands_len == markets_len
       assert markets_len == counts_len
@@ -121,7 +77,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
       assert length(brands) <= 3
     end
 
@@ -143,7 +99,7 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Results should be different (assuming we have > 2 rows)
-      refute first_batch["of_customers.brand"] == second_batch["of_customers.brand"]
+      refute first_batch["power_customers.brand"] == second_batch["power_customers.brand"]
     end
   end
 
@@ -159,8 +115,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["of_customers.brand"]
-      counts = result["of_customers.count"]
+      brands = result["power_customers.brand"]
+      counts = result["power_customers.count"]
 
       assert is_list(brands)
       assert is_list(counts)
@@ -198,7 +154,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 10
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
 
       assert is_list(brands)
       # All brands should be either BudLight or Dos Equis
@@ -218,7 +174,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
 
       # No brand should be BudLight
       refute Enum.any?(brands, &(&1 == "BudLight"))
@@ -237,7 +193,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
 
       # Verify we got results
       assert length(brands) > 0
@@ -257,7 +213,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      counts = result["of_customers.count"]
+      counts = result["power_customers.count"]
 
       # Verify we got results
       assert length(counts) > 0
@@ -277,7 +233,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      names = result["of_customers.given_name"]
+      names = result["power_customers.given_name"]
 
       # Should be sorted
       assert names == Enum.sort(names)
@@ -292,7 +248,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      counts = result["of_customers.count"]
+      counts = result["power_customers.count"]
 
       assert is_list(counts)
       assert Enum.all?(counts, &is_integer/1)
@@ -305,7 +261,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
 
       assert is_list(brands)
       assert Enum.all?(brands, &is_binary/1)
@@ -321,14 +277,13 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      star_sectors = result["of_customers.star_sector"]
+      star_sectors = result["power_customers.star_sector"]
 
       assert is_list(star_sectors)
       # star_sector should be numbers (0-11)
       assert Enum.all?(star_sectors, &is_integer/1)
     end
   end
-
 
   describe "df/1 error handling (HTTP)" do
     test "returns error for invalid query" do
@@ -377,8 +332,8 @@ defmodule PowerOfThree.DfHttpTest do
       assert is_map(result2)
 
       # They should have different keys
-      assert Map.has_key?(result1, "of_customers.brand")
-      assert Map.has_key?(result2, "of_customers.market")
+      assert Map.has_key?(result1, "power_customers.brand")
+      assert Map.has_key?(result2, "power_customers.market")
     end
 
     test "HTTP client with custom base URL" do
@@ -392,7 +347,7 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       assert is_map(result)
-      assert Map.has_key?(result, "of_customers.count")
+      assert Map.has_key?(result, "power_customers.count")
     end
   end
 
@@ -406,7 +361,7 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       assert is_map(result)
-      assert Map.has_key?(result, "of_customers.brand")
+      assert Map.has_key?(result, "power_customers.brand")
     end
   end
 
@@ -420,7 +375,7 @@ defmodule PowerOfThree.DfHttpTest do
 
       # Should return map directly, not tuple
       assert is_map(result)
-      assert Map.has_key?(result, "of_customers.brand")
+      assert Map.has_key?(result, "power_customers.brand")
     end
 
     test "raises on error" do
@@ -448,8 +403,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["of_customers.brand"]
-      counts = result["of_customers.count"]
+      brands = result["power_customers.brand"]
+      counts = result["power_customers.count"]
 
       assert length(brands) <= 5
       assert length(counts) <= 5
@@ -473,7 +428,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 10
         )
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
 
       # All brands should be in the filter list
       assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis", "Blue Moon"]))

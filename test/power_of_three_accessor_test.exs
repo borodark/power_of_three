@@ -113,7 +113,10 @@ defmodule PowerOfThreeAccessorTest do
 
     test "measures from list match direct accessors" do
       measures_list = TestCube.measures()
-      count_from_list = Enum.find(measures_list, fn m -> m.name == "count" or m.name == :count end)
+
+      count_from_list =
+        Enum.find(measures_list, fn m -> m.name == "count" or m.name == :count end)
+
       count_from_accessor = TestCube.Measures.count()
 
       assert count_from_list == count_from_accessor

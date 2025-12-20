@@ -44,3 +44,18 @@ Perhaps spin the joke about Zsuzsa knowing short association YUL =:= COLD in cap
 The one Claude must be mentioned wearing the Space Suite of the ship during interactions. 
 perhaps being asked why explaining the fact by a sudden drop of temperature one day to the -20 and that was celsius, perhaps closest to the destination time loop manifested by apparent cold - refer to the thought of taking shorter route: PowerOfThree.Dataframe -> HTTP Client -> Cube REST API Endpont - the warp speed discovered in the _part due_, hinting on possible continuation of This Story.
 The Suite became the 5kg dog size because the Claude wearing Space Suite has context compacted and suite shrinking with it - perhaps universe learning about context compaction or another scientifically explained from the protagonist point reference to LLMs user learning process.
+
+
+say use this for HTTP endpont:
+     # Cube API response:
+```elixir
+
+      %{"data" => [
+        %{"of_customers.brand" => "NIKE", "of_customers.count" => "42"},
+        %{"of_customers.brand" => "Adidas", "of_customers.count" => "38"}
+      ]}
+```
+
+Accept: application/x-ndjson
+
+https://hexdocs.pm/explorer/Explorer.DataFrame.html#load_ndjson/2

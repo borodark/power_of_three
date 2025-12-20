@@ -104,6 +104,7 @@ defmodule PowerOfThree.CubeHttpClient do
         req_opts
       end
 
+    req_opts = req_opts |> Keyword.put(:headers, [{:accept, "application/x-ndjson"}])|> IO.inspect
     req = Req.new(req_opts)
 
     {:ok,
@@ -169,8 +170,7 @@ defmodule PowerOfThree.CubeHttpClient do
         {:error, QueryError.timeout()}
 
       {:error, %Req.TransportError{reason: :econnrefused}} ->
-        {:error,
-         QueryError.connection_error("Connection refused. Is the Cube server running?")}
+        {:error, QueryError.connection_error("Connection refused. Is the Cube server running?")}
 
       {:error, error} ->
         {:error, QueryError.connection_error("HTTP request failed", error)}
