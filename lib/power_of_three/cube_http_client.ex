@@ -269,27 +269,6 @@ defmodule PowerOfThree.CubeHttpClient do
       {:error, QueryError.parse_error("Failed to transform response", error)}
   end
 
-  defp transform_to_columnar(rows, annotation) do
-    # Get field names from first row
-    field_names = rows |> List.first() |> Map.keys()
-
-    # Transform each field to a column
-    result =
-      field_names
-      |> Enum.map(fn field_name ->
-        values = Enum.map(rows, & &1[field_name])
-        field_type = get_field_type(field_name, annotation)
-        converted_values = convert_column_values(values, field_type)
-        {field_name, converted_values}
-      end)
-      |> Enum.into(%{})
-
-    {:ok, result}
-  rescue
-    error ->
-      {:error, QueryError.parse_error("Failed to transform response", error)}
-  end
-
   # Gets the type of a field from annotation metadata
   defp get_field_type(field_name, %{
          "dimensions" => dimensions,
