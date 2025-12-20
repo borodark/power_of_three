@@ -232,7 +232,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      names = result["power_customers.given_name"] |> IO.inspect(label: :names)
+      names = result["power_customers.given_name"]
 
       # Should be sorted
       assert 5 == Explorer.Series.size(names)

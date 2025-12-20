@@ -338,7 +338,7 @@ defmodule PowerOfThree do
         )
 
         File.write(
-          (Atom.to_string(cube_name) <> ".yaml") |> IO.inspect(label: :file_name),
+          ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml") |> IO.inspect(label: :file_name),
           %{cubes: a_cube_config}
           |> Ymlr.document!()
         )

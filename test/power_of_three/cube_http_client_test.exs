@@ -161,7 +161,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       # Should return map directly, not tuple
 
-      counts = result["power_customers.brand"] |> IO.inspect(label: "->>>----->-")
+      counts = result["power_customers.brand"]
       assert %Explorer.Series{} = counts
     end
 
@@ -193,7 +193,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      counts = result["power_customers.count"] |> IO.inspect(label: "=>>======>-")
+      counts = result["power_customers.count"]
 
       assert %Explorer.Series{} = counts
       # assert Enum.all?(counts, &is_integer/1)
@@ -242,7 +242,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
         "limit" => 3
       }
 
-      {:ok, result} = CubeHttpClient.query(client, cube_query) |> IO.inspect()
+      {:ok, result} = CubeHttpClient.query(client, cube_query)
 
       # Should have 3 keys (2 dimensions + 1 measure)
       assert Explorer.DataFrame.shape(result) == {3, 3}
@@ -262,7 +262,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
         "limit" => 3
       }
 
-      {:ok, result} = CubeHttpClient.arrow(client, cube_query) |> IO.inspect()
+      {:ok, result} = CubeHttpClient.arrow(client, cube_query)
 
       # Should have 3 keys (2 dimensions + 1 measure)
       assert Explorer.DataFrame.shape(result) == {3, 3}
