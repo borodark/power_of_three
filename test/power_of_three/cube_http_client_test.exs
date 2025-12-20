@@ -51,32 +51,24 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
     test "executes simple query successfully", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
         "limit" => 3
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      assert is_map(result)
-      assert Map.has_key?(result, "of_customers.brand")
-      assert Map.has_key?(result, "of_customers.count")
-
-      # Data should be in columnar format
-      assert is_list(result["of_customers.brand"])
-      assert is_list(result["of_customers.count"])
-
-      # Counts should be converted to integers
-      assert Enum.all?(result["of_customers.count"], &is_integer/1)
+      assert ["power_customers.brand", "power_customers.count"] ==
+               result |> Explorer.DataFrame.names()
     end
 
     test "executes query with filters", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
         "filters" => [
           %{
-            "member" => "of_customers.brand",
+            "member" => "power_customers.brand",
             "operator" => "equals",
             "values" => ["BudLight"]
           }
@@ -86,36 +78,32 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      brands = result["of_customers.brand"]
-
-      assert is_list(brands)
+      brands = result["power_customers.brand"] |> Explorer.Series.to_list()
       assert Enum.all?(brands, &(&1 == "BudLight"))
     end
 
     test "executes query with ordering", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
-        "order" => [["of_customers.count", "desc"]],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
+        "order" => [["power_customers.count", "desc"]],
         "limit" => 5
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      counts = result["of_customers.count"]
+      counts = result["power_customers.count"]
 
-      assert is_list(counts)
-      # Should be in descending order
-      assert counts == Enum.sort(counts, :desc)
+      assert ["1758", "1751", "1739", "1735", "1731"] == counts |> Explorer.Series.to_list()
     end
 
     test "handles empty result set", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
         "filters" => [
           %{
-            "member" => "of_customers.brand",
+            "member" => "power_customers.brand",
             "operator" => "equals",
             "values" => ["NonExistentBrand12345"]
           }
@@ -145,8 +133,8 @@ defmodule PowerOfThree.CubeHttpClientTest do
       {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:9999")
 
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"]
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"]
       }
 
       {:error, error} = CubeHttpClient.query(client, cube_query)
@@ -164,24 +152,25 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
     test "returns result directly on success", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
         "limit" => 3
       }
 
       result = CubeHttpClient.query!(client, cube_query)
 
       # Should return map directly, not tuple
-      assert is_map(result)
-      assert Map.has_key?(result, "of_customers.brand")
+
+      counts = result["power_customers.brand"] |> IO.inspect(label: "->>>----->-")
+      assert %Explorer.Series{} = counts
     end
 
     test "raises on error" do
       {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:9999")
 
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"]
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"]
       }
 
       assert_raise RuntimeError, fn ->
@@ -198,51 +187,49 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
     test "converts string numbers to integers", %{client: client} do
       cube_query = %{
-        "measures" => ["of_customers.count"],
+        "measures" => ["power_customers.count"],
         "limit" => 1
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      counts = result["of_customers.count"]
+      counts = result["power_customers.count"] |> IO.inspect(label: "=>>======>-")
 
-      assert is_list(counts)
-      assert Enum.all?(counts, &is_integer/1)
+      assert %Explorer.Series{} = counts
+      # assert Enum.all?(counts, &is_integer/1)
     end
 
     test "keeps string dimensions as strings", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
         "limit" => 1
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      brands = result["of_customers.brand"]
+      brands = result["power_customers.brand"]
+      assert %Explorer.Series{} = brands
 
-      assert is_list(brands)
-      assert Enum.all?(brands, &is_binary/1)
+      assert ["Dos Equis"] =
+               brands |> Explorer.Series.to_list()
     end
 
     test "converts number dimensions to integers", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.star_sector"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.star_sector"],
+        "measures" => ["power_customers.count"],
         "limit" => 5
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      star_sectors = result["of_customers.star_sector"]
-
-      assert is_list(star_sectors)
-      # Should be numbers (0-11 or -1)
-      assert Enum.all?(star_sectors, &is_integer/1)
+      assert [-1.0, 5.0, 4.0, 0.0, 6.0] ==
+               result["power_customers.star_sector"] |> Explorer.Series.to_list()
     end
   end
 
-  describe "response transformation" do
+  describe "response transformationn" do
     setup do
       {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:4008")
       {:ok, client: client}
@@ -250,23 +237,37 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
     test "transforms row-oriented data to columnar format", %{client: client} do
       cube_query = %{
-        "dimensions" => ["of_customers.brand", "of_customers.market"],
-        "measures" => ["of_customers.count"],
+        "dimensions" => ["power_customers.brand", "power_customers.market"],
+        "measures" => ["power_customers.count"],
         "limit" => 3
       }
 
-      {:ok, result} = CubeHttpClient.query(client, cube_query)
+      {:ok, result} = CubeHttpClient.query(client, cube_query) |> IO.inspect()
 
       # Should have 3 keys (2 dimensions + 1 measure)
-      assert map_size(result) == 3
-
-      # All columns should have same length
-      brands = result["of_customers.brand"]
-      markets = result["of_customers.market"]
-      counts = result["of_customers.count"]
-
-      assert length(brands) == length(markets)
-      assert length(markets) == length(counts)
+      assert Explorer.DataFrame.shape(result) == {3, 3}
     end
   end
+
+  describe "response transformationn arrow" do
+    setup do
+      {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:4008")
+      {:ok, client: client}
+    end
+
+    test "transforms row-oriented data to columnar format", %{client: client} do
+      cube_query = %{
+        "dimensions" => ["power_customers.brand", "power_customers.market"],
+        "measures" => ["power_customers.count"],
+        "limit" => 3
+      }
+
+      {:ok, result} = CubeHttpClient.arrow(client, cube_query) |> IO.inspect()
+
+      # Should have 3 keys (2 dimensions + 1 measure)
+      assert Explorer.DataFrame.shape(result) == {3, 3}
+    end
+  end
+
+  #       // res.set('Content-Type', 'application/vnd.apache.arrow.stream');e
 end

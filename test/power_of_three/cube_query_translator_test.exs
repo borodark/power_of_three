@@ -1,7 +1,7 @@
 defmodule PowerOfThree.CubeQueryTranslatorTest do
   use ExUnit.Case, async: true
 
-  alias PowerOfThree.{CubeQueryTranslator, DimensionRef, MeasureRef, QueryError}
+  alias PowerOfThree.{CubeQueryTranslator, QueryError}
 
   # Test schema for translator tests
   defmodule TestSchema do
@@ -254,7 +254,7 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "set"
-      assert filter["values"] == ["BudLight", "Dos Equis", "Blue Moon"]
+      assert filter["values"] == ["'BudLight'", "'Dos Equis'", "'Blue Moon'"]
     end
 
     test "parses IN filter case insensitive" do

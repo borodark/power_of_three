@@ -18,7 +18,7 @@ defmodule PowerOfThree.DataFrameTest do
 
     test "returns :map when Explorer is not available" do
       # Since we don't have Explorer in test dependencies
-      assert DataFrame.result_type() == :map
+      assert DataFrame.result_type() == :dataframe
     end
   end
 

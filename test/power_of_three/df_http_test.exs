@@ -3,8 +3,6 @@ defmodule PowerOfThree.DfHttpTest do
 
   @moduletag :live_cube
 
-  alias PowerOfThree.Customer
-
   describe "df/1 with HTTP (default)" do
     test "simple query with dimensions and measures" do
       {:ok, result} =
@@ -411,7 +409,7 @@ defmodule PowerOfThree.DfHttpTest do
       assert counts |> Explorer.Series.size() <= 5
 
       # All brands should be BudLight
-      brands |> IO.inspect()
+      # brands |> IO.inspect()
 
       assert ["BudLight"] ==
                brands |> Explorer.Series.to_list()

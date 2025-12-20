@@ -221,7 +221,8 @@ defmodule PowerOfThree do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
-        cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
+        # |> IO.inspect(label: :cube_name)
+        cube_name = unquote(cube_name)
         opts_ = unquote(opts)
 
         legit_cube_properties = [
@@ -253,7 +254,8 @@ defmodule PowerOfThree do
 
         Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
-        cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
+        # |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(legit_opts, %{})
         # TODO must match Ecto schema source
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
@@ -279,7 +281,8 @@ defmodule PowerOfThree do
 
         try do
           import PowerOfThree
-          Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
+          # |> IO.inspect(label: :schema_prefix)
+          Module.get_attribute(__MODULE__, :schema_prefix)
           unquote(block)
         after
           :ok
@@ -689,7 +692,8 @@ defmodule PowerOfThree do
           end
         end
 
-        a_cube_config |> IO.inspect(label: :a_cube_config)
+        # |> IO.inspect(label: :a_cube_config)
+        # a_cube_config
         :ok
       end
 
@@ -756,7 +760,8 @@ defmodule PowerOfThree do
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
-      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :d_schema_prefix)
+      # |> IO.inspect(label: :d_schema_prefix)
+      Module.get_attribute(__MODULE__, :schema_prefix)
 
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),

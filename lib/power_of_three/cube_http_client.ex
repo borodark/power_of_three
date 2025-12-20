@@ -181,6 +181,54 @@ defmodule PowerOfThree.CubeHttpClient do
   end
 
   @doc """
+  Executes a Cube Query and returns arrow TODO result data.
+
+  ## Parameters
+
+  - `client` - The CubeHttpClient struct
+  - `cube_query` - Map representing the Cube Query JSON format
+
+  ## Returns
+
+  - `{:ok, result_map}` - Columnar data where keys are field names and values are lists
+  - `{:error, %QueryError{}}` - Error details
+
+  ## Examples
+
+      iex> cube_query = %{
+      ...>   "dimensions" => ["of_customers.brand"],
+      ...>   "measures" => ["of_customers.count"],
+      ...>   "limit" => 5
+      ...> }
+      iex> PowerOfThree.CubeHttpClient.arrow(client, cube_query)
+      {:ok, %{
+        "of_customers.brand" => ["NIKE", "Adidas", "Puma"],
+        "of_customers.count" => [42, 38, 25]
+      }}
+  """
+  def arrow(client, cube_query) do
+    request_body = %{"query" => cube_query}
+
+    case Req.post(client.req, url: "/cubejs-api/v1/arrow", json: request_body) do
+      {:ok, %{status: 200, body: body}} ->
+        # TODO parse actual arrow ->>>------>-
+        parse_response(body)
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, QueryError.from_http_status(status, body)}
+
+      {:error, %Req.TransportError{reason: :timeout}} ->
+        {:error, QueryError.timeout()}
+
+      {:error, %Req.TransportError{reason: :econnrefused}} ->
+        {:error, QueryError.connection_error("Connection refused. Is the Cube server running?")}
+
+      {:error, error} ->
+        {:error, QueryError.connection_error("HTTP request failed", error)}
+    end
+  end
+
+  @doc """
   Executes a Cube Query, raising on error.
 
   See `query/2` for details.
@@ -215,7 +263,7 @@ defmodule PowerOfThree.CubeHttpClient do
     # annotation |> IO.inspect(label: :not_roze)
 
     # Get field names from first row
-    {:ok, Explorer.DataFrame.new(rows) |> IO.inspect()}
+    {:ok, Explorer.DataFrame.new(rows)}
   rescue
     error ->
       {:error, QueryError.parse_error("Failed to transform response", error)}
