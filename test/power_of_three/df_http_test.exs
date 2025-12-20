@@ -364,7 +364,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert Map.has_key?(result |> Explorer.DataFrame.names(), "power_customers.brand")
+      assert ["power_customers.brand", "power_customers.count"] ==
+               result |> Explorer.DataFrame.names()
     end
   end
 
