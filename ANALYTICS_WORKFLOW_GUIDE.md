@@ -331,15 +331,8 @@ PowerOfThree generates SQL automatically from type-safe references:
   offset: 10
 )
 
-# Reuse connections for multiple queries
-{:ok, conn} = PowerOfThree.CubeConnection.connect(
-  host: "localhost",
-  port: 4445,
-  token: System.get_env("CUBE_TOKEN")
-)
-
-df1 = Customer.df!(columns: [...], connection: conn)
-df2 = Customer.df!(columns: [...], connection: conn)  # Reuses connection
+df1 = Customer.df!(columns: [...], connection: http_conn)
+df2 = Customer.df!(columns: [...], connection: http_conn)  # Reuses connection
 ```
 
 #### Dynamic Query Building
