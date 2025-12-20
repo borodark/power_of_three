@@ -212,7 +212,7 @@ defmodule PowerOfThree.CubeHttpClient do
   defp transform_to_columnar([], _annotation), do: {:ok, %{}}
 
   defp transform_to_columnar(rows, annotation) do
-    annotation |> IO.inspect(label: :not_roze)
+    # annotation |> IO.inspect(label: :not_roze)
 
     # Get field names from first row
     {:ok, Explorer.DataFrame.new(rows) |> IO.inspect()}

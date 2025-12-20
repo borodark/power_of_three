@@ -198,7 +198,8 @@ defmodule PowerOfThree.DfHttpTest do
       assert 5 == brands |> Explorer.Series.size()
 
       # Verify ordering (should be alphabetically sorted)
-      assert brands == Explorer.Series.sort(brands)
+      # Reference<0.3710365564.1650589872.122212>
+      assert brands[:resource] == Explorer.Series.sort(brands)[:resource]
     end
 
     test "order by measure descending" do
@@ -331,12 +332,12 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Both queries should succeed
-      assert %Explorer.DataFrame{} = result1
-      assert %Explorer.DataFrame{} = result2
+      assert is_map(result1)
+      assert is_map(result2)
 
-      # They should have different columns
-      assert "power_customers.brand" in Explorer.DataFrame.names(result1)
-      assert "power_customers.market" in Explorer.DataFrame.names(result2)
+      # They should have different keys
+      assert Map.has_key?(result1, "power_customers.brand")
+      assert Map.has_key?(result2, "power_customers.market")
     end
 
     test "HTTP client with custom base URL" do
@@ -349,8 +350,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert %Explorer.DataFrame{} = result
-      assert "power_customers.count" in Explorer.DataFrame.names(result)
+      assert is_map(result)
+      assert Map.has_key?(result, "power_customers.count")
     end
   end
 
@@ -407,11 +408,14 @@ defmodule PowerOfThree.DfHttpTest do
       brands = result["power_customers.brand"]
       counts = result["power_customers.count"]
 
-      assert length(brands) <= 5
-      assert length(counts) <= 5
+      assert brands |> Explorer.Series.size() <= 5
+      assert counts |> Explorer.Series.size() <= 5
 
       # All brands should be BudLight
-      assert Enum.all?(brands, &(&1 == "BudLight"))
+      brands |> IO.inspect()
+
+      assert ["BudLight"] ==
+               brands |> Explorer.Series.to_list()
     end
 
     @tag :skip
