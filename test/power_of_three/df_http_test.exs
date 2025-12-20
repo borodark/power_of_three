@@ -198,8 +198,8 @@ defmodule PowerOfThree.DfHttpTest do
       assert 5 == brands |> Explorer.Series.size()
 
       # Verify ordering (should be alphabetically sorted)
-      # Reference<0.3710365564.1650589872.122212>
-      assert brands[:resource] == Explorer.Series.sort(brands)[:resource]
+      assert ["Amstel", "Becks", "Birra Moretti", "Blue Moon", "BudLight"] ==
+               Explorer.Series.to_list(brands)
     end
 
     test "order by measure descending" do
