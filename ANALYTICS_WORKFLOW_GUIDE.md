@@ -132,13 +132,11 @@ result["totl_revenue"]  # Oops, typo!
 │  - Customer.Measures.count() → %MeasureRef{}               │
 │  - Customer.df/1 → Query builder                           │
 └─────────────────────────┬───────────────────────────────────┘
-                          │ ADBC + Arrow IPC
+                          │ HTTP
 ┌─────────────────────────▼───────────────────────────────────┐
-│  Layer 3: High-Performance Query Execution                  │
+│  Layer 3: Query Execution                                   │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │  Cube.js Semantic Layer                               │  │
-│  │  ↓                                                     │  │
-│  │  cubesqld (Arrow Native Protocol)                     │  │
 │  │  ↓                                                     │  │
 │  │  PostgreSQL/Snowflake/BigQuery                        │  │
 │  └───────────────────────────────────────────────────────┘  │
@@ -563,54 +561,6 @@ end
 
 ---
 
-## Performance: The Arrow Advantage
-
-### Why Arrow IPC Matters
-
-Traditional row-oriented protocols (like PostgreSQL wire protocol):
-
-```
-Row 1: [brand: "Nike", count: 1000, revenue: 50000]
-Row 2: [brand: "Adidas", count: 800, revenue: 45000]
-Row 3: [brand: "Puma", count: 600, revenue: 30000]
-```
-
-Problems:
-- ❌ Each row serialized/deserialized individually
-- ❌ Data scattered in memory (poor cache locality)
-- ❌ Can't use SIMD vectorization
-- ❌ Lots of small allocations
-
-**Arrow IPC** (columnar format):
-
-```
-Brands column:   ["Nike", "Adidas", "Puma"]
-Counts column:   [1000, 800, 600]
-Revenues column: [50000, 45000, 30000]
-```
-
-Benefits:
-- ✅ **Zero-copy data transfer** - direct memory mapping
-- ✅ **Columnar layout** - perfect for analytics, ML
-- ✅ **SIMD vectorization** - 10-100x faster operations
-- ✅ **Better compression** - columns compress better
-- ✅ **Type preservation** - INT64 stays INT64, no conversion
-
-### Real-World Performance
-
-```elixir
-# Benchmark: Fetch 100,000 customer records
-# Traditional (JSON over HTTP): ~2.5 seconds
-# PowerOfThree (Arrow IPC): ~350ms
-
-# Why?
-# - No JSON serialization (saves ~1.5s)
-# - Columnar format (saves ~400ms)
-# - Zero-copy transfer (saves ~250ms)
-```
-
----
-
 ## Value Proposition: Why PowerOfThree?
 
 ### For Elixir Developers
@@ -814,8 +764,6 @@ def legacy_report(conn), do: new_report()
 PowerOfThree brings three critical benefits to Elixir analytics:
 
 1. **Ergonomics**: Type-safe queries, automatic SQL generation, reusable business logic
-2. **Performance**: Zero-copy Arrow IPC format, columnar efficiency, SIMD operations
-3. **Integration**: Works with Ecto schemas, Explorer DataFrames, Nx tensors
 
 **Start simple:**
 ```elixir
