@@ -104,7 +104,10 @@ defmodule PowerOfThree.CubeHttpClient do
         req_opts
       end
 
-    req_opts = req_opts |> Keyword.put(:headers, [{:accept, "application/x-ndjson"}])|> IO.inspect
+    req_opts =
+      req_opts
+      |> Keyword.put(:headers, [{:accept, "application/x-ndjson"}])
+
     req = Req.new(req_opts)
 
     {:ok,
@@ -207,6 +210,16 @@ defmodule PowerOfThree.CubeHttpClient do
 
   # Transforms row-oriented data to columnar format with type conversion
   defp transform_to_columnar([], _annotation), do: {:ok, %{}}
+
+  defp transform_to_columnar(rows, annotation) do
+    annotation |> IO.inspect(label: :not_roze)
+
+    # Get field names from first row
+    {:ok, Explorer.DataFrame.new(rows) |> IO.inspect()}
+  rescue
+    error ->
+      {:error, QueryError.parse_error("Failed to transform response", error)}
+  end
 
   defp transform_to_columnar(rows, annotation) do
     # Get field names from first row

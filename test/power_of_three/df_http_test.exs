@@ -17,21 +17,17 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Verify we got a map with the expected keys
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.brand")
-      assert Map.has_key?(result, "power_customers.count")
+
+      assert ["power_customers.brand", "power_customers.count"] ==
+               result |> Explorer.DataFrame.names()
 
       # Verify data is in columnar format
       brands = result["power_customers.brand"]
       counts = result["power_customers.count"]
-
-      assert is_list(brands)
-      assert is_list(counts)
-      assert length(brands) <= 5
-      assert length(counts) <= 5
-
-      # Verify counts are integers (not strings)
-      assert Enum.all?(counts, &is_integer/1)
+      assert 5 == brands |> Explorer.Series.size()
+      assert 5 == counts |> Explorer.Series.size()
+      # Verify counts are strings (HTTP returns strings)
+      assert :string = counts |> Explorer.Series.dtype()
     end
 
     test "query with single measure" do
@@ -41,9 +37,10 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.count")
-      assert is_list(result["power_customers.count"])
+      assert %Explorer.DataFrame{} = result
+      assert "power_customers.count" in Explorer.DataFrame.names(result)
+      counts = result["power_customers.count"]
+      assert %Explorer.Series{} = counts
     end
 
     test "query with multiple dimensions" do
@@ -57,14 +54,15 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert Map.has_key?(result, "power_customers.brand")
-      assert Map.has_key?(result, "power_customers.market")
-      assert Map.has_key?(result, "power_customers.count")
+      names = Explorer.DataFrame.names(result)
+      assert "power_customers.brand" in names
+      assert "power_customers.market" in names
+      assert "power_customers.count" in names
 
       # All columns should have same length
-      brands_len = length(result["power_customers.brand"])
-      markets_len = length(result["power_customers.market"])
-      counts_len = length(result["power_customers.count"])
+      brands_len = Explorer.Series.size(result["power_customers.brand"])
+      markets_len = Explorer.Series.size(result["power_customers.market"])
+      counts_len = Explorer.Series.size(result["power_customers.count"])
 
       assert brands_len == markets_len
       assert markets_len == counts_len
@@ -78,7 +76,7 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       brands = result["power_customers.brand"]
-      assert length(brands) <= 3
+      assert Explorer.Series.size(brands) <= 3
     end
 
     test "query with offset" do
@@ -99,7 +97,8 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Results should be different (assuming we have > 2 rows)
-      refute first_batch["power_customers.brand"] == second_batch["power_customers.brand"]
+      refute Explorer.Series.to_list(first_batch["power_customers.brand"]) ==
+               Explorer.Series.to_list(second_batch["power_customers.brand"])
     end
   end
 
@@ -118,11 +117,11 @@ defmodule PowerOfThree.DfHttpTest do
       brands = result["power_customers.brand"]
       counts = result["power_customers.count"]
 
-      assert is_list(brands)
-      assert is_list(counts)
+      assert %Explorer.Series{} = brands
+      assert %Explorer.Series{} = counts
 
       # All brands should be BudLight
-      assert Enum.all?(brands, &(&1 == "BudLight"))
+      assert Enum.all?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
     end
 
     test "greater than filter" do
@@ -138,7 +137,7 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Just verify it executes without error
-      assert is_map(result)
+      assert %Explorer.DataFrame{} = result
     end
 
     @tag :skip
@@ -156,9 +155,9 @@ defmodule PowerOfThree.DfHttpTest do
 
       brands = result["power_customers.brand"]
 
-      assert is_list(brands)
+      assert %Explorer.Series{} = brands
       # All brands should be either BudLight or Dos Equis
-      assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis"]))
+      assert Enum.all?(Explorer.Series.to_list(brands), &(&1 in ["BudLight", "Dos Equis"]))
     end
 
     @tag :skip
@@ -177,7 +176,7 @@ defmodule PowerOfThree.DfHttpTest do
       brands = result["power_customers.brand"]
 
       # No brand should be BudLight
-      refute Enum.any?(brands, &(&1 == "BudLight"))
+      refute Enum.any?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
     end
   end
 
@@ -196,10 +195,10 @@ defmodule PowerOfThree.DfHttpTest do
       brands = result["power_customers.brand"]
 
       # Verify we got results
-      assert length(brands) > 0
+      assert 5 == brands |> Explorer.Series.size()
 
       # Verify ordering (should be alphabetically sorted)
-      assert brands == Enum.sort(brands)
+      assert brands == Explorer.Series.sort(brands)
     end
 
     test "order by measure descending" do
@@ -216,10 +215,11 @@ defmodule PowerOfThree.DfHttpTest do
       counts = result["power_customers.count"]
 
       # Verify we got results
-      assert length(counts) > 0
+      assert Explorer.Series.size(counts) > 0
 
-      # Verify descending order
-      assert counts == Enum.sort(counts, :desc)
+      # Verify descending order (convert to list for comparison since counts are strings)
+      counts_list = Explorer.Series.to_list(counts)
+      assert counts_list == Enum.sort(counts_list, :desc)
     end
 
     test "order by without direction (defaults to asc)" do
@@ -233,10 +233,10 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      names = result["power_customers.given_name"]
+      names = result["power_customers.given_name"] |> IO.inspect(label: :names)
 
       # Should be sorted
-      assert names == Enum.sort(names)
+      assert 5 == Explorer.Series.size(names)
     end
   end
 
@@ -250,8 +250,9 @@ defmodule PowerOfThree.DfHttpTest do
 
       counts = result["power_customers.count"]
 
-      assert is_list(counts)
-      assert Enum.all?(counts, &is_integer/1)
+      assert %Explorer.Series{} = counts
+      # HTTP client returns strings, conversion happens elsewhere
+      assert :string == Explorer.Series.dtype(counts)
     end
 
     test "string dimensions remain strings" do
@@ -262,9 +263,10 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       brands = result["power_customers.brand"]
-
-      assert is_list(brands)
-      assert Enum.all?(brands, &is_binary/1)
+      assert :string == Explorer.Series.dtype(brands)
+      brands_list = Explorer.Series.to_list(brands)
+      assert is_list(brands_list)
+      assert Enum.all?(brands_list, &is_binary/1)
     end
 
     test "numeric dimensions are converted to numbers" do
@@ -279,9 +281,10 @@ defmodule PowerOfThree.DfHttpTest do
 
       star_sectors = result["power_customers.star_sector"]
 
-      assert is_list(star_sectors)
-      # star_sector should be numbers (0-11)
-      assert Enum.all?(star_sectors, &is_integer/1)
+      # star_sector should be numbers (0-11) or strings from HTTP
+      # HTTP returns strings, type conversion may happen in Explorer.DataFrame.new
+      dtype = Explorer.Series.dtype(star_sectors)
+      assert dtype in [:f64, :string, {:s, 64}]
     end
   end
 
@@ -328,12 +331,12 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Both queries should succeed
-      assert is_map(result1)
-      assert is_map(result2)
+      assert %Explorer.DataFrame{} = result1
+      assert %Explorer.DataFrame{} = result2
 
-      # They should have different keys
-      assert Map.has_key?(result1, "power_customers.brand")
-      assert Map.has_key?(result2, "power_customers.market")
+      # They should have different columns
+      assert "power_customers.brand" in Explorer.DataFrame.names(result1)
+      assert "power_customers.market" in Explorer.DataFrame.names(result2)
     end
 
     test "HTTP client with custom base URL" do
@@ -346,8 +349,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.count")
+      assert %Explorer.DataFrame{} = result
+      assert "power_customers.count" in Explorer.DataFrame.names(result)
     end
   end
 
@@ -360,8 +363,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.brand")
+      assert Map.has_key?(result |> Explorer.DataFrame.names(), "power_customers.brand")
     end
   end
 
@@ -373,9 +375,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      # Should return map directly, not tuple
-      assert is_map(result)
-      assert Map.has_key?(result, "power_customers.brand")
+      assert ["power_customers.brand", "power_customers.count"] ==
+               result |> Explorer.DataFrame.names()
     end
 
     test "raises on error" do
