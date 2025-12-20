@@ -285,7 +285,7 @@ defmodule PowerOfThree.DfHttpTest do
       # star_sector should be numbers (0-11) or strings from HTTP
       # HTTP returns strings, type conversion may happen in Explorer.DataFrame.new
       dtype = Explorer.Series.dtype(star_sectors)
-      assert dtype in [:f64, :string, {:s, 64}]
+      assert dtype in [{:f, 64}]
     end
   end
 
