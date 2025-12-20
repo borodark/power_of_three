@@ -42,7 +42,6 @@ measures = Customer.measures()      # Get all available measures
 ```
 
 **The result?** Production-grade analytics with:
-- ✅ Zero JSON serialization overhead (Arrow IPC format)
 - ✅ Type safety from schema to DataFrame
 - ✅ Compile-time column validation
 - ✅ Automatic SQL generation
