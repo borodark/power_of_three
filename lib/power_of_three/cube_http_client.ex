@@ -261,8 +261,18 @@ defmodule PowerOfThree.CubeHttpClient do
 
   defp transform_to_columnar(rows, annotation) do
     # annotation |> IO.inspect(label: :not_roze)
+    field_names = rows |> List.first() |> Map.keys()
+
+    # Transform each field to a column
+    field_names
+    |> Enum.map(fn field_name ->
+      {field_name, get_field_type(field_name, annotation)}
+    end)
+    |> Enum.into(%{})
+    |> IO.inspect(label: :TYPE_REF)
 
     # Get field names from first row
+    # TODO Type Inference Here
     {:ok, Explorer.DataFrame.new(rows)}
   rescue
     error ->
@@ -287,64 +297,4 @@ defmodule PowerOfThree.CubeHttpClient do
   end
 
   defp get_field_type(_field_name, _annotation), do: "string"
-
-  # Converts a column of string values to proper types based on field type
-  defp convert_column_values(values, field_type) do
-    Enum.map(values, &convert_value(&1, field_type))
-  end
-
-  # Converts a single value from string to the appropriate type
-  defp convert_value(nil, _type), do: nil
-  defp convert_value("", _type), do: nil
-
-  defp convert_value(value, "number") when is_binary(value) do
-    cond do
-      String.contains?(value, ".") ->
-        case Float.parse(value) do
-          {float, _} ->
-            # Convert whole-number floats to integers (5.0 -> 5)
-            if float == trunc(float) do
-              trunc(float)
-            else
-              float
-            end
-
-          :error ->
-            value
-        end
-
-      true ->
-        case Integer.parse(value) do
-          {int, _} -> int
-          :error -> value
-        end
-    end
-  end
-
-  defp convert_value(value, "boolean") when is_binary(value) do
-    case String.downcase(value) do
-      "true" -> true
-      "false" -> false
-      "1" -> true
-      "0" -> false
-      _ -> value
-    end
-  end
-
-  defp convert_value(value, "time") when is_binary(value) do
-    # Try parsing as DateTime first, then Date
-    case DateTime.from_iso8601(value) do
-      {:ok, datetime, _} ->
-        datetime
-
-      {:error, _} ->
-        case Date.from_iso8601(value) do
-          {:ok, date} -> date
-          {:error, _} -> value
-        end
-    end
-  end
-
-  defp convert_value(value, "string"), do: value
-  defp convert_value(value, _unknown_type), do: value
 end

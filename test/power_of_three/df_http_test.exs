@@ -1,5 +1,5 @@
 defmodule PowerOfThree.DfHttpTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   @moduletag :live_cube
 

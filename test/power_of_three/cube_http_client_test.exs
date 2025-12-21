@@ -1,5 +1,5 @@
 defmodule PowerOfThree.CubeHttpClientTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias PowerOfThree.CubeHttpClient
   alias PowerOfThree.QueryError

@@ -1,49 +1,42 @@
-defmodule PowerOfThree.DataFrameTest do
+defmodule PowerOfThree.CubeFrameTest do
   use ExUnit.Case, async: true
 
-  alias PowerOfThree.DataFrame
-
-  describe "explorer_available?/0" do
-    test "returns boolean indicating Explorer availability" do
-      result = DataFrame.explorer_available?()
-      assert is_boolean(result)
-    end
-  end
+  alias PowerOfThree.CubeFrame
 
   describe "result_type/0" do
-    test "returns :dataframe or :map" do
-      result = DataFrame.result_type()
-      assert result in [:dataframe, :map]
-    end
-
-    test "returns :map when Explorer is not available" do
-      # Since we don't have Explorer in test dependencies
-      assert DataFrame.result_type() == :dataframe
+    test "returns :dataframe" do
+      assert :dataframe == CubeFrame.result_type()
     end
   end
 
   describe "from_result/1" do
-    test "returns map when Explorer is not available" do
+    test "returns DF" do
       result_map = %{
         "brand" => ["Nike", "Adidas", "Puma"],
         "count" => [100, 200, 150]
       }
 
-      result = DataFrame.from_result(result_map)
-
-      # Without Explorer, should return the map as-is
-      assert Explorer.DataFrame.shape(result) == {3, 2}
+      assert {3, 2} == CubeFrame.from_result(result_map) |> Explorer.DataFrame.shape()
     end
 
     test "handles empty map" do
-      result = DataFrame.from_result(%{})
-      assert result == %{}
+      result = CubeFrame.from_result(%{})
+      result |> IO.inspect(label: "VVV %{} VVV")
+
+      assert %Explorer.Series{
+               # %Explorer.PolarsBackend.Series{ },  resource: _,
+               data: _,
+               dtype: :null,
+               name: nil,
+               remote: nil
+             } = result
     end
 
     test "handles single column" do
       result_map = %{"value" => [1, 2, 3]}
-      result = DataFrame.from_result(result_map)
-      assert result |> Explorer.DataFrame.to_columns() == result_map
+      # |> IO.inspect(label: "=##--->-")
+      result = CubeFrame.from_result(result_map)
+      assert [1, 2, 3] == result |> Explorer.Series.to_list()
     end
 
     test "handles multiple columns" do
@@ -53,7 +46,7 @@ defmodule PowerOfThree.DataFrameTest do
         "col3" => [true, false, true]
       }
 
-      result = DataFrame.from_result(result_map)
+      result = CubeFrame.from_result(result_map) |> IO.inspect(label: ">>>>>")
       assert result |> Explorer.DataFrame.to_columns() == result_map
     end
   end

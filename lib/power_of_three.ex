@@ -338,7 +338,8 @@ defmodule PowerOfThree do
         )
 
         File.write(
-          ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml") |> IO.inspect(label: :file_name),
+          ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml")
+          |> IO.inspect(label: :file_name),
           %{cubes: a_cube_config}
           |> Ymlr.document!()
         )
@@ -633,7 +634,7 @@ defmodule PowerOfThree do
                {:ok, cube_query} <-
                  PowerOfThree.CubeQueryTranslator.to_cube_query(query_opts),
                {:ok, result_map} <- PowerOfThree.CubeHttpClient.query(client, cube_query) do
-            {:ok, PowerOfThree.DataFrame.from_result(result_map)}
+            {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
           end
         end
 
@@ -672,7 +673,7 @@ defmodule PowerOfThree do
             conn ->
               case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
                 {:ok, result_map} ->
-                  {:ok, PowerOfThree.DataFrame.from_result(result_map)}
+                  {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
 
                 {:error, _} = error ->
                   error
@@ -1031,6 +1032,7 @@ defmodule PowerOfThree do
     end
   end
 
+  """
   @dimension_opts [
     name: :string,
     case: [when: [], else: nil],
@@ -1047,33 +1049,34 @@ defmodule PowerOfThree do
     granularities: []
   ]
 
-  @measure_required [:name, :sql, :type]
-  @measure_types [
-    :string,
-    :time,
-    :boolean,
-    :number,
-    :count,
-    :count_distinct,
-    :count_distinct_approx,
-    :sum,
-    :avg,
-    :min,
-    :max
-  ]
-  @measure_all [
-    name: :atom,
-    sql: :string,
-    type: @measure_types,
-    title: :string,
-    description: :string,
-    # drill_members is defined as an array of dimensions
-    drill_members: [],
-    filters: [],
-    format: [:percent, :currency],
-    meta: [tag: :measure],
-    rolling_window: [:trailing, :leading],
-    # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
-    public: true
-  ]
+    @measure_required [:name, :sql, :type]
+    @measure_types [
+      :string,
+      :time,
+      :boolean,
+      :number,
+      :count,
+      :count_distinct,
+      :count_distinct_approx,
+      :sum,
+      :avg,
+      :min,
+      :max
+    ]
+    @measure_all [
+      name: :atom,
+      sql: :string,
+      type: @measure_types,
+      title: :string,
+      description: :string,
+      # drill_members is defined as an array of dimensions
+      drill_members: [],
+      filters: [],
+      format: [:percent, :currency],
+      meta: [tag: :measure],
+      rolling_window: [:trailing, :leading],
+      # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
+      public: true
+    ]
+  """
 end
