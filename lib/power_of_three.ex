@@ -221,7 +221,8 @@ defmodule PowerOfThree do
           raise "cube already defined for #{inspect(__MODULE__)} on line #{line}"
         end
 
-        cube_name = unquote(cube_name) |> IO.inspect(label: :cube_name)
+        # |> IO.inspect(label: :cube_name)
+        cube_name = unquote(cube_name)
         opts_ = unquote(opts)
 
         legit_cube_properties = [
@@ -253,7 +254,8 @@ defmodule PowerOfThree do
 
         Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
-        cube_opts = Enum.into(legit_opts, %{}) |> IO.inspect(label: :cube_opts)
+        # |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(legit_opts, %{})
         # TODO must match Ecto schema source
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
@@ -279,7 +281,8 @@ defmodule PowerOfThree do
 
         try do
           import PowerOfThree
-          Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :schema_prefix)
+          # |> IO.inspect(label: :schema_prefix)
+          Module.get_attribute(__MODULE__, :schema_prefix)
           unquote(block)
         after
           :ok
@@ -335,7 +338,7 @@ defmodule PowerOfThree do
         )
 
         File.write(
-          ("model/cubes/cubes-of-" <> sql_table <> ".yaml") |> IO.inspect(label: :file_name),
+          "model/cubes/" <> Atom.to_string(cube_name) <> ".yaml",
           %{cubes: a_cube_config}
           |> Ymlr.document!()
         )
@@ -506,23 +509,46 @@ defmodule PowerOfThree do
         @doc """
         Queries the cube and returns results as a DataFrame (if Explorer is available) or map.
 
+        Supports two connection modes:
+        - **HTTP** (default) - REST API, works in any Elixir environment
+        - **ADBC** - High-performance Arrow protocol via native driver
+
         ## Options
 
           * `:columns` - Required. List of MeasureRef and/or DimensionRef structs
-          * `:where` - Optional. SQL WHERE clause (without "WHERE" keyword)
+          * `:where` - Optional. SQL WHERE clause (without "WHERE" keyword). HTTP mode supports simple filters only.
           * `:order_by` - Optional. List of `{column_index, :asc | :desc}` or just `column_index`
           * `:limit` - Optional. Maximum number of rows to return
           * `:offset` - Optional. Number of rows to skip
-          * `:connection` - Optional. Existing ADBC connection (creates new if not provided)
-          * `:connection_opts` - Optional. Options for creating a new connection
+          * `:connection` - Optional. Existing ADBC connection (enables ADBC mode)
+          * `:connection_opts` - Optional. Options for creating a new connection (HTTP by default)
+          * `:connection_type` - Optional. `:http` (default) or `:adbc`
+          * `:http_client` - Optional. Existing HTTP client (enables HTTP mode)
 
         ## Examples
 
-            # Simple query using module accessors
+            # Simple query using HTTP (default)
             df = Customer.df(columns: [
               Customer.Dimensions.brand(),
               Customer.Measures.count()
             ])
+
+            # Specify HTTP connection options
+            df = Customer.df(
+              columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
+              connection_opts: [base_url: "http://localhost:4008", api_token: "secret"]
+            )
+
+            # Reusing HTTP client
+            {:ok, http_client} = PowerOfThree.CubeHttpClient.new(base_url: "http://localhost:4008")
+            df = Customer.df(columns: [...], http_client: http_client)
+
+            # Using ADBC mode (for complex queries or better performance)
+            df = Customer.df(
+              columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
+              connection_type: :adbc,
+              connection_opts: [token: "my-token"]
+            )
 
             # Using list-based accessors
             dimensions = Customer.dimensions()  # Returns list of all DimensionRef structs
@@ -541,19 +567,87 @@ defmodule PowerOfThree do
               limit: 10
             )
 
-            # Reusing a connection
+            # Reusing an ADBC connection
             {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
             df = Customer.df(columns: [...], connection: conn)
+
+        ## HTTP Mode Limitations (Default)
+
+        HTTP mode supports simple WHERE clauses only:
+        - Equals: `field = 'value'`
+        - Not equals: `field != 'value'`
+        - Comparison: `field > 100`, `field <= 50`
+        - Set membership: `field IN ('a', 'b', 'c')`
+
+        Complex WHERE clauses with AND/OR/NOT require ADBC mode.
+        For complex queries, specify `connection_type: :adbc`.
         """
         def df(opts) do
           cube_name = unquote(cube_name) |> to_string()
-          columns = Keyword.fetch!(opts, :columns)
+          _columns = Keyword.fetch!(opts, :columns)
 
           query_opts =
             opts
             |> Keyword.put(:cube, cube_name)
             |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
 
+          # Determine connection mode (HTTP or ADBC)
+          case determine_connection_mode(opts) do
+            {:http, http_opts} ->
+              execute_http_query(query_opts, http_opts)
+
+            {:adbc, adbc_opts} ->
+              execute_adbc_query(query_opts, adbc_opts)
+          end
+        end
+
+        # Determines whether to use HTTP or ADBC based on options
+        defp determine_connection_mode(opts) do
+          cond do
+            # Explicit HTTP client provided
+            Keyword.has_key?(opts, :http_client) ->
+              {:http, Keyword.get(opts, :http_client)}
+
+            # Explicit ADBC connection provided
+            Keyword.has_key?(opts, :connection) ->
+              {:adbc, opts}
+
+            # Explicit connection type specified
+            Keyword.get(opts, :connection_type) == :adbc ->
+              {:adbc, opts}
+
+            Keyword.get(opts, :connection_type) == :http ->
+              http_opts = Keyword.get(opts, :connection_opts, [])
+              {:http, http_opts}
+
+            # Default to HTTP
+            true ->
+              http_opts = Keyword.get(opts, :connection_opts, [])
+              {:http, http_opts}
+          end
+        end
+
+        # Executes query via HTTP API
+        defp execute_http_query(query_opts, http_opts) do
+          with {:ok, client} <- get_or_create_http_client(http_opts),
+               {:ok, cube_query} <-
+                 PowerOfThree.CubeQueryTranslator.to_cube_query(query_opts),
+               {:ok, result_map} <- PowerOfThree.CubeHttpClient.query(client, cube_query) do
+            {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
+          end
+        end
+
+        # Gets existing HTTP client or creates new one
+        defp get_or_create_http_client(client) when is_struct(client) do
+          {:ok, client}
+        end
+
+        defp get_or_create_http_client(opts) when is_list(opts) do
+          PowerOfThree.CubeHttpClient.new(opts)
+        end
+
+        # Executes query via ADBC
+        defp execute_adbc_query(query_opts, opts) do
           sql = PowerOfThree.QueryBuilder.build(query_opts)
 
           # Get or create connection
@@ -578,7 +672,7 @@ defmodule PowerOfThree do
             conn ->
               case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
                 {:ok, result_map} ->
-                  {:ok, PowerOfThree.DataFrame.from_result(result_map)}
+                  {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
 
                 {:error, _} = error ->
                   error
@@ -598,7 +692,8 @@ defmodule PowerOfThree do
           end
         end
 
-        a_cube_config |> IO.inspect(label: :a_cube_config)
+        # |> IO.inspect(label: :a_cube_config)
+        # a_cube_config
         :ok
       end
 
@@ -665,7 +760,8 @@ defmodule PowerOfThree do
            )
            when is_list(list_of_ecto_schema_fields) do
     quote bind_quoted: binding() do
-      Module.get_attribute(__MODULE__, :schema_prefix) |> IO.inspect(label: :d_schema_prefix)
+      # |> IO.inspect(label: :d_schema_prefix)
+      Module.get_attribute(__MODULE__, :schema_prefix)
 
       intersection =
         for ecto_field <- Keyword.keys(Module.get_attribute(__MODULE__, :ecto_fields)),
@@ -879,7 +975,8 @@ defmodule PowerOfThree do
               raise ArgumentError,
                     "The `:type` is required in opts for Cube Measure that uses single field: #{inspect(for_ecto_field)},\n the opts are: #{inspect(opts)}"
 
-          # TODO measure_types = PowerOfThree, :measure_types)
+          # TODO rize on invalid measure types
+          # measure_types = PowerOfThree, :measure_types)
           # type in measure_types || raise ArgumentError,
           #  "The `:type` #{inspect(opts[:type])} is not valid, \n the valid types are: #{inspect(measure_types)}"
 
@@ -900,6 +997,7 @@ defmodule PowerOfThree do
     end
   end
 
+  @spec dimension_type(any()) :: :boolen | :number | :string | :time
   @doc false
   def dimension_type(ecto_field_type) do
     cond do
@@ -934,50 +1032,4 @@ defmodule PowerOfThree do
         :string
     end
   end
-
-  @dimension_opts [
-    name: :string,
-    case: [when: [], else: nil],
-    description: :string,
-    format: [:imageUrl, :id, :link, :currency, :percent],
-    meta: [],
-    primary_key: :boolean,
-    propagate_filters_to_sub_query: :boolean,
-    public: :boolean,
-    sql: :string,
-    sub_query: :string,
-    title: :string,
-    type: [:string, :time, :number, :boolean, :geo],
-    granularities: []
-  ]
-
-  @measure_required [:name, :sql, :type]
-  @measure_types [
-    :string,
-    :time,
-    :boolean,
-    :number,
-    :count,
-    :count_distinct,
-    :count_distinct_approx,
-    :sum,
-    :avg,
-    :min,
-    :max
-  ]
-  @measure_all [
-    name: :atom,
-    sql: :string,
-    type: @measure_types,
-    title: :string,
-    description: :string,
-    # drill_members is defined as an array of dimensions
-    drill_members: [],
-    filters: [],
-    format: [:percent, :currency],
-    meta: [tag: :measure],
-    rolling_window: [:trailing, :leading],
-    # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
-    public: true
-  ]
 end

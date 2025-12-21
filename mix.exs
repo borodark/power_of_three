@@ -41,9 +41,12 @@ defmodule PowerOfThree.MixProject do
     [
       {:ymlr, "~> 5.0"},
       {:ecto_sql, "~> 3.10"},
+      {:req, "~> 0.5"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false},
+      {:explorer, "~> 0.11.1"},
+      {:adbc, path: "../adbc", override: true}
     ]
   end
 

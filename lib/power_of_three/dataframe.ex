@@ -1,6 +1,6 @@
-defmodule PowerOfThree.DataFrame do
+defmodule PowerOfThree.CubeFrame do
   @moduledoc """
-  Optional Explorer DataFrame integration for query results.
+  Explorer DataFrame integration for query results.
 
   This module provides conditional compilation support for Explorer.
   If Explorer is available at compile time, results can be converted
@@ -10,60 +10,42 @@ defmodule PowerOfThree.DataFrame do
 
   Add Explorer to your dependencies:
 
-      {:explorer, "~> 0.8"}
+      {:explorer, "~> 0.11.1"}
 
-  Then query results will automatically be returned as DataFrames:
+  Then query results will automatically be returned as DataFrame:
 
-      # With Explorer available
       df = Customer.df(columns: [Customer.dimensions().brand(), Customer.measures().count()])
       # => %Explorer.DataFrame{...}
-
-      # Without Explorer
-      df = Customer.df(columns: [...])
-      # => %{"brand" => [...], "measure(customer.count)" => [...]}
   """
 
-  @compile {:no_warn_undefined, Explorer.DataFrame}
-
   @doc """
-  Checks if Explorer is available at runtime.
-  """
-  @spec explorer_available?() :: boolean()
-  def explorer_available? do
-    Code.ensure_loaded?(Explorer.DataFrame)
-  end
-
-  @doc """
-  Converts query result to DataFrame if Explorer is available,
-  otherwise returns as map.
+  Converts query result to Explorer.DataFrame or Explorer.Series.
 
   ## Examples
 
-      # With Explorer available
       result_map = %{"col1" => [1, 2, 3], "col2" => ["a", "b", "c"]}
-      DataFrame.from_result(result_map)
+      CubeFrame.from_result(result_map)
       # => %Explorer.DataFrame{...}
-
-      # Without Explorer
-      DataFrame.from_result(result_map)
-      # => %{"col1" => [1, 2, 3], "col2" => ["a", "b", "c"]}
   """
-  @spec from_result(map()) :: Explorer.DataFrame.t() | map()
+  @spec from_result(map()) :: Explorer.DataFrame.t() | Explorer.Series.t()
   def from_result(result_map) when is_map(result_map) do
-    if explorer_available?() do
-      Explorer.DataFrame.new(result_map)
-    else
-      result_map
+    case Map.keys(result_map) |> Enum.count() do
+      0 ->
+        # Empty Series
+        Explorer.Series.from_list([])
+
+      1 ->
+        # Single column series
+        [col] = Map.keys(result_map)
+        Explorer.Series.from_list(result_map[col])
+
+      _ ->
+        # General case
+        Explorer.DataFrame.new(result_map)
     end
   end
 
-  @doc """
-  Returns the type of data structure used for results.
+  def from_result(%{}), do: Explorer.Series.from_list([])
 
-  Returns `:dataframe` if Explorer is available, `:map` otherwise.
-  """
-  @spec result_type() :: :dataframe | :map
-  def result_type do
-    if explorer_available?(), do: :dataframe, else: :map
-  end
+  def result_type, do: :dataframe
 end
