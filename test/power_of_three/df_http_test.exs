@@ -25,7 +25,7 @@ defmodule PowerOfThree.DfHttpTest do
       assert 5 == brands |> Explorer.Series.size()
       assert 5 == counts |> Explorer.Series.size()
       # Verify counts are strings (HTTP returns strings)
-      assert :string = counts |> Explorer.Series.dtype()
+      assert {:s, 64} = counts |> Explorer.Series.dtype()
     end
 
     test "query with single measure" do
@@ -251,7 +251,7 @@ defmodule PowerOfThree.DfHttpTest do
 
       assert %Explorer.Series{} = counts
       # HTTP client returns strings, conversion happens elsewhere
-      assert :string == Explorer.Series.dtype(counts)
+      assert {:s, 64} == Explorer.Series.dtype(counts)
     end
 
     test "string dimensions remain strings" do

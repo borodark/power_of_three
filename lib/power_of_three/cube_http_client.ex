@@ -212,7 +212,9 @@ defmodule PowerOfThree.CubeHttpClient do
 
     case Req.post(client.req, url: "/cubejs-api/v1/arrow", json: request_body) do
       {:ok, %{status: 200, body: body}} ->
-        # TODO parse actual arrow ->>>------>-
+        # TODO parse actual arrow ->>>------>- when cube starts sending it.
+        # _Sending it_ is a  TODO in cubes codebase.
+        #
         parse_response(body)
 
       {:ok, %{status: status, body: body}} ->
@@ -261,7 +263,9 @@ defmodule PowerOfThree.CubeHttpClient do
   end
 
   # Parses the Cube API JSON response and transforms it to columnar format
-  defp parse_response(%{"data" => data, "annotation" => annotation}) when is_list(data) do
+  # the hole _response has more
+  defp parse_response(%{"data" => data, "annotation" => annotation} = _response)
+       when is_list(data) do
     case transform_to_columnar(data, annotation) do
       {:ok, result} -> {:ok, result}
       {:error, _} = error -> error
@@ -283,33 +287,11 @@ defmodule PowerOfThree.CubeHttpClient do
     {
       :ok,
       Explorer.DataFrame.new(rows)
-      |> Explorer.DataFrame.dump_csv!(quote_style: :non_numeric)
+      |> Explorer.DataFrame.dump_csv!()
       |> Explorer.DataFrame.load_csv!()
     }
   rescue
     error ->
       {:error, QueryError.parse_error("Failed to transform response", error)}
   end
-
-  # Gets the type of a field from annotation metadata
-  defp get_field_type(field_name, %{
-         "dimensions" => dimensions,
-         "measures" => measures
-       }) do
-    cond do
-      Map.has_key?(dimensions, field_name) ->
-        case dimensions[field_name]["type"] |> IO.inspect(label: :dimension_type) do
-          "number" -> {:f, 64}
-          _ -> :string
-        end
-
-      Map.has_key?(measures, field_name) ->
-        case measures[field_name]["type"] |> IO.inspect(label: :measure_type) do
-          "number" -> {:f, 64}
-          _ -> :string
-        end
-    end
-  end
-
-  defp get_field_type(_field_name, _annotation), do: "string"
 end

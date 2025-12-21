@@ -77,4 +77,4 @@ defmodule Customer do
   end
 end
 
-ExUnit.start()
+ExUnit.start(exclude: :live_cube)

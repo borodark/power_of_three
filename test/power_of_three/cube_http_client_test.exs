@@ -101,7 +101,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       counts = result["power_customers.count"]
 
-      assert ["1758", "1751", "1739", "1735", "1731"] == counts |> Explorer.Series.to_list()
+      assert [1758, 1751, 1739, 1735, 1731] == counts |> Explorer.Series.to_list()
     end
 
     test "handles empty result set", %{client: client} do

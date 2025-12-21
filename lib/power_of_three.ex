@@ -338,8 +338,7 @@ defmodule PowerOfThree do
         )
 
         File.write(
-          ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml")
-          |> IO.inspect(label: :file_name),
+          "model/cubes/" <> Atom.to_string(cube_name) <> ".yaml",
           %{cubes: a_cube_config}
           |> Ymlr.document!()
         )
@@ -976,7 +975,8 @@ defmodule PowerOfThree do
               raise ArgumentError,
                     "The `:type` is required in opts for Cube Measure that uses single field: #{inspect(for_ecto_field)},\n the opts are: #{inspect(opts)}"
 
-          # TODO measure_types = PowerOfThree, :measure_types)
+          # TODO rize on invalid measure types
+          # measure_types = PowerOfThree, :measure_types)
           # type in measure_types || raise ArgumentError,
           #  "The `:type` #{inspect(opts[:type])} is not valid, \n the valid types are: #{inspect(measure_types)}"
 
@@ -997,6 +997,7 @@ defmodule PowerOfThree do
     end
   end
 
+  @spec dimension_type(any()) :: :boolen | :number | :string | :time
   @doc false
   def dimension_type(ecto_field_type) do
     cond do
@@ -1031,52 +1032,4 @@ defmodule PowerOfThree do
         :string
     end
   end
-
-  """
-  @dimension_opts [
-    name: :string,
-    case: [when: [], else: nil],
-    description: :string,
-    format: [:imageUrl, :id, :link, :currency, :percent],
-    meta: [],
-    primary_key: :boolean,
-    propagate_filters_to_sub_query: :boolean,
-    public: :boolean,
-    sql: :string,
-    sub_query: :string,
-    title: :string,
-    type: [:string, :time, :number, :boolean, :geo],
-    granularities: []
-  ]
-
-    @measure_required [:name, :sql, :type]
-    @measure_types [
-      :string,
-      :time,
-      :boolean,
-      :number,
-      :count,
-      :count_distinct,
-      :count_distinct_approx,
-      :sum,
-      :avg,
-      :min,
-      :max
-    ]
-    @measure_all [
-      name: :atom,
-      sql: :string,
-      type: @measure_types,
-      title: :string,
-      description: :string,
-      # drill_members is defined as an array of dimensions
-      drill_members: [],
-      filters: [],
-      format: [:percent, :currency],
-      meta: [tag: :measure],
-      rolling_window: [:trailing, :leading],
-      # These parameters have a format defined as (-?\d+) (minute|hour|day|week|month|year)
-      public: true
-    ]
-  """
 end
