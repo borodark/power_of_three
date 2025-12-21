@@ -228,6 +228,25 @@ defmodule PowerOfThree.CubeHttpClient do
     end
   end
 
+  @spec query!(any(), any()) :: %{
+          optional(:__struct__) => Explorer.DataFrame,
+          optional(:data) => struct(),
+          optional(:dtypes) => %{
+            optional(binary()) =>
+              :binary
+              | :boolean
+              | :category
+              | :date
+              | :null
+              | :string
+              | :time
+              | {any(), any()}
+              | {any(), any(), any()}
+          },
+          optional(:groups) => %{columns: list(), stable?: boolean()},
+          optional(:names) => [binary()],
+          optional(:remote) => any()
+        }
   @doc """
   Executes a Cube Query, raising on error.
 
@@ -272,7 +291,7 @@ defmodule PowerOfThree.CubeHttpClient do
       end)
       |> Enum.into(%{})
       |> IO.inspect(label: :dtypesZ)
-
+    TODO rename for casts
     remanes =
       for(
         {col, _type} <- dtypes,
@@ -286,9 +305,10 @@ defmodule PowerOfThree.CubeHttpClient do
     # Get field names from first row
     # TODO Type Inference Here
     # power_customers.count string ["1758", "1751", "1739"]
-    # TODO rename counts and cast
-    # Explorer.DataFrame. mutate(count: cast(count, {:u, 64}))
-    # |> Explorer.DataFrame.rename(counts)
+    # TODO rename and cast
+    # Explorer.DataFrame.rename(counts)
+    # Explorer.DataFrame.mutate(count: cast(count, {:u, 64}))
+    #
     """
 
     {:ok, Explorer.DataFrame.new(rows)}
