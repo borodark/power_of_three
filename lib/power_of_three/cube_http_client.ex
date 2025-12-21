@@ -58,6 +58,7 @@ defmodule PowerOfThree.CubeHttpClient do
   - `type: "time"` → DateTime or Date
   """
 
+  require Explorer.DataFrame
   alias PowerOfThree.QueryError
 
   @enforce_keys [:req]
@@ -283,14 +284,17 @@ defmodule PowerOfThree.CubeHttpClient do
     field_names = rows |> List.first() |> Map.keys()
 
     # Transform each field to a column
-    """
     dtypes =
       field_names
       |> Enum.map(fn field_name ->
         {field_name, get_field_type(field_name, annotation)}
       end)
       |> Enum.into(%{})
-      |> IO.inspect(label: :dtypesZ)
+      |> Map.to_list()
+
+    dtypes |> IO.inspect(label: :dtypesZ)
+
+    """
     TODO rename for casts
     remanes =
       for(
@@ -301,18 +305,17 @@ defmodule PowerOfThree.CubeHttpClient do
       |> Enum.into(%{})
 
     remanes |> IO.inspect(label: :remanes)
-
-    # Get field names from first row
-    # TODO Type Inference Here
-    # power_customers.count string ["1758", "1751", "1739"]
-    # TODO rename and cast
-    # Explorer.DataFrame.rename(counts)
-    # Explorer.DataFrame.mutate(count: cast(count, {:u, 64}))
-    #
     """
 
-    {:ok, Explorer.DataFrame.new(rows)}
-    # |> IO.inspect(label: :DATAFRAME)
+    require Explorer.DataFrame
+
+    {
+      :ok,
+      Explorer.DataFrame.new(rows)
+      # TODO |> Explorer.DataFrame.rename("power_customers.count": :power_customers_count)
+      # TODO |> Explorer.DataFrame.mutate(power_customers_count: cast(power_customers_count, {:u, 64}))
+    }
+    |> IO.inspect(label: :DATAFRAME)
   rescue
     error ->
       {:error, QueryError.parse_error("Failed to transform response", error)}
