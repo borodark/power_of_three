@@ -60,6 +60,13 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       assert ["power_customers.brand", "power_customers.count"] ==
                result |> Explorer.DataFrame.names()
+
+      require Explorer.DataFrame
+
+      assert result
+             |> Explorer.DataFrame.rename(["brand", "count"])
+             |> Explorer.DataFrame.mutate(count: cast(count, {:u, 64}))
+             |> Explorer.DataFrame.dtypes() == %{"brand" => :string, "count" => {:u, 64}}
     end
 
     test "executes query with filters", %{client: client} do

@@ -31,17 +31,17 @@ defmodule PowerOfThree.CubeFrame do
   def from_result(result_map) when is_map(result_map) do
     case Map.keys(result_map) |> Enum.count() do
       0 ->
-        result_map |> IO.inspect(label: :"%{}_AxyeTb!!!!!!")
-        Explorer.Series.from_list([]) |> IO.inspect(label: :EMPTY_NULL_SERIES)
+        # Empty Series
+        Explorer.Series.from_list([])
 
       1 ->
+        # Single column series
         [col] = Map.keys(result_map)
-        Explorer.Series.from_list(result_map[col]) |> IO.inspect(label: :SERIES)
+        Explorer.Series.from_list(result_map[col])
 
       _ ->
-        # TODO count: to Explorer.DataFrame.mutate(df, "*any*" <>count: b + 1)
-
-        Explorer.DataFrame.new(result_map) |> IO.inspect(label: :DataFrame)
+        # General case
+        Explorer.DataFrame.new(result_map)
     end
   end
 

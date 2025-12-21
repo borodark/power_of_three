@@ -264,16 +264,35 @@ defmodule PowerOfThree.CubeHttpClient do
     field_names = rows |> List.first() |> Map.keys()
 
     # Transform each field to a column
-    field_names
-    |> Enum.map(fn field_name ->
-      {field_name, get_field_type(field_name, annotation)}
-    end)
-    |> Enum.into(%{})
-    |> IO.inspect(label: :TYPE_REF)
+    """
+    dtypes =
+      field_names
+      |> Enum.map(fn field_name ->
+        {field_name, get_field_type(field_name, annotation)}
+      end)
+      |> Enum.into(%{})
+      |> IO.inspect(label: :dtypesZ)
+
+    remanes =
+      for(
+        {col, _type} <- dtypes,
+        col |> String.ends_with?("count"),
+        do: {col, col |> String.replace(".", "_") |> String.to_atom()}
+      )
+      |> Enum.into(%{})
+
+    remanes |> IO.inspect(label: :remanes)
 
     # Get field names from first row
     # TODO Type Inference Here
+    # power_customers.count string ["1758", "1751", "1739"]
+    # TODO rename counts and cast
+    # Explorer.DataFrame. mutate(count: cast(count, {:u, 64}))
+    # |> Explorer.DataFrame.rename(counts)
+    """
+
     {:ok, Explorer.DataFrame.new(rows)}
+    # |> IO.inspect(label: :DATAFRAME)
   rescue
     error ->
       {:error, QueryError.parse_error("Failed to transform response", error)}
@@ -286,13 +305,16 @@ defmodule PowerOfThree.CubeHttpClient do
        }) do
     cond do
       Map.has_key?(dimensions, field_name) ->
-        dimensions[field_name]["type"]
+        case dimensions[field_name]["type"] |> IO.inspect(label: :dimension_type) do
+          "number" -> {:f, 64}
+          _ -> :string
+        end
 
       Map.has_key?(measures, field_name) ->
-        measures[field_name]["type"]
-
-      true ->
-        "string"
+        case measures[field_name]["type"] |> IO.inspect(label: :measure_type) do
+          "number" -> {:f, 64}
+          _ -> :string
+        end
     end
   end
 
