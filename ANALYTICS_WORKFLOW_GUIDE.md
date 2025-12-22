@@ -49,7 +49,7 @@ measures = Customer.measures()      # Get all available measures
 
 ---
 
-## The Problem: Analytics in Traditional Elixir Apps
+## The Problem: Analytics in Traditional Apps
 
 ### Before PowerOfThree
 
@@ -81,16 +81,7 @@ end
 "SUM(price * quantity * (1 - discount))"  # Revenue calculation #3 (in dashboard)
 ```
 
-**Pain #3: JSON Serialization Tax**
-```elixir
-# Query returns row-oriented data
-%Postgrex.Result{rows: [[row1], [row2], ...]}
-
-# Convert to columnar for analytics
-# Lots of allocation, transformation overhead
-```
-
-**Pain #4: No Type Safety**
+**Pain #3: No Type Safety**
 ```elixir
 # Column names are strings - typos caught at runtime
 result["totl_revenue"]  # Oops, typo!
@@ -120,34 +111,66 @@ result["totl_revenue"]  # Oops, typo!
 │  │  cube :analytics do                                   │  │
 │  │    dimension :email                                   │  │
 │  │    dimension :brand_code, name: :brand                │  │
-│  │                                                        │  │
+│  │                                                       │  │
 │  │    measure :count                                     │  │
-│  │    measure :email, name: :unique_users,              │  │
+│  │    measure :email, name: :unique_users,               │  │
 │  │            type: :count_distinct                      │  │
 │  │  end                                                  │  │
 │  └───────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Generates:                                                  │
-│  - Customer.Dimensions.brand() → %DimensionRef{}           │
-│  - Customer.Measures.count() → %MeasureRef{}               │
-│  - Customer.df/1 → Query builder                           │
+│                                                             │
+│  Generates:                                                 │
+│  - Customer.Dimensions.brand() → %DimensionRef{}            │
+│  - Customer.Measures.count() → %MeasureRef{}                │
+│  - Customer.df/1 → Query builder                            │
 └─────────────────────────┬───────────────────────────────────┘
-                          │ HTTP
+                          │ REST/JSON
 ┌─────────────────────────▼───────────────────────────────────┐
 │  Layer 3: Query Execution                                   │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Cube.js Semantic Layer                               │  │
-│  │  ↓                                                     │  │
+│  │  API Cube.js Semantic Layer                           │  │
+│  │  ↓                                                    │  │
 │  │  PostgreSQL/Snowflake/BigQuery                        │  │
 │  └───────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Returns: Explorer.DataFrame (columnar)          │
+│                                                             │
+│  Returns: Explorer.DataFrame (columnar)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Complete Workflow Example
+
+### Step 0: _Setup yorself a Cube Analitics Server or Cluster for greater good_
+
+Solution for data analytics:
+ - documentation: https://cube.dev/product/cube-core
+ - Helm Charts https://github.com/gadsme/charts
+
+How to use cube:
+ - Define `cubes` as collections of `measures` aggregated along `dimensions`: DSL, yaml.
+ - Drop cubes model yamls to the running clusters config space.
+ - Decide how to refresh cube data
+ - Connect cube cluster the source DB.
+ - Profit!
+
+#### Cube DEV environment
+
+For crafting Cubes here is the docker: [compose.yaml](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml)
+
+##### Deployment Overview
+
+Four types of containers:
+  - API
+  - Refresh Workers
+  - Cubestore Router
+  - Cubestore Workers
+
+[![Logical deployment](https://ucarecdn.com/b4695d0a-46a9-4552-93f8-71309de51a43/)](https://cube.dev/docs/product/deployment)
+
+Two need the analytics source DB connections: API and Refresh Workers.
+
+Router needs a shared space with Store Workers: S3 is recommended.
+
 
 ### Step 1: Define Your Schema (5 minutes)
 
@@ -222,8 +245,8 @@ defmodule MyApp.Customer do
 end
 ```
 
-**What happens?** Run `mix compile` and PowerOfThree generates:
-- ✅ A YAML cube config for Cube.js
+**What happens?** Run `mix compile` and `PowerOfThree` generates:
+- ✅ Cube.js configs in `model/cubes/` to be shared with the staging environment first
 - ✅ `Customer.Dimensions` module with accessor functions
 - ✅ `Customer.Measures` module with accessor functions
 - ✅ `Customer.df/1` function for DataFrame queries
@@ -708,7 +731,7 @@ end
 - Build dynamic dashboards
 - Integrate with ML pipelines
 
-**The result?** Production-grade analytics that feels native to Elixir.
+**The result?** Ergonomic analytics that feels native to Elixir. Yes, _Macros are involved_!
 
 ---
 
