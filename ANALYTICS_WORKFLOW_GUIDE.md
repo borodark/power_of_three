@@ -43,7 +43,7 @@ measures = Customer.measures()      # Get all available measures
 )
 ```
 
-**The result?** Production-grade analytics with:
+**The result?** The analytics with:
 - ✅ Type safety from schema to DataFrame
 - ✅ Compile-time column validation
 - ✅ Automatic SQL generation
