@@ -338,9 +338,12 @@ defmodule PowerOfThree do
         )
 
         File.write(
-          "model/cubes/" <> Atom.to_string(cube_name) <> ".yaml",
+          ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml")
+          |> IO.inspect(label: :cube_config_file),
           %{cubes: a_cube_config}
+          |> IO.inspect(label: :cube_config_file_content)
           |> Ymlr.document!()
+          |> IO.inspect(label: :cube_config_file_content_yaml)
         )
 
         # Generate Measures accessor module

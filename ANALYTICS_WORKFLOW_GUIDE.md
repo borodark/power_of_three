@@ -6,7 +6,7 @@
 
 ## TL;DR: The Elevator Pitch
 
-PowerOfThree brings enterprise-grade analytics to Elixir applications with an ergonomic, type-safe workflow:
+`PowerOfThree` brings ergonomic approach to analytics in applications with type-safe workflow:
 
 ```elixir
 # 1. Define your schema (you already have this)
@@ -26,6 +26,8 @@ defmodule MyApp.Customer do
     measure :count
   end
 end
+
+# Have a coffe ... while deployment is settled.
 
 # 2. Query with compile-time safety
 dimensions = Customer.dimensions()  # Get all available dimensions
@@ -171,6 +173,8 @@ Two need the analytics source DB connections: API and Refresh Workers.
 
 Router needs a shared space with Store Workers: S3 is recommended.
 
+Skip https://cube.dev/docs/product/caching/getting-started-pre-aggregations for now...
+
 
 ### Step 1: Define Your Schema (5 minutes)
 
@@ -291,22 +295,6 @@ dimensions = Customer.dimensions()
 #      %DimensionRef{name: :zodiac, ...},
 #      ...
 #    ]
-
-# Display available dimensions to users
-IO.puts("Available dimensions:")
-Enum.each(dimensions, fn d ->
-  IO.puts("  - #{d.name} (#{d.type}): #{d.description}")
-end)
-
-# Output:
-# Available dimensions:
-#   - brand (string): Brand
-#   - market (string): Market
-#   - zodiac (string): Customer zodiac sign
-#   - ...
-
-# Let users select dynamically
-selected = Enum.find(dimensions, fn d -> d.name == :zodiac end)
 ```
 
 **Why two patterns?**
@@ -328,12 +316,6 @@ PowerOfThree generates SQL automatically from type-safe references:
   ],
   limit: 10
 )
-
-# Generated SQL (automatically):
-# SELECT customer.brand, MEASURE(customer.count)
-# FROM customer
-# GROUP BY 1
-# LIMIT 10
 ```
 
 #### Advanced Queries
@@ -353,46 +335,13 @@ PowerOfThree generates SQL automatically from type-safe references:
   limit: 20,
   offset: 10
 )
-
-df1 = Customer.df!(columns: [...], connection: http_conn)
-df2 = Customer.df!(columns: [...], connection: http_conn)  # Reuses connection
-```
-
-#### Dynamic Query Building
-
-```elixir
-# Build queries from user input
-def build_dashboard_query(user_selections) do
-  # Get all available options
-  dimensions = Customer.dimensions()
-  measures = Customer.measures()
-
-  # Find selected items
-  selected_dims =
-    Enum.filter(dimensions, fn d ->
-      d.name in user_selections.dimensions
-    end)
-
-  selected_measures =
-    Enum.filter(measures, fn m ->
-      m.name in user_selections.measures
-    end)
-
-  # Build query
-  Customer.df(
-    columns: selected_dims ++ selected_measures,
-    where: user_selections.filter,
-    order_by: user_selections.order,
-    limit: user_selections.limit
-  )
-end
 ```
 
 ---
 
 ### Step 4: Work with DataFrames
 
-Results come back as `Explorer.DataFrame` (when available) or maps:
+Results come back as `Explorer.DataFrame`:
 
 ```elixir
 {:ok, df} = Customer.df(
@@ -404,7 +353,7 @@ Results come back as `Explorer.DataFrame` (when available) or maps:
   limit: 5
 )
 
-# With Explorer available, you get a DataFrame:
+#you get a DataFrame:
 df
 # =>
 # +------------+-----------+---------------------+
@@ -441,6 +390,8 @@ tensor = df
 # Use with Scholar, Axon, etc.
 Scholar.Stats.mean(tensor)
 ```
+
+Learn https://cube.dev/docs/product/caching/getting-started-pre-aggregations ...
 
 ---
 
@@ -571,7 +522,6 @@ end
 **The difference:**
 - ✅ Business logic defined once, reused everywhere
 - ✅ Type-safe column references
-- ✅ Automatic GROUP BY generation
 - ✅ Returns Explorer DataFrames ready for ML
 
 ---
@@ -730,6 +680,7 @@ end
 - Define filtered measures
 - Build dynamic dashboards
 - Integrate with ML pipelines
+- Start pre-aggregation: https://cube.dev/docs/product/caching/getting-started-pre-aggregations
 
 **The result?** Ergonomic analytics that feels native to Elixir. Yes, _Macros are involved_!
 
@@ -739,8 +690,9 @@ end
 
 - **Explorer**: [hexdocs.pm/explorer](https://hexdocs.pm/explorer)
 - **Documentation**: [PowerOfThree Hex Docs](https://hexdocs.pm/power_of_3)
-- **Examples**: `/power-of-three-examples` directory
+- **Examples**: [power-of-three-examples](https://github.com/borodark/power-of-three-examples/)
 - **Cube.js Docs**: [cube.dev/docs](https://cube.dev/docs)
+- **Condensed version of the source data** [Pre-aggregations](https://cube.dev/docs/product/caching/getting-started-pre-aggregations) ...
 
 ---
 
