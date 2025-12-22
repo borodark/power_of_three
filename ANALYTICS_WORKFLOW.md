@@ -123,6 +123,7 @@ result["totl_revenue"]  # Oops, typo!
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
 │  Generates:                                                 │
+│  - Cube Defenition in analytics.yaml file                   │
 │  - Customer.Dimensions.brand() → %DimensionRef{}            │
 │  - Customer.Measures.count() → %MeasureRef{}                │
 │  - Customer.df/1 → Query builder                            │
