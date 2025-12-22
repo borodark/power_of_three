@@ -148,7 +148,7 @@ https://github.com/borodark/power-of-three-examples/blob/main/compose.yml
 
 
 Solution for data analytics:
- - documentation: https://cube.dev/product/cube-core
+ - documentation: https://cube.dev/docs/product/data-modeling/reference/cube
  - Helm Charts https://github.com/gadsme/charts
 
 How to use cube:
@@ -694,7 +694,7 @@ end
 - **Explorer**: [hexdocs.pm/explorer](https://hexdocs.pm/explorer)
 - **Documentation**: [PowerOfThree Hex Docs](https://hexdocs.pm/power_of_3)
 - **Examples**: [power-of-three-examples](https://github.com/borodark/power-of-three-examples/)
-- **Cube.js Docs**: [cube.dev/docs](https://cube.dev/docs)
+- **Cube.js Docs**: [cube docs](https://cube.dev/docs/product/data-modeling/reference/cube)
 - **Condensed version of the source data** [Pre-aggregations](https://cube.dev/docs/product/caching/getting-started-pre-aggregations) ...
 
 ---
