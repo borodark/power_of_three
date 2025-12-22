@@ -127,9 +127,9 @@ result["totl_revenue"]  # Oops, typo!
 │  - Customer.Dimensions.brand() → %DimensionRef{}            │
 │  - Customer.Measures.count() → %MeasureRef{}                │
 │  - Customer.df/1 → Query builder                            │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ REST/JSON
-┌─────────────────────────▼───────────────────────────────────┐
+└───────────────┬─────────┬───────────────────────────────────┘
+analytics.yaml  |         │ REST/JSON
+┌───────────────▼─────────▼───────────────────────────────────┐
 │  Layer 3: Query Execution                                   │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │  API Cube.js Semantic Layer                           │  │
