@@ -25,7 +25,7 @@ Please see separate project for examples showing working features.
 ## What is Cube[.dev]
 
 Solution for data analytics:
- - documentation: https://cube.dev/product/cube-core
+ - documentation: https://cube.dev/docs/product/data-modeling/reference/cube
  - Helm Charts https://github.com/gadsme/charts
 
 How to use cube:
@@ -43,31 +43,12 @@ The future plans are bellow in the order of priority:
 
     This is *Dropped* for now! The `Ecto` is very particular on what kind of catalog introspections supported by the implementation of `Postgres`. Shall we say: _Cube is not Postgres_ and never will be.
 
-  - [ ] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.
+  - ~~[ ] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.~~
 
-    Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).
+    ~~Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).~~
 
-    Looks like we have solid α! The tests show that [data are coming all the way from Cube to DataFrame](https://github.com/borodark/power-of-three-examples/blob/f86cbcfbc15e8ac95a688dfde40b3fcca03d3a7d/test/adbc_cube_basic_test.exs#L174):
+  - [X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) using Cube JSON REST API. Having compile time generated Cubes Mearures and Dimensions deployed to [your instance of running Cluster of Cubes](https://github.com/gadsme/charts) , [query it from `iex` in a remshell](https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md) to where the code changes deployed or the [locally sourced development instance off Cube](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml). _le chemin le plus direct et le plus court_
 
-      """iex
-
-        {:ok,
-        #Explorer.DataFrame<
-        Polars[12 x 5]
-        FUL string ["partially_returned", "partially_canceled",
-        "partially_fulfilled", "returned", "on_hold", ...]
-        measure(orders.count) s64 [158, 162, 201, 181, 167, ...]
-        measure(orders.subtotal_amount) f64 [2252.3860759493673, 2209.901234567901,
-        2107.353233830846, 2174.839779005525, 2057.8383233532936, ...]
-        measure(orders.total_amount) f64 [425844.0, 442070.0, 571002.0, 459158.0,
-        481116.0, ...]
-        measure(orders.tax_amount) f64 [44416.0, 50440.0, 62353.0, 52903.0, 49850.0,
-        ...]
-        >}
-        .
-        Finished in 1.2 seconds (1.2s async, 0.00s sync)
-
-    """
 
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
