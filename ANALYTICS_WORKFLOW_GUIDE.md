@@ -2,6 +2,8 @@
 
 **A Type-Safe, Ergonomic Approach to Business Intelligence in Elixir**
 
+https://github.com/borodark/power_of_three/blob/master/QUICK_REFERENCE.md
+
 ---
 
 ## TL;DR: The Elevator Pitch
@@ -33,7 +35,7 @@ end
 dimensions = Customer.dimensions()  # Get all available dimensions
 measures = Customer.measures()      # Get all available measures
 
-# 3. Get DataFrames instantly
+# 3. Get DataFrames
 {:ok, df} = Customer.df(
   columns: [
     Customer.Dimensions.brand(),
@@ -692,7 +694,7 @@ end
 ## Resources
 
 - **Explorer**: [hexdocs.pm/explorer](https://hexdocs.pm/explorer)
-- **Documentation**: [PowerOfThree Hex Docs](https://hexdocs.pm/power_of_3)
+- **Documentation**: [_use ^3_](https://github.com/borodark/power_of_three/blob/master/QUICK_REFERENCE.md)
 - **Examples**: [power-of-three-examples](https://github.com/borodark/power-of-three-examples/)
 - **Cube.js Docs**: [cube docs](https://cube.dev/docs/product/data-modeling/reference/cube)
 - **Condensed version of the source data** [Pre-aggregations](https://cube.dev/docs/product/caching/getting-started-pre-aggregations) ...
