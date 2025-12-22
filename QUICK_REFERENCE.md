@@ -63,8 +63,8 @@ dimension [:brand_code, :market_code],
 ```elixir
 dimension [:field1, :field2],
   name: :calculated,
-  type: :string,
-  sql: "CASE WHEN field1 > 0 THEN 'positive' ELSE 'negative' END"
+  type: :boolean,
+  sql: "CASE WHEN field1 > field2 THEN 1 ELSE 0 END"
 ```
 
 ### Count Measure
@@ -169,46 +169,6 @@ df = Customer.df!(columns: [...])  # Raises Adbc.Error on failure
 
 ---
 
-## Connection Management
-
-### Auto-Connect (Creates New Connection)
-```elixir
-{:ok, df} = Customer.df(
-  columns: [...],
-  connection_opts: [
-    host: "localhost",
-    port: 4445,
-    token: "my-token"
-  ]
-)
-```
-
-### Reuse Connection (Recommended)
-```elixir
-{:ok, conn} = PowerOfThree.CubeConnection.connect(
-  host: "localhost",
-  port: 4445,
-  token: "my-token"
-)
-
-df1 = Customer.df!(columns: [...], connection: conn)
-df2 = Customer.df!(columns: [...], connection: conn)  # Reuses
-```
-
-### Configuration-Based
-```elixir
-# config/config.exs
-config :power_of_three, PowerOfThree.CubeConnection,
-  host: "localhost",
-  port: 4445,
-  token: System.get_env("CUBE_TOKEN")
-
-# Uses config by default
-{:ok, df} = Customer.df(columns: [...])
-```
-
----
-
 ## Accessor Patterns
 
 ### Module Access (Type-Safe)
@@ -282,17 +242,6 @@ Explorer.DataFrame.to_csv(df, "output.csv")
 Explorer.DataFrame.to_rows(df)  # List of maps
 ```
 
-### Without Explorer (Returns Map)
-```elixir
-{:ok, result} = Customer.df(columns: [...])
-
-# result is a map:
-%{
-  "brand" => ["Nike", "Adidas", ...],
-  "measure(customer.count)" => [1000, 800, ...]
-}
-```
-
 ---
 
 ## Type Reference
@@ -335,38 +284,6 @@ Ecto Type              → Cube Type
 :utc_datetime          → :time
 ```
 
----
-
-## Error Handling
-
-### Pattern Match on Result
-```elixir
-case Customer.df(columns: [...]) do
-  {:ok, df} ->
-    process(df)
-
-  {:error, %Adbc.Error{message: msg}} ->
-    Logger.error("Query failed: #{msg}")
-    {:error, :query_failed}
-end
-```
-
-### Let It Crash
-```elixir
-df = Customer.df!(columns: [...])  # Raises on error
-```
-
-### Validate Before Query
-```elixir
-# Check if dimension exists
-if :brand in Enum.map(Customer.dimensions(), & &1.name) do
-  Customer.df(columns: [Customer.Dimensions.brand()])
-else
-  {:error, :dimension_not_found}
-end
-```
-
----
 
 ## Common Patterns
 
@@ -483,18 +400,6 @@ end
 
 ## Performance Tips
 
-### Reuse Connections
-```elixir
-# ❌ Bad - Creates new connection each time
-def query1, do: Customer.df!(columns: [...])
-def query2, do: Customer.df!(columns: [...])
-
-# ✅ Good - Reuse connection
-{:ok, conn} = PowerOfThree.CubeConnection.connect(...)
-def query1(conn), do: Customer.df!(columns: [...], connection: conn)
-def query2(conn), do: Customer.df!(columns: [...], connection: conn)
-```
-
 ### Limit Results
 ```elixir
 # ❌ Bad - Fetches everything
@@ -503,7 +408,7 @@ Customer.df!(columns: [...])
 # ✅ Good - Limit what you need
 Customer.df!(columns: [...], limit: 100)
 ```
-
+ 
 ### Use Filtered Measures
 ```elixir
 # ❌ Bad - Filter in application
@@ -527,32 +432,6 @@ measure :count,
 ** (UndefinedFunctionError) function Customer.Dimensions.brand/0 is undefined
 
 Solution: Run `mix compile` after changing cube definitions
-```
-
-### "Connection refused"
-```
-** (Adbc.Error) Failed to connect to localhost:4445
-
-Solution: Ensure cubesqld is running:
-  ./start-cubesqld.sh
-```
-
-### "Cube not found"
-```
-** (Adbc.Error) Cube 'customer' not found
-
-Solution:
-1. Check sql_table matches cube name in Cube.js config
-2. Restart Cube server after changes
-3. Check CUBE_API_URL environment variable
-```
-
-### "Column not found in GROUP BY"
-```
-** (Adbc.Error) Column must appear in GROUP BY
-
-Solution: This is a measure, not a dimension
-Use MEASURE(cube.measure_name) syntax (automatic in PowerOfThree)
 ```
 
 ---
@@ -604,7 +483,7 @@ iex> Explorer.DataFrame.print(df)
 
 ## Next Steps
 
-- Read [ANALYTICS_WORKFLOW_GUIDE.md](ANALYTICS_WORKFLOW_GUIDE.md) for detailed walkthrough
+- Read [ANALYTICS_WORKFLOW.md](ANALYTICS_WORKFLOW.md) for detailed walkthrough
 - Check [PHASE3_INTEGRATION_TEST_RESULTS.md](PHASE3_INTEGRATION_TEST_RESULTS.md) for test results
 - Review [CONFIRMED_DF.md](CONFIRMED_DF.md) for live query examples
 - Explore `/power-of-three-examples` for working code
