@@ -686,9 +686,9 @@ end
 - Define filtered measures
 - Build dynamic dashboards
 - Integrate with ML pipelines
-- Realize that it was all for pre-aggregations: https://cube.dev/docs/product/caching/getting-started-pre-aggregations
+- Realize that it was all for [caching](https://cube.dev/docs/product/caching) and [pre-aggregations](https://cube.dev/docs/product/caching/getting-started-pre-aggregations)
 
-**The result?** Ergonomic analytics that feels native to Elixir.
+**The result?** Ergonomic analytics.
 
 ---
 
