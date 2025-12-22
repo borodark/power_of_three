@@ -155,10 +155,10 @@ Solution for data analytics:
  - Helm Charts https://github.com/gadsme/charts
 
 How to use cube:
+ - Start and connect cube cluster the source DB.
  - Define `cubes` as collections of `measures` aggregated along `dimensions`: DSL, yaml.
  - Drop cubes model yamls to the running clusters config space.
  - Decide how to refresh cube data
- - Connect cube cluster the source DB.
  - Profit!
 
 #### Cube DEV environment
