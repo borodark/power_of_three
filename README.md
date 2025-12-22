@@ -10,6 +10,13 @@ The yaml output only for now.
 
 The cubes config files then can be be shared with the running _Cube_.
 
+**A Type-Safe, Ergonomic Approach to Business Intelligence in Elixir**
+
+How to: https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md
+
+Quick guide: https://github.com/borodark/power_of_three/blob/master/QUICK_REFERENCE.md
+
+
 Please see separate project for examples showing working features.
   - [Example 1](https://github.com/borodark/power-of-three-examples/blob/58be8a2d9beb5539d76c42b8e98f51d960fb499c/lib/pot_examples/customer.ex#L26) 
   - [Example 2](https://github.com/borodark/power-of-three-examples/blob/58be8a2d9beb5539d76c42b8e98f51d960fb499c/lib/pot_examples/order.ex#L67)

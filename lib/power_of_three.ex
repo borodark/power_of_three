@@ -343,7 +343,6 @@ defmodule PowerOfThree do
           %{cubes: a_cube_config}
           |> IO.inspect(label: :cube_config_file_content)
           |> Ymlr.document!()
-          |> IO.inspect(label: :cube_config_file_content_yaml)
         )
 
         # Generate Measures accessor module
