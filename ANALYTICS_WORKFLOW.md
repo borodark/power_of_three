@@ -686,9 +686,9 @@ end
 - Define filtered measures
 - Build dynamic dashboards
 - Integrate with ML pipelines
-- Start pre-aggregation: https://cube.dev/docs/product/caching/getting-started-pre-aggregations
+- Realize that it was all for pre-aggregations: https://cube.dev/docs/product/caching/getting-started-pre-aggregations
 
-**The result?** Ergonomic analytics that feels native to Elixir. Yes, _Macros are involved_!
+**The result?** Ergonomic analytics that feels native to Elixir.
 
 ---
 
@@ -703,3 +703,5 @@ end
 ---
 
 *"In Codice Claudiano confidimus!"*
+
+P.S. Yes, _Macros are involved_!
