@@ -144,6 +144,9 @@ result["totl_revenue"]  # Oops, typo!
 
 ### Step 0: _Setup yorself a Cube Analitics Server or Cluster for greater good_
 
+https://github.com/borodark/power-of-three-examples/blob/main/compose.yml
+
+
 Solution for data analytics:
  - documentation: https://cube.dev/product/cube-core
  - Helm Charts https://github.com/gadsme/charts
