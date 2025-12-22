@@ -29,7 +29,7 @@ defmodule MyApp.Customer do
   end
 end
 
-# Have a coffe ... while deployment is settled.
+# Have a coffee ... while deployments are settled.
 
 # 2. Query with compile-time safety
 dimensions = Customer.dimensions()  # Get all available dimensions
