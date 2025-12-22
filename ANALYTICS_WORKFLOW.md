@@ -127,8 +127,8 @@ result["totl_revenue"]  # Oops, typo!
 │  - Customer.Dimensions.brand() → %DimensionRef{}            │
 │  - Customer.Measures.count() → %MeasureRef{}                │
 │  - Customer.df/1 → Query builder                            │
-└───────────────┬─────────┬───────────────────────────────────┘
-analytics.yaml  |         │ REST/JSON
+└───────────────┬─────────^───────────────────────────────────┘
+analytics.yaml  |         ^ REST/JSON
 ┌───────────────▼─────────▼───────────────────────────────────┐
 │  Layer 3: Query Execution                                   │
 │  ┌───────────────────────────────────────────────────────┐  │
@@ -145,7 +145,7 @@ analytics.yaml  |         │ REST/JSON
 
 ## Complete Workflow Example
 
-### Step 0: _Setup yorself a Cube Analitics Server or Cluster for greater good_
+### Step 0: _Setup yorself a Cube Analitics Server or Cluster, [for great good](https://learnyousomeerlang.com/content)_
 
 https://github.com/borodark/power-of-three-examples/blob/main/compose.yml
 
