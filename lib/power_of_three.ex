@@ -279,22 +279,43 @@ defmodule PowerOfThree do
   def generate_cube_source_code(cube_name, opts, ecto_fields) do
     alias IO.ANSI
 
+    # Fields to skip (system fields)
+    skip_fields = [:id, :inserted_at, :updated_at]
+
+    # Filter out skipped fields
+    user_fields =
+      Enum.reject(ecto_fields, fn {field, _type} ->
+        field in skip_fields
+      end)
+
     # Filter fields by type
-    string_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
-      type in [:string, :binary, :binary_id, :bitstring, :boolean]
-    end)
+    string_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:string, :binary, :binary_id, :bitstring, :boolean]
+      end)
 
-    time_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
-      type in [:naive_datetime, :naive_datetime_usec, :utc_datetime, :utc_datetime_usec, :date, :time, :time_usec]
-    end)
+    time_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [
+          :naive_datetime,
+          :naive_datetime_usec,
+          :utc_datetime,
+          :utc_datetime_usec,
+          :date,
+          :time,
+          :time_usec
+        ]
+      end)
 
-    integer_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
-      type in [:integer, :id]
-    end)
+    integer_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:integer, :id]
+      end)
 
-    float_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
-      type in [:float, :decimal]
-    end)
+    float_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:float, :decimal]
+      end)
 
     # Get sql_table from opts
     sql_table = Keyword.get(opts, :sql_table, "unknown")
@@ -321,7 +342,9 @@ defmodule PowerOfThree do
     lines = if dimension_lines != [], do: lines ++ [""], else: lines
 
     # Add measures
-    measure_lines = ["  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:count#{ANSI.reset()})"]
+    measure_lines = [
+      "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:count#{ANSI.reset()})"
+    ]
 
     integer_measure_lines =
       integer_fields
@@ -340,10 +363,12 @@ defmodule PowerOfThree do
 
     lines = lines ++ measure_lines ++ integer_measure_lines ++ float_measure_lines
 
-    lines = lines ++ [
-      "#{ANSI.blue()}end#{ANSI.reset()}",
-      ""
-    ]
+    lines =
+      lines ++
+        [
+          "#{ANSI.blue()}end#{ANSI.reset()}",
+          ""
+        ]
 
     Enum.join(lines, "\n")
   end
@@ -354,23 +379,40 @@ defmodule PowerOfThree do
       # Get all Ecto fields at compile time
       ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
 
+      # Fields to skip (system fields)
+      skip_fields = [:id, :inserted_at, :updated_at]
+
+      # Filter out skipped fields
+      user_fields =
+        Enum.reject(ecto_fields, fn {field, _type} ->
+          field in skip_fields
+        end)
+
       # Generate dimensions for string and boolean fields
-      for {field, {type, _}} <- ecto_fields,
+      for {field, {type, _}} <- user_fields,
           type in [:string, :binary, :binary_id, :bitstring, :boolean] do
         dimension(field)
       end
 
       # Generate dimensions for datetime/timestamp fields
-      for {field, {type, _}} <- ecto_fields,
-          type in [:naive_datetime, :naive_datetime_usec, :utc_datetime, :utc_datetime_usec, :date, :time, :time_usec] do
+      for {field, {type, _}} <- user_fields,
+          type in [
+            :naive_datetime,
+            :naive_datetime_usec,
+            :utc_datetime,
+            :utc_datetime_usec,
+            :date,
+            :time,
+            :time_usec
+          ] do
         dimension(field)
       end
 
       # Always generate count measure
       measure(:count)
 
-      # Generate sum AND count_distinct measures for integer fields (including :id)
-      for {field, {type, _}} <- ecto_fields, type in [:integer, :id] do
+      # Generate sum AND count_distinct measures for integer fields
+      for {field, {type, _}} <- user_fields, type in [:integer, :id] do
         # Sum measure
         measure(field,
           type: :sum,
@@ -385,7 +427,7 @@ defmodule PowerOfThree do
       end
 
       # Generate sum measures for float/decimal fields
-      for {field, {type, _}} <- ecto_fields,
+      for {field, {type, _}} <- user_fields,
           type in [:float, :decimal] do
         measure(field,
           type: :sum,
@@ -400,15 +442,19 @@ defmodule PowerOfThree do
     auto_generated_block = generate_default_cube_block()
 
     # Generate code to print the auto-generated cube source at compile time
-    print_source_code = quote do
-      ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
-      source_code = PowerOfThree.generate_cube_source_code(
-        unquote(cube_name),
-        unquote(opts),
-        ecto_fields
-      )
-      IO.puts(source_code)
-    end
+    print_source_code =
+      quote do
+        ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
+
+        source_code =
+          PowerOfThree.generate_cube_source_code(
+            unquote(cube_name),
+            unquote(opts),
+            ecto_fields
+          )
+
+        IO.puts(source_code)
+      end
 
     # Combine the print statement with the cube generation
     quote do

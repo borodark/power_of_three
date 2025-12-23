@@ -17,7 +17,7 @@ defmodule PowerOfThree.DefaultCubeTest do
     end
 
     # Auto-generated cube (no block)
-    cube :basic_cube, sql_table: "basic_table"
+    cube(:basic_cube, sql_table: "basic_table")
   end
 
   defmodule ExplicitSchema do
