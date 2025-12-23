@@ -73,7 +73,7 @@ defmodule PowerOfThree.MixProject do
       logo: "priv/logo.png",
       extras: ["README.md"],
       exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
-      description: "Inline Cubes with Ecto.Schema",
+      description: "Start with everything. Keep what performs. Pre-aggregate what matters. | Inline Cubes with Ecto.Schema",
       licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => "https://github.com/borodark/power_of_three",

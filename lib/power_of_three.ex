@@ -274,6 +274,80 @@ defmodule PowerOfThree do
     end
   end
 
+  # Helper function to generate pretty-printed cube source code for display
+  @doc false
+  def generate_cube_source_code(cube_name, opts, ecto_fields) do
+    alias IO.ANSI
+
+    # Filter fields by type
+    string_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
+      type in [:string, :binary, :binary_id, :bitstring, :boolean]
+    end)
+
+    time_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
+      type in [:naive_datetime, :naive_datetime_usec, :utc_datetime, :utc_datetime_usec, :date, :time, :time_usec]
+    end)
+
+    integer_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
+      type in [:integer, :id]
+    end)
+
+    float_fields = Enum.filter(ecto_fields, fn {_field, {type, _}} ->
+      type in [:float, :decimal]
+    end)
+
+    # Get sql_table from opts
+    sql_table = Keyword.get(opts, :sql_table, "unknown")
+
+    # Build the source code string with syntax highlighting
+    lines = [
+      "",
+      "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
+      "",
+      "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},",
+      "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()} #{ANSI.blue()}do#{ANSI.reset()}",
+      ""
+    ]
+
+    # Add dimensions
+    dimension_lines =
+      (string_fields ++ time_fields)
+      |> Enum.map(fn {field, _} ->
+        "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()})"
+      end)
+
+    lines = lines ++ dimension_lines
+
+    lines = if dimension_lines != [], do: lines ++ [""], else: lines
+
+    # Add measures
+    measure_lines = ["  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:count#{ANSI.reset()})"]
+
+    integer_measure_lines =
+      integer_fields
+      |> Enum.flat_map(fn {field, _} ->
+        [
+          "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:sum#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_sum#{ANSI.reset()})",
+          "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:count_distinct#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_distinct#{ANSI.reset()})"
+        ]
+      end)
+
+    float_measure_lines =
+      float_fields
+      |> Enum.map(fn {field, _} ->
+        "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:sum#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_sum#{ANSI.reset()})"
+      end)
+
+    lines = lines ++ measure_lines ++ integer_measure_lines ++ float_measure_lines
+
+    lines = lines ++ [
+      "#{ANSI.blue()}end#{ANSI.reset()}",
+      ""
+    ]
+
+    Enum.join(lines, "\n")
+  end
+
   # Helper function to generate auto-block for default cube
   defp generate_default_cube_block() do
     quote do
@@ -324,7 +398,23 @@ defmodule PowerOfThree do
   # cube/2 - Auto-generates dimensions and measures when no block provided
   defmacro cube(cube_name, opts) do
     auto_generated_block = generate_default_cube_block()
-    cube(__CALLER__, cube_name, opts, auto_generated_block)
+
+    # Generate code to print the auto-generated cube source at compile time
+    print_source_code = quote do
+      ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
+      source_code = PowerOfThree.generate_cube_source_code(
+        unquote(cube_name),
+        unquote(opts),
+        ecto_fields
+      )
+      IO.puts(source_code)
+    end
+
+    # Combine the print statement with the cube generation
+    quote do
+      unquote(print_source_code)
+      unquote(cube(__CALLER__, cube_name, opts, auto_generated_block))
+    end
   end
 
   # cube/3 - Explicit block provided
