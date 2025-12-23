@@ -1208,7 +1208,7 @@ defmodule PowerOfThree do
         :x_measures,
         path_throw_opts
         |> Map.merge(%{
-          name: opts[:name] || "count",
+          name: opts[:name] || :count,
           type: :count
         })
       )
