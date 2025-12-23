@@ -74,7 +74,7 @@ defmodule PowerOfThreeAccessorTest do
       measure = TestCube.Measures.count()
 
       assert %MeasureRef{} = measure
-      assert measure.name == "count"
+      assert measure.name == :count
       assert measure.module == TestCube
       assert measure.type == :count
       assert measure.description == "Total count"
@@ -220,7 +220,7 @@ defmodule PowerOfThreeAccessorTest do
       measure = TestCube.Measures.count()
 
       assert %MeasureRef{} = measure
-      assert measure.name == "count"
+      assert measure.name == :count
     end
 
     test "can access dimensions with dot syntax via module" do
@@ -253,7 +253,7 @@ defmodule PowerOfThreeAccessorTest do
       # Pick specific ones
       brand = Enum.find(dimensions, fn d -> d.name == :brand end)
       email = Enum.find(dimensions, fn d -> d.name == "email" end)
-      count = Enum.find(measures, fn m -> m.name == "count" or m.name == :count end)
+      count = Enum.find(measures, fn m -> m.name == :count or m.name == :count end)
 
       columns = [brand, email, count]
 

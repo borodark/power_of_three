@@ -421,7 +421,7 @@ defmodule PowerOfThreeTest do
 
       measures = CountMeasureDefaultName.__info__(:attributes)[:measures]
       count_measure = Enum.find(measures, fn m -> m.type == :count end)
-      assert count_measure.name == "count"
+      assert count_measure.name == :count
     end
 
     test "count measure can have custom name" do

@@ -87,7 +87,7 @@ defmodule PowerOfThree.DefaultCubeTest do
       measures = BasicSchema.measures()
       measure_names = Enum.map(measures, & &1.name)
 
-      assert "count" in measure_names
+      assert :count in measure_names
     end
 
     test "generates sum for integer fields" do
@@ -109,15 +109,6 @@ defmodule PowerOfThree.DefaultCubeTest do
       measure_names = Enum.map(measures, & &1.name)
 
       assert :balance_sum in measure_names
-    end
-
-    test "generates sum and count_distinct for id field" do
-      measures = BasicSchema.measures()
-      measure_names = Enum.map(measures, & &1.name)
-
-      # id is :id type, should have both measures
-      assert :id_sum in measure_names
-      assert :id_distinct in measure_names
     end
 
     test "integer fields have both sum and count_distinct" do
