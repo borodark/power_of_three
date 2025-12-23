@@ -71,7 +71,10 @@ defmodule PowerOfThree.MixProject do
       # The main page in the docs
       main: "PowerOfThree",
       logo: "priv/logo.png",
-      extras: ["README.md"],
+      extras: [
+        "README.md",
+        "guides/ten_minutes_to_power_of_three.md"
+      ],
       exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
       description: "Start with everything. Keep what performs. Pre-aggregate what matters. | Inline Cubes with Ecto.Schema",
       licenses: ["Apache-2.0"],
