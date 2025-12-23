@@ -107,6 +107,70 @@ defmodule PowerOfThree do
 
   ```
 
+  ## Auto-Generated Default Cube
+
+  When `cube/2` is called without a block, PowerOfThree automatically generates dimensions and measures
+  based on your Ecto schema field types. This provides a quick way to get started without manually
+  defining each dimension and measure.
+
+  ### Auto-Generation Rules
+
+  **Dimensions** are created for these field types:
+  - `:string`, `:binary`, `:binary_id`, `:bitstring` → string dimension
+  - `:boolean` → boolean dimension
+  - `:date`, `:time`, `:naive_datetime`, `:utc_datetime` (and `_usec` variants) → time dimension
+
+  **Measures** are created as follows:
+  - `count` - always generated (counts all rows)
+  - For `:integer` and `:id` fields - TWO measures per field:
+    - `<field>_sum` - sums the values
+    - `<field>_distinct` - counts distinct values
+  - For `:float` and `:decimal` fields:
+    - `<field>_sum` - sums the values
+
+  ### Example
+
+      defmodule Example.Product do
+        use Ecto.Schema
+        use PowerOfThree
+
+        schema "products" do
+          field :name, :string
+          field :description, :string
+          field :active, :boolean
+          field :price, :float
+          field :quantity, :integer
+          timestamps()  # adds inserted_at and updated_at
+        end
+
+        # Auto-generates all dimensions and measures
+        cube :products, sql_table: "products"
+      end
+
+  This auto-generates:
+  - **Dimensions**: `id`, `name`, `description`, `active`, `inserted_at`, `updated_at`
+  - **Measures**: `count`, `id_sum`, `id_distinct`, `quantity_sum`, `quantity_distinct`, `price_sum`
+
+  Accessor functions are created for all auto-generated dimensions and measures:
+
+      Product.Dimensions.name()         # Access name dimension
+      Product.Measures.quantity_sum()   # Access quantity sum measure
+      Product.Measures.price_sum()      # Access price sum measure
+
+  ### When to Use Auto-Generation vs Explicit Block
+
+  **Use auto-generation** when:
+  - You want all fields as dimensions and standard aggregations
+  - Prototyping or getting started quickly
+  - Your schema has simple field types that map directly to cube concepts
+
+  **Use explicit block** when:
+  - You need custom SQL expressions in dimensions
+  - You want filtered measures
+  - You need multi-field dimensions (concatenated)
+  - You want to exclude certain fields
+  - You need custom measure names or types
+
   ## Accessing Dimensions and Measures
 
   PowerOfThree generates accessor functions for dimensions and measures in two ways:
@@ -197,7 +261,7 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
 
       require Logger
 
@@ -210,6 +274,60 @@ defmodule PowerOfThree do
     end
   end
 
+  # Helper function to generate auto-block for default cube
+  defp generate_default_cube_block() do
+    quote do
+      # Get all Ecto fields at compile time
+      ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
+
+      # Generate dimensions for string and boolean fields
+      for {field, {type, _}} <- ecto_fields,
+          type in [:string, :binary, :binary_id, :bitstring, :boolean] do
+        dimension(field)
+      end
+
+      # Generate dimensions for datetime/timestamp fields
+      for {field, {type, _}} <- ecto_fields,
+          type in [:naive_datetime, :naive_datetime_usec, :utc_datetime, :utc_datetime_usec, :date, :time, :time_usec] do
+        dimension(field)
+      end
+
+      # Always generate count measure
+      measure(:count)
+
+      # Generate sum AND count_distinct measures for integer fields (including :id)
+      for {field, {type, _}} <- ecto_fields, type in [:integer, :id] do
+        # Sum measure
+        measure(field,
+          type: :sum,
+          name: String.to_atom("#{field}_sum")
+        )
+
+        # Count distinct measure
+        measure(field,
+          type: :count_distinct,
+          name: String.to_atom("#{field}_distinct")
+        )
+      end
+
+      # Generate sum measures for float/decimal fields
+      for {field, {type, _}} <- ecto_fields,
+          type in [:float, :decimal] do
+        measure(field,
+          type: :sum,
+          name: String.to_atom("#{field}_sum")
+        )
+      end
+    end
+  end
+
+  # cube/2 - Auto-generates dimensions and measures when no block provided
+  defmacro cube(cube_name, opts) do
+    auto_generated_block = generate_default_cube_block()
+    cube(__CALLER__, cube_name, opts, auto_generated_block)
+  end
+
+  # cube/3 - Explicit block provided
   defmacro cube(cube_name, opts, do: block) do
     cube(__CALLER__, cube_name, opts, block)
   end
