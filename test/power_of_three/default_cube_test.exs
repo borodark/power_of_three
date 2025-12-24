@@ -163,9 +163,9 @@ defmodule PowerOfThree.DefaultCubeTest do
 
       # Should only have count measure from block
       assert length(measures) == 1
-      assert "count" in measure_names
-      refute "age_sum" in measure_names
-      refute "age_distinct" in measure_names
+      assert :count in measure_names
+      refute :age_sum in measure_names
+      refute :age_distinct in measure_names
     end
 
     test "explicit block accessor module" do
@@ -210,8 +210,8 @@ defmodule PowerOfThree.DefaultCubeTest do
     test "counts all auto-generated dimensions" do
       dimensions = BasicSchema.dimensions()
 
-      # Should have: name, email, active, inserted_at, updated_at (5 total)
-      assert length(dimensions) == 5
+      # Should have: name, email, active
+      assert length(dimensions) == 3
     end
 
     test "counts all auto-generated measures" do
