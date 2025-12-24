@@ -30,20 +30,23 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
       refute "customer_id" in dimension_names
     end
 
-    test "skips system fields but generates granularity dimensions for timestamps" do
+    test "skips id but generates time dimensions for timestamps" do
       dimensions = Order.dimensions()
       dimension_names = Enum.map(dimensions, & &1.name)
 
       # System field id should be skipped
       refute "id" in dimension_names
 
-      # Plain inserted_at and updated_at dimensions should NOT exist
-      refute "inserted_at" in dimension_names
-      refute "updated_at" in dimension_names
+      # inserted_at and updated_at dimensions SHOULD exist as simple time dimensions
+      assert "inserted_at" in dimension_names
+      assert "updated_at" in dimension_names
 
-      # But granularity dimensions SHOULD exist
-      assert :inserted_at_day in dimension_names
-      assert :updated_at_month in dimension_names
+      # Verify they are time dimensions
+      inserted_dim = Enum.find(dimensions, &(&1.name == "inserted_at"))
+      assert inserted_dim.type == :time
+
+      updated_dim = Enum.find(dimensions, &(&1.name == "updated_at"))
+      assert updated_dim.type == :time
     end
 
     test "dimension accessors work" do
@@ -475,23 +478,9 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           "fulfillment_status",
           "market_code",
           "payment_reference",
-          # Timestamp granularity dimensions (atoms)
-          :inserted_at_second,
-          :inserted_at_minute,
-          :inserted_at_hour,
-          :inserted_at_day,
-          :inserted_at_week,
-          :inserted_at_month,
-          :inserted_at_quarter,
-          :inserted_at_year,
-          :updated_at_second,
-          :updated_at_minute,
-          :updated_at_hour,
-          :updated_at_day,
-          :updated_at_week,
-          :updated_at_month,
-          :updated_at_quarter,
-          :updated_at_year
+          # Time dimensions (simple, granularity specified at query time)
+          "inserted_at",
+          "updated_at"
         ]
         |> Enum.sort()
 
@@ -622,260 +611,6 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
       assert Explorer.Series.size(statuses) > 0
       assert Explorer.Series.size(counts) > 0
       assert Explorer.Series.size(totals) > 0
-    end
-  end
-
-  describe "timestamp granularity dimensions" do
-    test "generates all 8 granularities for inserted_at" do
-      dimensions = Order.dimensions()
-      dimension_names = Enum.map(dimensions, & &1.name)
-
-      # All 8 Cube.js granularities for inserted_at
-      assert :inserted_at_second in dimension_names
-      assert :inserted_at_minute in dimension_names
-      assert :inserted_at_hour in dimension_names
-      assert :inserted_at_day in dimension_names
-      assert :inserted_at_week in dimension_names
-      assert :inserted_at_month in dimension_names
-      assert :inserted_at_quarter in dimension_names
-      assert :inserted_at_year in dimension_names
-    end
-
-    test "generates all 8 granularities for updated_at" do
-      dimensions = Order.dimensions()
-      dimension_names = Enum.map(dimensions, & &1.name)
-
-      # All 8 Cube.js granularities for updated_at
-      assert :updated_at_second in dimension_names
-      assert :updated_at_minute in dimension_names
-      assert :updated_at_hour in dimension_names
-      assert :updated_at_day in dimension_names
-      assert :updated_at_week in dimension_names
-      assert :updated_at_month in dimension_names
-      assert :updated_at_quarter in dimension_names
-      assert :updated_at_year in dimension_names
-    end
-
-    test "all timestamp granularity dimensions have :time type" do
-      dimensions = Order.dimensions()
-
-      timestamp_dims =
-        Enum.filter(dimensions, fn dim ->
-          String.starts_with?(to_string(dim.name), "inserted_at_") or
-            String.starts_with?(to_string(dim.name), "updated_at_")
-        end)
-
-      # Should have 8 granularities × 2 timestamp fields = 16 dimensions
-      assert length(timestamp_dims) == 16
-
-      Enum.each(timestamp_dims, fn dim ->
-        assert dim.type == :time,
-               "Expected #{dim.name} to have type :time, got #{inspect(dim.type)}"
-      end)
-    end
-
-    test "timestamp granularity dimension accessors work" do
-      # Test some accessor functions for inserted_at granularities
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.inserted_at_day()
-
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.inserted_at_month()
-
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.inserted_at_year()
-
-      # Test some accessor functions for updated_at granularities
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.updated_at_day()
-
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.updated_at_week()
-
-      assert %PowerOfThree.DimensionRef{type: :time} =
-               Order.Dimensions.updated_at_quarter()
-    end
-
-    test "timestamp dimensions reference correct SQL field" do
-      dimensions = Order.dimensions()
-
-      # Check inserted_at granularity dimensions
-      inserted_day = Enum.find(dimensions, &(&1.name == :inserted_at_day))
-      assert inserted_day.sql == "inserted_at"
-
-      inserted_month = Enum.find(dimensions, &(&1.name == :inserted_at_month))
-      assert inserted_month.sql == "inserted_at"
-
-      # Check updated_at granularity dimensions
-      updated_week = Enum.find(dimensions, &(&1.name == :updated_at_week))
-      assert updated_week.sql == "updated_at"
-
-      updated_year = Enum.find(dimensions, &(&1.name == :updated_at_year))
-      assert updated_year.sql == "updated_at"
-    end
-
-    test "total dimension count includes granularity dimensions" do
-      dimensions = Order.dimensions()
-
-      # 6 string fields (brand_code, email, financial_status, fulfillment_status, market_code, payment_reference)
-      # + 8 granularities for inserted_at
-      # + 8 granularities for updated_at
-      # = 22 total dimensions
-      assert length(dimensions) == 22
-    end
-  end
-
-  describe "timestamp granularity queries with live cube" do
-    test "can query by inserted_at_day granularity" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.inserted_at_day(),
-            Order.Measures.count()
-          ],
-          order_by: [{1, :desc}],
-          limit: 10
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.inserted_at_day" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.count" in Explorer.DataFrame.names(result)
-    end
-
-    test "can query by inserted_at_month granularity" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.inserted_at_month(),
-            Order.Measures.count(),
-            Order.Measures.total_amount_sum()
-          ],
-          order_by: [{2, :desc}],
-          limit: 12
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.inserted_at_month" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.count" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.total_amount_sum" in Explorer.DataFrame.names(result)
-    end
-
-    test "can query by updated_at_week granularity" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.updated_at_week(),
-            Order.Measures.count()
-          ],
-          order_by: [{1, :desc}],
-          limit: 8
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.updated_at_week" in Explorer.DataFrame.names(result)
-    end
-
-    test "can query by updated_at_quarter granularity" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.updated_at_quarter(),
-            Order.Measures.count(),
-            Order.Measures.total_amount_sum()
-          ],
-          order_by: [{2, :desc}],
-          limit: 4
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.updated_at_quarter" in Explorer.DataFrame.names(result)
-    end
-
-    test "can combine timestamp granularities with other dimensions" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.inserted_at_month(),
-            Order.Dimensions.brand_code(),
-            Order.Measures.count(),
-            Order.Measures.total_amount_sum()
-          ],
-          order_by: [{3, :desc}],
-          limit: 20
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.inserted_at_month" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.brand_code" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.count" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.total_amount_sum" in Explorer.DataFrame.names(result)
-    end
-
-    test "can query by inserted_at_year for yearly trends" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.inserted_at_year(),
-            Order.Measures.count(),
-            Order.Measures.total_amount_sum()
-          ],
-          order_by: [{1, :asc}],
-          limit: 5
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.inserted_at_year" in Explorer.DataFrame.names(result)
-
-      years = result["mandata_captate.inserted_at_year"]
-      assert Explorer.Series.size(years) > 0
-    end
-
-    test "can query multiple granularities together" do
-      {:ok, result} =
-        Order.df(
-          columns: [
-            Order.Dimensions.inserted_at_month(),
-            Order.Dimensions.updated_at_week(),
-            Order.Measures.count()
-          ],
-          order_by: [{2, :desc}],
-          limit: 15
-        )
-
-      assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.inserted_at_month" in Explorer.DataFrame.names(result)
-      assert "mandata_captate.updated_at_week" in Explorer.DataFrame.names(result)
-    end
-
-    test "can use all granularity levels for inserted_at" do
-      granularities = [
-        :inserted_at_second,
-        :inserted_at_minute,
-        :inserted_at_hour,
-        :inserted_at_day,
-        :inserted_at_week,
-        :inserted_at_month,
-        :inserted_at_quarter,
-        :inserted_at_year
-      ]
-
-      for granularity <- granularities do
-        dimension_ref = apply(Order.Dimensions, granularity, [])
-        assert %PowerOfThree.DimensionRef{type: :time} = dimension_ref
-
-        {:ok, result} =
-          Order.df(
-            columns: [
-              dimension_ref,
-              Order.Measures.count()
-            ],
-            limit: 5
-          )
-
-        assert %Explorer.DataFrame{} = result
-        expected_col_name = "mandata_captate.#{granularity}"
-        assert expected_col_name in Explorer.DataFrame.names(result)
-      end
     end
   end
 end

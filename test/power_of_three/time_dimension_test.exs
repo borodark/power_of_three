@@ -234,16 +234,23 @@ defmodule PowerOfThree.TimeDimensionTest do
       cube :system_test, sql_table: "system_test"
     end
 
-    test "auto-generation skips inserted_at and updated_at by default" do
+    test "auto-generation includes inserted_at and updated_at as time dimensions" do
       dimensions = SystemTimestampSchema.dimensions()
       dimension_names = Enum.map(dimensions, & &1.name)
 
-      # System timestamps should be skipped in auto-generation
-      refute "inserted_at" in dimension_names
-      refute "updated_at" in dimension_names
+      # System timestamps should be generated as time dimensions
+      assert "inserted_at" in dimension_names
+      assert "updated_at" in dimension_names
 
       # Regular fields should still be generated
       assert "name" in dimension_names
+
+      # Verify they have :time type
+      inserted_dim = Enum.find(dimensions, &(&1.name == "inserted_at"))
+      assert inserted_dim.type == :time
+
+      updated_dim = Enum.find(dimensions, &(&1.name == "updated_at"))
+      assert updated_dim.type == :time
     end
 
     test "count measure is generated even without time dimensions" do

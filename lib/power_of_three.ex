@@ -288,37 +288,24 @@ defmodule PowerOfThree do
         field in skip_fields
       end)
 
-    # Separate timestamp fields for granularity handling
-    timestamp_fields =
-      Enum.filter(ecto_fields, fn {field, {type, _}} ->
-        field in [:inserted_at, :updated_at] and
-          type in [
-            :naive_datetime,
-            :naive_datetime_usec,
-            :utc_datetime,
-            :utc_datetime_usec
-          ]
-      end)
-
     # Filter fields by type
     string_fields =
       Enum.filter(user_fields, fn {_field, {type, _}} ->
         type in [:string, :binary, :binary_id, :bitstring, :boolean]
       end)
 
-    # Time fields (excluding timestamp fields which get special handling)
+    # Time fields (all datetime/date/time fields, including inserted_at/updated_at)
     time_fields =
-      Enum.filter(user_fields, fn {field, {type, _}} ->
-        field not in [:inserted_at, :updated_at] and
-          type in [
-            :naive_datetime,
-            :naive_datetime_usec,
-            :utc_datetime,
-            :utc_datetime_usec,
-            :date,
-            :time,
-            :time_usec
-          ]
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [
+          :naive_datetime,
+          :naive_datetime_usec,
+          :utc_datetime,
+          :utc_datetime_usec,
+          :date,
+          :time,
+          :time_usec
+        ]
       end)
 
     integer_fields =
@@ -364,26 +351,16 @@ defmodule PowerOfThree do
           ""
         ]
 
-    # Add dimensions
+    # Add dimensions (string and time fields)
     dimension_lines =
       (string_fields ++ time_fields)
       |> Enum.map(fn {field, _} ->
         "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()})"
       end)
 
-    # Add granularity-specific dimensions for timestamp fields
-    timestamp_dimension_lines =
-      timestamp_fields
-      |> Enum.flat_map(fn {field, _} ->
-        [:second, :minute, :hour, :day, :week, :month, :quarter, :year]
-        |> Enum.map(fn granularity ->
-          "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_#{granularity}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:time#{ANSI.reset()})  #{ANSI.blue()}# #{granularity} granularity#{ANSI.reset()}"
-        end)
-      end)
+    lines = lines ++ dimension_lines
 
-    lines = lines ++ dimension_lines ++ timestamp_dimension_lines
-
-    lines = if dimension_lines != [] or timestamp_dimension_lines != [], do: lines ++ [""], else: lines
+    lines = if dimension_lines != [], do: lines ++ [""], else: lines
 
     # Add measures
     measure_lines = [
@@ -432,27 +409,14 @@ defmodule PowerOfThree do
           field in skip_fields
         end)
 
-      # Separate timestamp fields for special granularity handling
-      timestamp_fields =
-        Enum.filter(ecto_fields, fn {field, {type, _}} ->
-          field in [:inserted_at, :updated_at] and
-            type in [
-              :naive_datetime,
-              :naive_datetime_usec,
-              :utc_datetime,
-              :utc_datetime_usec
-            ]
-        end)
-
       # Generate dimensions for string and boolean fields
       for {field, {type, _}} <- user_fields,
           type in [:string, :binary, :binary_id, :bitstring, :boolean] do
         dimension(field)
       end
 
-      # Generate dimensions for datetime/timestamp fields (excluding inserted_at/updated_at)
+      # Generate dimensions for datetime/timestamp fields (all of them, including inserted_at/updated_at)
       for {field, {type, _}} <- user_fields,
-          field not in [:inserted_at, :updated_at],
           type in [
             :naive_datetime,
             :naive_datetime_usec,
@@ -463,16 +427,6 @@ defmodule PowerOfThree do
             :time_usec
           ] do
         dimension(field)
-      end
-
-      # Generate granularity-specific dimensions for timestamp fields (inserted_at, updated_at)
-      # Cube.js granularities: second, minute, hour, day, week, month, quarter, year
-      for {field, {_type, _}} <- timestamp_fields,
-          granularity <- [:second, :minute, :hour, :day, :week, :month, :quarter, :year] do
-        dimension(field,
-          name: String.to_atom("#{field}_#{granularity}"),
-          type: :time
-        )
       end
 
       # Always generate count measure
