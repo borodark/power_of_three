@@ -179,7 +179,7 @@ defmodule PowerOfThree.DefaultCubeTest do
       assert length(measures) > 1
 
       # Check for count measure
-      count_measure = Enum.find(measures, fn m -> m.name == "count" end)
+      count_measure = Enum.find(measures, fn m -> m.name == :count end)
       assert count_measure
       assert count_measure.type == :count
 
