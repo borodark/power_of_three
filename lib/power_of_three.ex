@@ -329,7 +329,7 @@ defmodule PowerOfThree do
       "#        /        \\                                                                    /        /|",
       "#       /   Ecto   \\                                                                  / CUBE   / |",
       "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/________/  |",
-      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<<>>>===<<<<-->>>>>==========<<<<-->>>>>===<<<>>>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...   |  |",
+      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<--->>====<<--->>=============<<--->>>====<<--->>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...   |  |",
       "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|        |  /",
       "#       \\  Elixir  /                                                                 | CUBE   | /",
       "#        \\________/                                                                  |________|/",
