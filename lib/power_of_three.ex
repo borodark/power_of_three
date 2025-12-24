@@ -527,7 +527,10 @@ defmodule PowerOfThree do
         {legit_opts, code_injection_attempeted} =
           Keyword.split(opts_, legit_cube_properties)
 
-        Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        # Only log if there are actual intrusions detected
+        if code_injection_attempeted != [] do
+          Logger.debug("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        end
         {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
         # |> IO.inspect(label: :cube_opts)
         cube_opts = Enum.into(legit_opts, %{})
