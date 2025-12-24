@@ -148,8 +148,8 @@ defmodule PowerOfThree do
       end
 
   This auto-generates:
-  - **Dimensions**: `id`, `name`, `description`, `active`, `inserted_at`, `updated_at`
-  - **Measures**: `count`, `id_sum`, `id_distinct`, `quantity_sum`, `quantity_distinct`, `price_sum`
+  - **Dimensions**: `name`, `description`, `active`, `inserted_at`, `updated_at`
+  - **Measures**: `count`, `quantity_sum`, `quantity_distinct`, `price_sum`
 
   Accessor functions are created for all auto-generated dimensions and measures:
 
