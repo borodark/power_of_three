@@ -320,15 +320,35 @@ defmodule PowerOfThree do
     # Get sql_table from opts
     sql_table = Keyword.get(opts, :sql_table, "unknown")
 
-    # Build the source code string with syntax highlighting
-    lines = [
+    # ASCII Art Logo - Olympic Barbell with HEX and CUBE plates
+    logo = [
       "",
-      "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
-      "",
-      "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},",
-      "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()} #{ANSI.blue()}do#{ANSI.reset()}",
+      "#{ANSI.bright()}#{ANSI.cyan()}#",
+      "#         ________                                                                         _________",
+      "#        /        \\                                                                       /        /|",
+      "#       /   HEX    \\                                                                     /  CUBE  / |",
+      "#      /            \\  #{ANSI.yellow()}|#{ANSI.cyan()}                                                                 #{ANSI.yellow()}|#{ANSI.cyan()}  /        /  |",
+      "#     |              #{ANSI.yellow()}|=|#{ANSI.cyan()}                                                             #{ANSI.yellow()}|=|#{ANSI.cyan()}        |  /",
+      "#      \\            /  #{ANSI.yellow()}|#{ANSI.cyan()}                                                                 #{ANSI.yellow()}|#{ANSI.cyan()}  \\        \\ /",
+      "#       \\          /                                                                       \\        /",
+      "#        \\________/                                                                         \\______/",
+      "#",
+      "#              #{ANSI.magenta()}PowerOfThree#{ANSI.cyan()}: Connecting #{ANSI.bright()}Elixir (HEX)#{ANSI.reset()}#{ANSI.cyan()} ←→ #{ANSI.bright()}Cube.js (CUBE)#{ANSI.reset()}#{ANSI.cyan()}",
+      "#                       #{ANSI.yellow()}Start with everything. Keep what performs. Pre-aggregate what matters.#{ANSI.reset()}#{ANSI.cyan()}",
+      "##{ANSI.reset()}",
       ""
     ]
+
+    # Build the source code string with syntax highlighting
+    lines =
+      logo ++
+        [
+          "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
+          "",
+          "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},",
+          "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()} #{ANSI.blue()}do#{ANSI.reset()}",
+          ""
+        ]
 
     # Add dimensions
     dimension_lines =
