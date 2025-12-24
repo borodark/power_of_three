@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2024-12-24
+
 ### Added
+
+- **Blocky Minecraft-Style Lifter**: Weightlifter character in completed snatch position
+  - Centered on barbell with arms extended to touch the bar
+  - Represents PowerOfThree successfully lifting heavy analytics workloads
+  - Displays on auto-generated cube compile output
+  - Built with Unicode block characters for consistent terminal rendering
 
 - **ASCII Art Barbell Logo**: Olympic weightlifting barbell logo displaying on auto-generated cube output
   - Left plate: Hexagon labeled "Ecto Macro Elixir" (representing Elixir/Ecto)
@@ -49,6 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Ten Minutes to PowerOfThree" quick-start guide
   - Auto-generation feature blog post
   - Workflow documentation: Scaffold → Refine → Own
+  - Updated hex.pm docs with Quick Start section
+  - Auto-generation blog post included in hex.pm extras
+  - Key Features section highlighting auto-generation and client-side granularity
 
 ### Changed
 
@@ -64,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logo alignment and spacing for proper Olympic barbell aesthetics
 - CUBE plate now displays with proper 3D isometric perspective
 - Time dimension metadata correctly preserved through compilation
+- Suppressed intrusion detection log noise (only logs when actual intrusions detected)
 
 ## [0.1.2] - 2024-12-XX
 

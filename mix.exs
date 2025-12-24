@@ -4,7 +4,7 @@ defmodule PowerOfThree.MixProject do
   def project do
     [
       app: :power_of_3,
-      version: "0.1.2",
+      version: "0.1.3",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -71,7 +71,8 @@ defmodule PowerOfThree.MixProject do
       logo: "priv/logo.png",
       extras: [
         "README.md",
-        "guides/ten_minutes_to_power_of_three.md"
+        "guides/ten_minutes_to_power_of_three.md",
+        "docs/blog/auto-generation.md"
       ],
       exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
       description:

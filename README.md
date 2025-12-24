@@ -8,11 +8,64 @@
 
 Power of Three is the Elixir library that provides macros to define a [cube](https://cube.dev/docs/product/data-modeling/reference/cube), [dimensions](https://cube.dev/docs/product/data-modeling/reference/dimensions) and [measures](https://cube.dev/docs/product/data-modeling/reference/measures) along side with [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html).
 
-This defenitions are complied to cubes config files on `mix compile`.
+These definitions are compiled to cube config files on `mix compile`.
 
 The yaml output only for now.
 
-The cubes config files then can be be shared with the running _Cube_.
+The cube config files can then be shared with the running _Cube_.
+
+## Key Features
+
+### Auto-Generation with Compile-Time Feedback
+
+Just write `cube :my_cube, sql_table: "my_table"` and get a complete, syntax-highlighted cube definition during compilation. PowerOfThree introspects your Ecto schema and generates sensible defaults for all dimensions and measures.
+
+**What gets auto-generated:**
+- **Dimensions**: All string, boolean, and time fields
+- **Measures**: `count` (always), `sum` and `count_distinct` for integers, `sum` for floats/decimals
+- **Client-side granularity**: Time dimensions support all 8 granularities (second, minute, hour, day, week, month, quarter, year) specified at query time using Cube.js native `date_trunc`
+
+See the output with our **blocky Minecraft-style lifter** victoriously holding the barbell overhead - representing PowerOfThree successfully lifting heavy analytics workloads.
+
+Read the full story: [Auto-Generation Blog Post](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md)
+
+### Type Safety and Validation
+
+All cube definitions are validated at compile time against your Ecto schemas. Field names, types, and SQL expressions are checked to ensure correctness.
+
+### Ergonomic DSL
+
+Define cubes inline with your schemas using familiar Elixir syntax. No context switching between languages or files.
+
+## Quick Start
+
+```elixir
+defmodule MyApp.Order do
+  use Ecto.Schema
+  use PowerOfThree
+
+  schema "orders" do
+    field :customer_email, :string
+    field :total_amount, :float
+    field :status, :string
+    field :item_count, :integer
+    timestamps()
+  end
+
+  # Just this - no block needed!
+  cube :orders, sql_table: "orders"
+end
+```
+
+Run `mix compile` and see:
+- Complete cube definition with syntax highlighting
+- Blocky lifter holding the barbell overhead
+- All dimensions and measures auto-generated
+- Copy-paste ready code to customize
+
+Then refine: copy the output, delete what you don't need, add business logic.
+
+**Workflow**: Scaffold → Refine → Own
 
 How to: https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md
 
@@ -51,7 +104,8 @@ The future plans are bellow in the order of priority:
 
   - [X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) using Cube JSON REST API. Having compile time generated Cubes Mearures and Dimensions deployed to [your instance of running Cluster of Cubes](https://github.com/gadsme/charts) , [query it from `iex` in a remshell](https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md) to where the code changes deployed or the [locally sourced development instance off Cube](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml). _le chemin le plus direct et le plus court_
 
-  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md).
+  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md). Uses client-side granularity for time dimensions following Cube.js best practices.
+  - [X] Comprehensive test coverage: **290 tests passing**, ensuring reliability and backward compatibility
 
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
@@ -107,7 +161,7 @@ by adding `power_of_3` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:power_of_3, "~> 0.1.2"}
+    {:power_of_3, "~> 0.1.3"}
   ]
 end
 ```
