@@ -42,12 +42,11 @@ defmodule PowerOfThree.MixProject do
       {:ymlr, "~> 5.0"},
       {:ecto_sql, "~> 3.10"},
       {:explorer, "~> 0.11.1"},
-      {:adbc, github: "borodark/adbc", branch: "cleanup-take-II", override: true},
+      {:adbc, github: "borodark/adbc", branch: "cleanup-take-II", override: true, optional: true},
       {:req, "~> 0.5"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4.1", only: [:dev, :test], runtime: false}
-
     ]
   end
 
@@ -70,9 +69,13 @@ defmodule PowerOfThree.MixProject do
       # The main page in the docs
       main: "PowerOfThree",
       logo: "priv/logo.png",
-      extras: ["README.md"],
+      extras: [
+        "README.md",
+        "guides/ten_minutes_to_power_of_three.md"
+      ],
       exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
-      description: "Inline Cubes with Ecto.Schema",
+      description:
+        "Start with everything. Keep what performs. Pre-aggregate what matters. | Inline Cubes with Ecto.Schema",
       licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => "https://github.com/borodark/power_of_three",

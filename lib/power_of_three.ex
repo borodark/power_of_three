@@ -107,6 +107,70 @@ defmodule PowerOfThree do
 
   ```
 
+  ## Auto-Generated Default Cube
+
+  When `cube/2` is called without a block, PowerOfThree automatically generates dimensions and measures
+  based on your Ecto schema field types. This provides a quick way to get started without manually
+  defining each dimension and measure.
+
+  ### Auto-Generation Rules
+
+  **Dimensions** are created for these field types:
+  - `:string`, `:binary`, `:binary_id`, `:bitstring` → string dimension
+  - `:boolean` → boolean dimension
+  - `:date`, `:time`, `:naive_datetime`, `:utc_datetime` (and `_usec` variants) → time dimension
+
+  **Measures** are created as follows:
+  - `count` - always generated (counts all rows)
+  - For `:integer` and `:id` fields - TWO measures per field:
+    - `<field>_sum` - sums the values
+    - `<field>_distinct` - counts distinct values
+  - For `:float` and `:decimal` fields:
+    - `<field>_sum` - sums the values
+
+  ### Example
+
+      defmodule Example.Product do
+        use Ecto.Schema
+        use PowerOfThree
+
+        schema "products" do
+          field :name, :string
+          field :description, :string
+          field :active, :boolean
+          field :price, :float
+          field :quantity, :integer
+          timestamps()  # adds inserted_at and updated_at
+        end
+
+        # Auto-generates all dimensions and measures
+        cube :products, sql_table: "products"
+      end
+
+  This auto-generates:
+  - **Dimensions**: `name`, `description`, `active`, `inserted_at`, `updated_at`
+  - **Measures**: `count`, `quantity_sum`, `quantity_distinct`, `price_sum`
+
+  Accessor functions are created for all auto-generated dimensions and measures:
+
+      Product.Dimensions.name()         # Access name dimension
+      Product.Measures.quantity_sum()   # Access quantity sum measure
+      Product.Measures.price_sum()      # Access price sum measure
+
+  ### When to Use Auto-Generation vs Explicit Block
+
+  **Use auto-generation** when:
+  - You want all fields as dimensions and standard aggregations
+  - Prototyping or getting started quickly
+  - Your schema has simple field types that map directly to cube concepts
+
+  **Use explicit block** when:
+  - You need custom SQL expressions in dimensions
+  - You want filtered measures
+  - You need multi-field dimensions (concatenated)
+  - You want to exclude certain fields
+  - You need custom measure names or types
+
   ## Accessing Dimensions and Measures
 
   PowerOfThree generates accessor functions for dimensions and measures in two ways:
@@ -197,7 +261,7 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
 
       require Logger
 
@@ -210,6 +274,217 @@ defmodule PowerOfThree do
     end
   end
 
+  # Helper function to generate pretty-printed cube source code for display
+  @doc false
+  def generate_cube_source_code(cube_name, opts, ecto_fields) do
+    alias IO.ANSI
+
+    # Fields to skip (only :id, not timestamps)
+    skip_fields = [:id]
+
+    # Filter out skipped fields
+    user_fields =
+      Enum.reject(ecto_fields, fn {field, _type} ->
+        field in skip_fields
+      end)
+
+    # Filter fields by type
+    string_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:string, :binary, :binary_id, :bitstring, :boolean]
+      end)
+
+    # Time fields (all datetime/date/time fields, including inserted_at/updated_at)
+    time_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [
+          :naive_datetime,
+          :naive_datetime_usec,
+          :utc_datetime,
+          :utc_datetime_usec,
+          :date,
+          :time,
+          :time_usec
+        ]
+      end)
+
+    integer_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:integer, :id]
+      end)
+
+    float_fields =
+      Enum.filter(user_fields, fn {_field, {type, _}} ->
+        type in [:float, :decimal]
+      end)
+
+    # Get sql_table from opts
+    sql_table = Keyword.get(opts, :sql_table, "unknown")
+
+    # ASCII Art Logo - Olympic Barbell with HEX and CUBE plates
+    logo = [
+      "",
+      "#{ANSI.bright()}#{ANSI.cyan()}#",
+      "#         ________                                                                      ________",
+      "#        /        \\                                                                    /       /|",
+      "#       /   Ecto   \\                                                                  / CUBE  / |",
+      "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/_______/  |",
+      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<<>>>===<<<<-->>>>>==========<<<<-->>>>>===<<<>>>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...  |  |",
+      "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|       |  /",
+      "#       \\  Elixir  /                                                                 | CUBE  | /",
+      "#        \\________/                                                                  |_______|/",
+      "#",
+      "#               #{ANSI.magenta()}PowerOfThree#{ANSI.cyan()}: Connecting #{ANSI.bright()}Elixir (HEX)#{ANSI.reset()}#{ANSI.cyan()} ←→ #{ANSI.bright()}Cube.js (CUBE)#{ANSI.reset()}#{ANSI.cyan()}",
+      "#                        #{ANSI.yellow()}Start with everything. Keep what performs. Pre-aggregate what matters.#{ANSI.reset()}#{ANSI.cyan()}",
+      "##{ANSI.reset()}",
+      ""
+    ]
+
+    # Build the source code string with syntax highlighting
+    lines =
+      logo ++
+        [
+          "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
+          "",
+          "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},",
+          "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()} #{ANSI.blue()}do#{ANSI.reset()}",
+          ""
+        ]
+
+    # Add dimensions (string and time fields)
+    dimension_lines =
+      (string_fields ++ time_fields)
+      |> Enum.map(fn {field, _} ->
+        "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()})"
+      end)
+
+    lines = lines ++ dimension_lines
+
+    lines = if dimension_lines != [], do: lines ++ [""], else: lines
+
+    # Add measures
+    measure_lines = [
+      "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:count#{ANSI.reset()})"
+    ]
+
+    integer_measure_lines =
+      integer_fields
+      |> Enum.flat_map(fn {field, _} ->
+        [
+          "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:sum#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_sum#{ANSI.reset()})",
+          "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:count_distinct#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_distinct#{ANSI.reset()})"
+        ]
+      end)
+
+    float_measure_lines =
+      float_fields
+      |> Enum.map(fn {field, _} ->
+        "  #{ANSI.yellow()}measure#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:sum#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_sum#{ANSI.reset()})"
+      end)
+
+    lines = lines ++ measure_lines ++ integer_measure_lines ++ float_measure_lines
+
+    lines =
+      lines ++
+        [
+          "#{ANSI.blue()}end#{ANSI.reset()}",
+          ""
+        ]
+
+    Enum.join(lines, "\n")
+  end
+
+  # Helper function to generate auto-block for default cube
+  defp generate_default_cube_block() do
+    quote do
+      # Get all Ecto fields at compile time
+      ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
+
+      # Fields to skip (only :id, not timestamps)
+      skip_fields = [:id]
+
+      # Filter out skipped fields
+      user_fields =
+        Enum.reject(ecto_fields, fn {field, _type} ->
+          field in skip_fields
+        end)
+
+      # Generate dimensions for string and boolean fields
+      for {field, {type, _}} <- user_fields,
+          type in [:string, :binary, :binary_id, :bitstring, :boolean] do
+        dimension(field)
+      end
+
+      # Generate dimensions for datetime/timestamp fields (all of them, including inserted_at/updated_at)
+      for {field, {type, _}} <- user_fields,
+          type in [
+            :naive_datetime,
+            :naive_datetime_usec,
+            :utc_datetime,
+            :utc_datetime_usec,
+            :date,
+            :time,
+            :time_usec
+          ] do
+        dimension(field)
+      end
+
+      # Always generate count measure
+      measure(:count)
+
+      # Generate sum AND count_distinct measures for integer fields
+      for {field, {type, _}} <- user_fields, type in [:integer, :id] do
+        # Sum measure
+        measure(field,
+          type: :sum,
+          name: String.to_atom("#{field}_sum")
+        )
+
+        # Count distinct measure
+        measure(field,
+          type: :count_distinct,
+          name: String.to_atom("#{field}_distinct")
+        )
+      end
+
+      # Generate sum measures for float/decimal fields
+      for {field, {type, _}} <- user_fields,
+          type in [:float, :decimal] do
+        measure(field,
+          type: :sum,
+          name: String.to_atom("#{field}_sum")
+        )
+      end
+    end
+  end
+
+  # cube/2 - Auto-generates dimensions and measures when no block provided
+  defmacro cube(cube_name, opts) do
+    auto_generated_block = generate_default_cube_block()
+
+    # Generate code to print the auto-generated cube source at compile time
+    print_source_code =
+      quote do
+        ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
+
+        source_code =
+          PowerOfThree.generate_cube_source_code(
+            unquote(cube_name),
+            unquote(opts),
+            ecto_fields
+          )
+
+        IO.puts(source_code)
+      end
+
+    # Combine the print statement with the cube generation
+    quote do
+      unquote(print_source_code)
+      unquote(cube(__CALLER__, cube_name, opts, auto_generated_block))
+    end
+  end
+
+  # cube/3 - Explicit block provided
   defmacro cube(cube_name, opts, do: block) do
     cube(__CALLER__, cube_name, opts, block)
   end
@@ -252,7 +527,10 @@ defmodule PowerOfThree do
         {legit_opts, code_injection_attempeted} =
           Keyword.split(opts_, legit_cube_properties)
 
-        Logger.error("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        # Only log if there are actual intrusions detected
+        if code_injection_attempeted != [] do
+          Logger.debug("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
+        end
         {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
         # |> IO.inspect(label: :cube_opts)
         cube_opts = Enum.into(legit_opts, %{})
@@ -954,7 +1232,7 @@ defmodule PowerOfThree do
         :x_measures,
         path_throw_opts
         |> Map.merge(%{
-          name: opts[:name] || "count",
+          name: opts[:name] || :count,
           type: :count
         })
       )

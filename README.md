@@ -1,5 +1,9 @@
 # Power of Three
 
+> **Start with everything. Keep what performs. Pre-aggregate what matters.**
+
+**A Type-Safe, Ergonomic Approach to Business Intelligence in Elixir**
+
 ## What is Power of Three
 
 Power of Three is the Elixir library that provides macros to define a [cube](https://cube.dev/docs/product/data-modeling/reference/cube), [dimensions](https://cube.dev/docs/product/data-modeling/reference/dimensions) and [measures](https://cube.dev/docs/product/data-modeling/reference/measures) along side with [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html).
@@ -9,8 +13,6 @@ This defenitions are complied to cubes config files on `mix compile`.
 The yaml output only for now.
 
 The cubes config files then can be be shared with the running _Cube_.
-
-**A Type-Safe, Ergonomic Approach to Business Intelligence in Elixir**
 
 How to: https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md
 

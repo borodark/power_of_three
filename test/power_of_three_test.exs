@@ -421,7 +421,7 @@ defmodule PowerOfThreeTest do
 
       measures = CountMeasureDefaultName.__info__(:attributes)[:measures]
       count_measure = Enum.find(measures, fn m -> m.type == :count end)
-      assert count_measure.name == "count"
+      assert count_measure.name == :count
     end
 
     test "count measure can have custom name" do
@@ -624,12 +624,12 @@ defmodule PowerOfThreeTest do
 
   # Tests for code injection detection
   describe "code injection detection" do
-    test "logs warning for unrecognized cube options" do
+    test "logs debug message for unrecognized cube options" do
       # This test verifies the code path at line 208
       import ExUnit.CaptureLog
 
       log =
-        capture_log(fn ->
+        capture_log([level: :debug], fn ->
           defmodule CodeInjectionTest do
             use Ecto.Schema
             use PowerOfThree
