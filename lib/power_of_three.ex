@@ -279,13 +279,25 @@ defmodule PowerOfThree do
   def generate_cube_source_code(cube_name, opts, ecto_fields) do
     alias IO.ANSI
 
-    # Fields to skip (system fields)
-    skip_fields = [:id, :inserted_at, :updated_at]
+    # Fields to skip (only :id, not timestamps)
+    skip_fields = [:id]
 
     # Filter out skipped fields
     user_fields =
       Enum.reject(ecto_fields, fn {field, _type} ->
         field in skip_fields
+      end)
+
+    # Separate timestamp fields for granularity handling
+    timestamp_fields =
+      Enum.filter(ecto_fields, fn {field, {type, _}} ->
+        field in [:inserted_at, :updated_at] and
+          type in [
+            :naive_datetime,
+            :naive_datetime_usec,
+            :utc_datetime,
+            :utc_datetime_usec
+          ]
       end)
 
     # Filter fields by type
@@ -294,17 +306,19 @@ defmodule PowerOfThree do
         type in [:string, :binary, :binary_id, :bitstring, :boolean]
       end)
 
+    # Time fields (excluding timestamp fields which get special handling)
     time_fields =
-      Enum.filter(user_fields, fn {_field, {type, _}} ->
-        type in [
-          :naive_datetime,
-          :naive_datetime_usec,
-          :utc_datetime,
-          :utc_datetime_usec,
-          :date,
-          :time,
-          :time_usec
-        ]
+      Enum.filter(user_fields, fn {field, {type, _}} ->
+        field not in [:inserted_at, :updated_at] and
+          type in [
+            :naive_datetime,
+            :naive_datetime_usec,
+            :utc_datetime,
+            :utc_datetime_usec,
+            :date,
+            :time,
+            :time_usec
+          ]
       end)
 
     integer_fields =
@@ -357,9 +371,19 @@ defmodule PowerOfThree do
         "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()})"
       end)
 
-    lines = lines ++ dimension_lines
+    # Add granularity-specific dimensions for timestamp fields
+    timestamp_dimension_lines =
+      timestamp_fields
+      |> Enum.flat_map(fn {field, _} ->
+        [:second, :minute, :hour, :day, :week, :month, :quarter, :year]
+        |> Enum.map(fn granularity ->
+          "  #{ANSI.yellow()}dimension#{ANSI.reset()}(#{ANSI.cyan()}:#{field}#{ANSI.reset()}, #{ANSI.magenta()}name:#{ANSI.reset()} #{ANSI.cyan()}:#{field}_#{granularity}#{ANSI.reset()}, #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:time#{ANSI.reset()})  #{ANSI.blue()}# #{granularity} granularity#{ANSI.reset()}"
+        end)
+      end)
 
-    lines = if dimension_lines != [], do: lines ++ [""], else: lines
+    lines = lines ++ dimension_lines ++ timestamp_dimension_lines
+
+    lines = if dimension_lines != [] or timestamp_dimension_lines != [], do: lines ++ [""], else: lines
 
     # Add measures
     measure_lines = [
@@ -399,13 +423,25 @@ defmodule PowerOfThree do
       # Get all Ecto fields at compile time
       ecto_fields = Module.get_attribute(__MODULE__, :ecto_fields)
 
-      # Fields to skip (system fields)
-      skip_fields = [:id, :inserted_at, :updated_at]
+      # Fields to skip (only :id, not timestamps)
+      skip_fields = [:id]
 
       # Filter out skipped fields
       user_fields =
         Enum.reject(ecto_fields, fn {field, _type} ->
           field in skip_fields
+        end)
+
+      # Separate timestamp fields for special granularity handling
+      timestamp_fields =
+        Enum.filter(ecto_fields, fn {field, {type, _}} ->
+          field in [:inserted_at, :updated_at] and
+            type in [
+              :naive_datetime,
+              :naive_datetime_usec,
+              :utc_datetime,
+              :utc_datetime_usec
+            ]
         end)
 
       # Generate dimensions for string and boolean fields
@@ -414,8 +450,9 @@ defmodule PowerOfThree do
         dimension(field)
       end
 
-      # Generate dimensions for datetime/timestamp fields
+      # Generate dimensions for datetime/timestamp fields (excluding inserted_at/updated_at)
       for {field, {type, _}} <- user_fields,
+          field not in [:inserted_at, :updated_at],
           type in [
             :naive_datetime,
             :naive_datetime_usec,
@@ -426,6 +463,16 @@ defmodule PowerOfThree do
             :time_usec
           ] do
         dimension(field)
+      end
+
+      # Generate granularity-specific dimensions for timestamp fields (inserted_at, updated_at)
+      # Cube.js granularities: second, minute, hour, day, week, month, quarter, year
+      for {field, {_type, _}} <- timestamp_fields,
+          granularity <- [:second, :minute, :hour, :day, :week, :month, :quarter, :year] do
+        dimension(field,
+          name: String.to_atom("#{field}_#{granularity}"),
+          type: :time
+        )
       end
 
       # Always generate count measure

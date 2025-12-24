@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-Generated Cube Definitions**: Compile-time cube generation from Ecto schemas
   - Auto-generates dimensions for string, boolean, and timestamp fields
   - Auto-generates measures: `count` (always), `sum` and `count_distinct` for integers, `sum` for floats
-  - System fields (`id`, `inserted_at`, `updated_at`) automatically skipped
+  - System field `id` automatically skipped
   - Syntax-highlighted output showing copy-paste ready cube code
   - Smart field filtering and type inference
 
@@ -27,16 +27,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All datetime/date/time Ecto types automatically become time dimensions
   - Proper `:time` type mapping in Cube.js
   - Support for all granularities: second, minute, hour, day, week, month, quarter, year
-  - Granularity specified at query time for maximum flexibility
   - Metadata preservation for accurate YAML generation
 
+- **Timestamp Granularity Dimensions**: Multi-granularity support for Ecto `timestamps()`
+  - Auto-generates 8 granularity-specific dimensions for each timestamp field (`inserted_at`, `updated_at`)
+  - Each granularity becomes a separate dimension: `field_second`, `field_minute`, `field_hour`, `field_day`, `field_week`, `field_month`, `field_quarter`, `field_year`
+  - Supports all Cube.js time granularities for temporal analytics
+  - Granularity suffix appended to dimension names for clarity
+  - Works with all Ecto datetime types (`:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec`)
+
 - **Comprehensive Test Coverage**:
-  - 19 new tests for time dimension auto-generation
+  - 19 tests for time dimension auto-generation
+  - 14 tests for timestamp granularity dimensions
   - Tests for all datetime field types (`:date`, `:time`, `:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec`)
   - Accessor function verification
   - YAML generation validation
   - Mixed field type scenarios
-  - Total: 290 tests passing
+  - Total: 304 tests passing
 
 - **Documentation**:
   - "Ten Minutes to PowerOfThree" quick-start guide
@@ -45,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Improved cube auto-generation to skip system timestamps by default
+- Changed auto-generation to only skip `id` field (no longer skips `inserted_at`/`updated_at`)
+- Timestamp fields (`inserted_at`, `updated_at`) now generate 8 granularity-specific dimensions each instead of being skipped
 - Enhanced dimension type inference with comprehensive Ecto type mapping
 
 ### Fixed

@@ -206,8 +206,11 @@ defmodule PowerOfThree.DefaultCubeTest do
     test "counts all auto-generated dimensions" do
       dimensions = BasicSchema.dimensions()
 
-      # Should have: name, email, active
-      assert length(dimensions) == 3
+      # Should have: name, email, active (3 regular)
+      # + 8 granularities for inserted_at
+      # + 8 granularities for updated_at
+      # = 19 total dimensions
+      assert length(dimensions) == 19
     end
 
     test "counts all auto-generated measures" do
