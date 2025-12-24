@@ -62,12 +62,12 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
       measure_names = Enum.map(measures, & &1.name)
 
       # Integer fields should have _sum measures
-      assert "delivery_subtotal_amount_sum" in measure_names
-      assert "discount_total_amount_sum" in measure_names
-      assert "subtotal_amount_sum" in measure_names
-      assert "tax_amount_sum" in measure_names
-      assert "total_amount_sum" in measure_names
-      assert "customer_id_sum" in measure_names
+      assert :delivery_subtotal_amount_sum in measure_names
+      assert :discount_total_amount_sum in measure_names
+      assert :subtotal_amount_sum in measure_names
+      assert :tax_amount_sum in measure_names
+      assert :total_amount_sum in measure_names
+      assert :customer_id_sum in measure_names
     end
 
     test "generates count_distinct measures for integer fields" do
@@ -75,12 +75,12 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
       measure_names = Enum.map(measures, & &1.name)
 
       # Integer fields should have _distinct measures
-      assert "delivery_subtotal_amount_distinct" in measure_names
-      assert "discount_total_amount_distinct" in measure_names
-      assert "subtotal_amount_distinct" in measure_names
-      assert "tax_amount_distinct" in measure_names
-      assert "total_amount_distinct" in measure_names
-      assert "customer_id_distinct" in measure_names
+      assert :delivery_subtotal_amount_distinct in measure_names
+      assert :discount_total_amount_distinct in measure_names
+      assert :subtotal_amount_distinct in measure_names
+      assert :tax_amount_distinct in measure_names
+      assert :total_amount_distinct in measure_names
+      assert :customer_id_distinct in measure_names
     end
 
     test "measure accessors work" do
