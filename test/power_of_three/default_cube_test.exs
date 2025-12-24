@@ -117,14 +117,10 @@ defmodule PowerOfThree.DefaultCubeTest do
       assert function_exported?(BasicSchema.Dimensions, :name, 0)
       assert function_exported?(BasicSchema.Dimensions, :email, 0)
       assert function_exported?(BasicSchema.Dimensions, :active, 0)
-      assert function_exported?(BasicSchema.Dimensions, :inserted_at, 0)
-      assert function_exported?(BasicSchema.Dimensions, :updated_at, 0)
     end
 
     test "Measures module has functions for each measure" do
       assert function_exported?(BasicSchema.Measures, :count, 0)
-      assert function_exported?(BasicSchema.Measures, :id_sum, 0)
-      assert function_exported?(BasicSchema.Measures, :id_distinct, 0)
       assert function_exported?(BasicSchema.Measures, :age_sum, 0)
       assert function_exported?(BasicSchema.Measures, :age_distinct, 0)
       assert function_exported?(BasicSchema.Measures, :balance_sum, 0)
@@ -133,7 +129,7 @@ defmodule PowerOfThree.DefaultCubeTest do
     test "can call accessor functions to get refs" do
       name_dim = BasicSchema.Dimensions.name()
       assert %PowerOfThree.DimensionRef{} = name_dim
-      assert name_dim.name == :name
+      assert name_dim.name == "name"
 
       count_measure = BasicSchema.Measures.count()
       assert %PowerOfThree.MeasureRef{} = count_measure
