@@ -511,11 +511,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
     end
 
     test "all measure accessors are callable" do
-      measures = Order.measures()|> IO.inspect()
-      #accessor_name = Order.Mea
-      #assert function_exported?(Order.Measures, accessor_name, 0)
-      #accessor_result = apply(Order.Measures, accessor_name, [])
-      #assert %PowerOfThree.MeasureRef{} = accessor_result
+      measures = Order.measures() |> IO.inspect()
+      # accessor_name = Order.Mea
+      # assert function_exported?(Order.Measures, accessor_name, 0)
+      # accessor_result = apply(Order.Measures, accessor_name, [])
+      # assert %PowerOfThree.MeasureRef{} = accessor_result
     end
   end
 

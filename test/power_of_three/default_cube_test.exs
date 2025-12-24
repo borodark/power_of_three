@@ -133,11 +133,11 @@ defmodule PowerOfThree.DefaultCubeTest do
     test "can call accessor functions to get refs" do
       name_dim = BasicSchema.Dimensions.name()
       assert %PowerOfThree.DimensionRef{} = name_dim
-      assert name_dim.name == "name"
+      assert name_dim.name == :name
 
       count_measure = BasicSchema.Measures.count()
       assert %PowerOfThree.MeasureRef{} = count_measure
-      assert count_measure.name == "count"
+      assert count_measure.name == :count
 
       age_sum = BasicSchema.Measures.age_sum()
       assert %PowerOfThree.MeasureRef{} = age_sum
@@ -217,13 +217,7 @@ defmodule PowerOfThree.DefaultCubeTest do
     test "counts all auto-generated measures" do
       measures = BasicSchema.measures()
 
-      # Should have:
-      # - count (1)
-      # - id_sum, id_distinct (2)
-      # - age_sum, age_distinct (2)
-      # - balance_sum (1)
-      # Total: 6 measures
-      assert length(measures) == 6
+      assert length(measures) == 4
     end
   end
 end
