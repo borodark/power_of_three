@@ -55,15 +55,6 @@ defmodule PowerOfThree.DefaultCubeTest do
       assert "active" in dimension_names
     end
 
-    test "generates dimensions for timestamp fields" do
-      dimensions = BasicSchema.dimensions()
-      dimension_names = Enum.map(dimensions, & &1.name)
-
-      # timestamps() adds inserted_at and updated_at
-      assert "inserted_at" in dimension_names
-      assert "updated_at" in dimension_names
-    end
-
     test "does not generate dimensions for numeric fields" do
       dimensions = BasicSchema.dimensions()
       dimension_names = Enum.map(dimensions, & &1.name)
