@@ -54,7 +54,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
       measures = Order.measures()
       measure_names = Enum.map(measures, & &1.name)
 
-      assert "count" in measure_names
+      assert :count in measure_names
     end
 
     test "generates sum measures for integer fields" do
@@ -480,19 +480,20 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
 
       expected_measures =
         [
-          "count",
-          "customer_id_distinct",
-          "customer_id_sum",
-          "delivery_subtotal_amount_distinct",
-          "delivery_subtotal_amount_sum",
-          "discount_total_amount_distinct",
-          "discount_total_amount_sum",
-          "subtotal_amount_distinct",
-          "subtotal_amount_sum",
-          "tax_amount_distinct",
-          "tax_amount_sum",
-          "total_amount_distinct",
-          "total_amount_sum"
+          :count,
+          :customer_id_distinct,
+          :customer_id_sum,
+          :delivery_subtotal_amount_distinct,
+          :delivery_subtotal_amount_sum,
+          :discount_total_amount_distinct,
+          :discount_total_amount_sum,
+          :subtotal_amount_distinct,
+          :subtotal_amount_sum,
+          :tax_amount_distinct,
+          :tax_amount_sum,
+          :total_amount_distinct,
+          :total_amount_sum
+
         ]
         |> Enum.sort()
 
