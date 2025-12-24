@@ -28,7 +28,7 @@ Add PowerOfThree to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:power_of_3, "~> 0.1.2"},
+    {:power_of_3, "~> 0.1.3"},
     {:explorer, "~> 0.11.1"},  # For DataFrames
     {:req, "~> 0.5"}           # For HTTP queries
   ]
