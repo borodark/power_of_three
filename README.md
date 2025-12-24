@@ -51,7 +51,7 @@ The future plans are bellow in the order of priority:
 
   - [X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) using Cube JSON REST API. Having compile time generated Cubes Mearures and Dimensions deployed to [your instance of running Cluster of Cubes](https://github.com/gadsme/charts) , [query it from `iex` in a remshell](https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md) to where the code changes deployed or the [locally sourced development instance off Cube](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml). _le chemin le plus direct et le plus court_
 
-  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. This complements the capability of the local cube dev environment to make cubes from tables.
+  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md).
 
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
