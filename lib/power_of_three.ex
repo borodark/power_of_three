@@ -601,9 +601,29 @@ defmodule PowerOfThree do
           dimensions
         )
 
+        # Add auto-generation indicator if title/description are empty
+        cube_opts_with_auto =
+          case {Map.get(cube_opts, :title), Map.get(cube_opts, :description)} do
+            {nil, nil} ->
+              # Both empty - prefer description
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {_title, nil} ->
+              # Only description empty
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {nil, _description} ->
+              # Only title empty
+              Map.put(cube_opts, :title, "Auto-generated #{sql_table}")
+
+            {_title, _description} ->
+              # Both exist - leave as is
+              cube_opts
+          end
+
         a_cube_config = [
           %{name: cube_name, sql_table: sql_table}
-          |> Map.merge(cube_opts)
+          |> Map.merge(cube_opts_with_auto)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
 
