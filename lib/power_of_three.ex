@@ -321,7 +321,7 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [cube: 1, cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
 
       require Logger
 
@@ -338,6 +338,9 @@ defmodule PowerOfThree do
   @doc false
   def generate_cube_source_code(cube_name, opts, ecto_fields) do
     alias IO.ANSI
+
+    # Handle case where ecto_fields might be nil (no Ecto.Schema)
+    ecto_fields = ecto_fields || []
 
     # Fields to skip (only :id, not timestamps)
     skip_fields = [:id]
@@ -519,7 +522,7 @@ defmodule PowerOfThree do
   end
 
   # cube/2 - Auto-generates dimensions and measures when no block provided
-  defmacro cube(cube_name, opts) do
+  defmacro cube(cube_name, opts \\ []) do
     auto_generated_block = generate_default_cube_block()
 
     # Generate code to print the auto-generated cube source at compile time
@@ -591,14 +594,8 @@ defmodule PowerOfThree do
         if code_injection_attempeted != [] do
           Logger.debug("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         end
-        {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
-        # |> IO.inspect(label: :cube_opts)
-        cube_opts = Enum.into(legit_opts, %{})
-        # TODO must match Ecto schema source
 
-        # Validate sql_table for SQL keyword collisions
-        PowerOfThree.validate_sql_table(sql_table, unquote(cube_name))
-
+        # First, validate that Ecto.Schema is being used with fields
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
@@ -611,6 +608,55 @@ defmodule PowerOfThree do
           [_ | _] ->
             :ok
         end
+
+        # Check if sql_table was explicitly provided (which is not allowed)
+        {sql_table_explicit, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
+
+        if sql_table_explicit do
+          raise ArgumentError, """
+          Explicitly providing sql_table is not allowed for cube #{inspect(unquote(cube_name))}.
+
+          The sql_table is automatically inferred from your Ecto schema source.
+          Remove the sql_table option and ensure your schema matches your database table:
+
+            schema "your_table_name" do
+              ...
+            end
+
+            cube :#{unquote(cube_name)}  # sql_table will be "your_table_name"
+          """
+        end
+
+        # Always infer sql_table from Ecto schema
+        ecto_struct_fields = Module.get_attribute(__MODULE__, :ecto_struct_fields, [])
+
+        sql_table =
+          case Keyword.get(ecto_struct_fields, :__meta__) do
+            %Ecto.Schema.Metadata{source: source} when is_binary(source) ->
+              Logger.info(
+                "Cube #{inspect(unquote(cube_name))}: sql_table inferred from Ecto schema source: \"#{source}\""
+              )
+
+              source
+
+            _ ->
+              # This shouldn't happen if ecto_fields check passed, but just in case
+              raise ArgumentError, """
+              Could not infer sql_table from Ecto schema for cube #{inspect(unquote(cube_name))}.
+
+              Ensure your Ecto schema is properly defined:
+                use Ecto.Schema
+                schema "your_table_name" do
+                  ...
+                end
+              """
+          end
+
+        # |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(legit_opts, %{})
+
+        # Validate sql_table for SQL keyword collisions
+        PowerOfThree.validate_sql_table(sql_table, unquote(cube_name))
 
         @cube_defined unquote(caller.line)
         Module.register_attribute(__MODULE__, :x_cube_primary_keys, accumulate: true)

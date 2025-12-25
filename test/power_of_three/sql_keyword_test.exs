@@ -3,21 +3,22 @@ defmodule PowerOfThree.SqlKeywordTest do
   import ExUnit.CaptureLog
 
   describe "SQL keyword detection" do
-    test "warns when sql_table is an unqualified SQL keyword" do
+    test "warns when schema source is an unqualified SQL keyword" do
       log =
         capture_log([level: :warning], fn ->
           defmodule UnqualifiedOrderCube do
             use Ecto.Schema
             use PowerOfThree
 
-            schema "orders" do
+            # Using "order" as schema source triggers warning (it's a SQL keyword)
+            schema "order" do
               field(:customer_email, :string)
               field(:total, :integer)
               timestamps()
             end
 
-            # This should trigger a warning because "order" is a SQL keyword
-            cube :test_order_cube, sql_table: "order"
+            # sql_table is automatically inferred from schema "order"
+            cube :test_order_cube
           end
         end)
 
@@ -26,7 +27,7 @@ defmodule PowerOfThree.SqlKeywordTest do
       assert log =~ "sql_table: \"public.order\""
     end
 
-    test "only logs debug when sql_table is schema-qualified SQL keyword" do
+    test "only logs debug when schema source is schema-qualified SQL keyword" do
       # Debug messages won't appear in warning-level capture
       log =
         capture_log([level: :warning], fn ->
@@ -34,14 +35,15 @@ defmodule PowerOfThree.SqlKeywordTest do
             use Ecto.Schema
             use PowerOfThree
 
-            schema "orders" do
+            # Schema-qualified "public.order" should only log debug, not warning
+            schema "public.order" do
               field(:customer_email, :string)
               field(:total, :integer)
               timestamps()
             end
 
-            # This should NOT warn because it's schema-qualified
-            cube :test_qualified_order_cube, sql_table: "public.order"
+            # sql_table is automatically inferred from schema "public.order"
+            cube :test_qualified_order_cube
           end
         end)
 
@@ -61,7 +63,8 @@ defmodule PowerOfThree.SqlKeywordTest do
               timestamps()
             end
 
-            cube :test_safe_cube, sql_table: "customers"
+            # sql_table is automatically inferred from schema "customers" (not a keyword)
+            cube :test_safe_cube
           end
         end)
 
@@ -101,6 +104,133 @@ defmodule PowerOfThree.SqlKeywordTest do
       assert PowerOfThree.is_schema_qualified?("my_schema.my_table")
       refute PowerOfThree.is_schema_qualified?("order")
       refute PowerOfThree.is_schema_qualified?("customers")
+    end
+  end
+
+  describe "sql_table validation" do
+    test "raises error when sql_table is explicitly provided" do
+      # Explicitly providing sql_table is not allowed - it must be inferred
+      assert_raise ArgumentError,
+                   ~r/Explicitly providing sql_table is not allowed/,
+                   fn ->
+                     defmodule ExplicitSqlTableCube do
+                       use Ecto.Schema
+                       use PowerOfThree
+
+                       schema "orders" do
+                         field(:total, :integer)
+                         timestamps()
+                       end
+
+                       # This should raise an error - sql_table must be inferred
+                       cube :mismatched_cube, sql_table: "customers"
+                     end
+                   end
+    end
+
+    test "automatically infers sql_table from Ecto schema source" do
+      # This should compile without warnings
+      log =
+        capture_log([level: :info], fn ->
+          defmodule MatchedTableCube do
+            use Ecto.Schema
+            use PowerOfThree
+
+            schema "products" do
+              field(:name, :string)
+              timestamps()
+            end
+
+            # sql_table is automatically inferred from schema "products"
+            cube :matched_cube
+          end
+        end)
+
+      # Should log that sql_table was inferred
+      assert log =~ "sql_table inferred from Ecto schema source: \"products\""
+      assert PowerOfThree.SqlKeywordTest.MatchedTableCube.__schema__(:source) == "products"
+    end
+
+    test "works with schema-qualified table names" do
+      # Schema-qualified names should also be inferred correctly
+      log =
+        capture_log([level: :info], fn ->
+          defmodule QualifiedTableCube do
+            use Ecto.Schema
+            use PowerOfThree
+
+            schema "public.events" do
+              field(:event_type, :string)
+              timestamps()
+            end
+
+            # sql_table is automatically inferred from schema "public.events"
+            cube :events_cube
+          end
+        end)
+
+      assert log =~ "sql_table inferred from Ecto schema source: \"public.events\""
+      assert PowerOfThree.SqlKeywordTest.QualifiedTableCube.__schema__(:source) ==
+               "public.events"
+    end
+
+    test "infers sql_table from Ecto schema source when not provided" do
+      log =
+        capture_log([level: :info], fn ->
+          defmodule InferredTableCube do
+            use Ecto.Schema
+            use PowerOfThree
+
+            schema "inventory" do
+              field(:item_name, :string)
+              field(:quantity, :integer)
+              timestamps()
+            end
+
+            # sql_table is always inferred from Ecto schema source
+            cube :inventory_cube
+          end
+        end)
+
+      # Should log that sql_table was inferred from schema source
+      assert log =~ "sql_table inferred from Ecto schema source: \"inventory\""
+
+      # Verify the cube was created with the correct schema source
+      assert PowerOfThree.SqlKeywordTest.InferredTableCube.__schema__(:source) == "inventory"
+    end
+
+    test "infers sql_table from schema source even when cube name differs" do
+      log =
+        capture_log([level: :info], fn ->
+          defmodule DefaultNameCube do
+            use Ecto.Schema
+            use PowerOfThree
+
+            schema "products" do
+              field(:name, :string)
+              timestamps()
+            end
+
+            # Cube name is :my_products, but sql_table should be inferred as "products"
+            cube :my_products
+          end
+        end)
+
+      assert log =~ "sql_table inferred from Ecto schema source: \"products\""
+    end
+
+    test "raises error when Ecto.Schema is not used" do
+      # PowerOfThree requires Ecto.Schema with fields
+      assert_raise ArgumentError,
+                   ~r/Please.*use Ecto.Schema.*define some fields first/,
+                   fn ->
+                     defmodule NoSchemaCube do
+                       # Intentionally not using Ecto.Schema - should fail with Ecto.Schema error
+                       use PowerOfThree
+
+                       cube :simple_cube
+                     end
+                   end
     end
   end
 end
