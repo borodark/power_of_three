@@ -258,6 +258,66 @@ defmodule PowerOfThree do
 
   """
 
+  # Common SQL keywords that could collide with table names
+  @sql_keywords ~w(
+    add all alter and any as asc between by
+    case check column constraint create cross
+    database default delete desc distinct drop
+    exists foreign from full group having
+    in index inner insert into is join
+    left like limit not null on or order
+    outer primary references right select set
+    table then to union unique update
+    user using values view where
+  )
+
+  # Cube.js reserved keywords
+  @cube_keywords ~w(
+    cube dimension measure time_dimension
+    pre_aggregation join refresh_key
+  )
+
+  @doc false
+  def is_sql_keyword?(table_name) when is_binary(table_name) do
+    # Extract just the table name if schema-qualified (e.g., "public.order" -> "order")
+    base_name =
+      table_name
+      |> String.downcase()
+      |> String.split(".")
+      |> List.last()
+
+    base_name in @sql_keywords or base_name in @cube_keywords
+  end
+
+  @doc false
+  def is_schema_qualified?(table_name) when is_binary(table_name) do
+    String.contains?(table_name, ".")
+  end
+
+  @doc false
+  def validate_sql_table(sql_table, cube_name) do
+    require Logger
+
+    cond do
+      is_sql_keyword?(sql_table) and not is_schema_qualified?(sql_table) ->
+        Logger.warning("""
+        Cube #{inspect(cube_name)}: sql_table "#{sql_table}" is a SQL keyword.
+        This may cause query errors. Consider using schema-qualified name:
+          sql_table: "public.#{sql_table}"
+        or ensuring your queries properly quote the table name.
+        """)
+
+      is_sql_keyword?(sql_table) and is_schema_qualified?(sql_table) ->
+        # Schema-qualified, but still log debug info
+        Logger.debug(
+          "Cube #{inspect(cube_name)}: sql_table \"#{sql_table}\" contains SQL keyword but is schema-qualified (safe)"
+        )
+
+      true ->
+        :ok
+    end
+  end
+
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
@@ -535,6 +595,9 @@ defmodule PowerOfThree do
         # |> IO.inspect(label: :cube_opts)
         cube_opts = Enum.into(legit_opts, %{})
         # TODO must match Ecto schema source
+
+        # Validate sql_table for SQL keyword collisions
+        PowerOfThree.validate_sql_table(sql_table, unquote(cube_name))
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
