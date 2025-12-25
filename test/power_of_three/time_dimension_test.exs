@@ -7,18 +7,18 @@ defmodule PowerOfThree.TimeDimensionTest do
       use PowerOfThree
 
       schema "time_test" do
-        field :name, :string
-        field :created_date, :date
-        field :created_time, :time
-        field :created_at_naive, :naive_datetime
-        field :created_at_usec, :naive_datetime_usec
-        field :modified_at, :utc_datetime
-        field :modified_at_usec, :utc_datetime_usec
-        field :count, :integer
+        field(:name, :string)
+        field(:created_date, :date)
+        field(:created_time, :time)
+        field(:created_at_naive, :naive_datetime)
+        field(:created_at_usec, :naive_datetime_usec)
+        field(:modified_at, :utc_datetime)
+        field(:modified_at_usec, :utc_datetime_usec)
+        field(:count, :integer)
       end
 
       # Auto-generate cube (no block)
-      cube :time_cube
+      cube(:time_cube)
     end
 
     test "generates time dimensions for :date fields" do
@@ -148,11 +148,11 @@ defmodule PowerOfThree.TimeDimensionTest do
       use PowerOfThree
 
       schema "meta_time" do
-        field :event_date, :date
-        field :event_datetime, :naive_datetime
+        field(:event_date, :date)
+        field(:event_datetime, :naive_datetime)
       end
 
-      cube :meta_time_cube
+      cube(:meta_time_cube)
     end
 
     test "time dimensions preserve Ecto field type metadata" do
@@ -185,11 +185,11 @@ defmodule PowerOfThree.TimeDimensionTest do
       use PowerOfThree
 
       schema "events" do
-        field :name, :string
-        field :occurred_at, :naive_datetime
+        field(:name, :string)
+        field(:occurred_at, :naive_datetime)
       end
 
-      cube :events
+      cube(:events)
     end
 
     test "time dimensions are compatible with granularity queries" do
@@ -227,11 +227,11 @@ defmodule PowerOfThree.TimeDimensionTest do
       use PowerOfThree
 
       schema "system_test" do
-        field :name, :string
+        field(:name, :string)
         timestamps()
       end
 
-      cube :system_test
+      cube(:system_test)
     end
 
     test "auto-generation includes inserted_at and updated_at as time dimensions" do
@@ -268,14 +268,14 @@ defmodule PowerOfThree.TimeDimensionTest do
       use PowerOfThree
 
       schema "mixed" do
-        field :title, :string
-        field :views, :integer
-        field :rating, :float
-        field :published_at, :utc_datetime
-        field :scheduled_for, :date
+        field(:title, :string)
+        field(:views, :integer)
+        field(:rating, :float)
+        field(:published_at, :utc_datetime)
+        field(:scheduled_for, :date)
       end
 
-      cube :mixed
+      cube(:mixed)
     end
 
     test "generates correct mix of dimension types" do

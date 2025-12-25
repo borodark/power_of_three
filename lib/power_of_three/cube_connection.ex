@@ -178,14 +178,14 @@ defmodule PowerOfThree.CubeConnection do
 
     conn_opts =
       if username do
-        Keyword.put(conn_opts, "adbc.cube.username", username)
+        conn_opts ++ [{"adbc.cube.username", username}]
       else
         conn_opts
       end
 
     conn_opts =
       if password do
-        Keyword.put(conn_opts, "adbc.cube.password", password)
+        conn_opts ++ [{"adbc.cube.password", password}]
       else
         conn_opts
       end

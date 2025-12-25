@@ -24,7 +24,6 @@ defmodule PowerOfThreeTest do
     end
 
     cube :of_customers,
-      sql_table: "customer",
       title: "Demo cube",
       description: "of Customers" do
       dimension(
@@ -639,7 +638,6 @@ defmodule PowerOfThreeTest do
             end
 
             cube :test_cube,
-              sql_table: "test",
               invalid_option: "should be logged" do
               measure(:count)
             end
@@ -830,7 +828,7 @@ defmodule PowerOfThreeTest do
 
       cube_config = CubeConfig.__info__(:attributes)[:cube_config]
       assert Enum.at(cube_config, 0).name == :my_cube
-      assert Enum.at(cube_config, 0).sql_table == "my_table"
+      assert Enum.at(cube_config, 0).sql_table == "test"
     end
 
     test "cube includes title and description in config" do
@@ -843,7 +841,6 @@ defmodule PowerOfThreeTest do
         end
 
         cube :test_cube,
-          sql_table: "test",
           title: "Test Title",
           description: "Test Description" do
           measure(:count)

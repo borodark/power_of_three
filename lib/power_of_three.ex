@@ -321,7 +321,16 @@ defmodule PowerOfThree do
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 1, cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [
+          cube: 1,
+          cube: 2,
+          cube: 3,
+          dimension: 1,
+          dimension: 2,
+          measure: 1,
+          measure: 2,
+          time_dimensions: 1
+        ]
 
       require Logger
 
@@ -521,8 +530,16 @@ defmodule PowerOfThree do
     end
   end
 
+  # Header declaring default value for cube/2
+  defmacro cube(cube_name, opts \\ [])
+
+  # cube/2 with do block - Explicit block without opts
+  defmacro cube(cube_name, do: block) do
+    cube(__CALLER__, cube_name, [], block)
+  end
+
   # cube/2 - Auto-generates dimensions and measures when no block provided
-  defmacro cube(cube_name, opts \\ []) do
+  defmacro cube(cube_name, opts) do
     auto_generated_block = generate_default_cube_block()
 
     # Generate code to print the auto-generated cube source at compile time
@@ -547,7 +564,7 @@ defmodule PowerOfThree do
     end
   end
 
-  # cube/3 - Explicit block provided
+  # cube/3 - Explicit block provided with opts
   defmacro cube(cube_name, opts, do: block) do
     cube(__CALLER__, cube_name, opts, block)
   end
@@ -1186,7 +1203,7 @@ defmodule PowerOfThree do
 
         true ->
           path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
-          type = opts[:type] || opts[:type] |> dimension_type
+          type = opts[:type] || opts[:type] |> PowerOfThree.dimension_type()
 
           sql =
             opts[:sql] ||
@@ -1250,7 +1267,7 @@ defmodule PowerOfThree do
                 ecto_field: ecto_schema_field
               },
               name: opts[:name] || ecto_schema_field |> Atom.to_string(),
-              type: opts[:type] || ecto_field_type |> dimension_type,
+              type: opts[:type] || ecto_field_type |> PowerOfThree.dimension_type(),
               sql: ecto_schema_field |> Atom.to_string()
             })
           )

@@ -18,7 +18,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is automatically inferred from schema "order"
-            cube :test_order_cube
+            cube(:test_order_cube)
           end
         end)
 
@@ -43,7 +43,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is automatically inferred from schema "public.order"
-            cube :test_qualified_order_cube
+            cube(:test_qualified_order_cube)
           end
         end)
 
@@ -64,7 +64,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is automatically inferred from schema "customers" (not a keyword)
-            cube :test_safe_cube
+            cube(:test_safe_cube)
           end
         end)
 
@@ -123,7 +123,7 @@ defmodule PowerOfThree.SqlKeywordTest do
                        end
 
                        # This should raise an error - sql_table must be inferred
-                       cube :mismatched_cube, sql_table: "customers"
+                       cube(:mismatched_cube, sql_table: "customers")
                      end
                    end
     end
@@ -142,7 +142,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is automatically inferred from schema "products"
-            cube :matched_cube
+            cube(:matched_cube)
           end
         end)
 
@@ -165,11 +165,12 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is automatically inferred from schema "public.events"
-            cube :events_cube
+            cube(:events_cube)
           end
         end)
 
       assert log =~ "sql_table inferred from Ecto schema source: \"public.events\""
+
       assert PowerOfThree.SqlKeywordTest.QualifiedTableCube.__schema__(:source) ==
                "public.events"
     end
@@ -188,7 +189,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # sql_table is always inferred from Ecto schema source
-            cube :inventory_cube
+            cube(:inventory_cube)
           end
         end)
 
@@ -212,7 +213,7 @@ defmodule PowerOfThree.SqlKeywordTest do
             end
 
             # Cube name is :my_products, but sql_table should be inferred as "products"
-            cube :my_products
+            cube(:my_products)
           end
         end)
 
@@ -228,7 +229,7 @@ defmodule PowerOfThree.SqlKeywordTest do
                        # Intentionally not using Ecto.Schema - should fail with Ecto.Schema error
                        use PowerOfThree
 
-                       cube :simple_cube
+                       cube(:simple_cube)
                      end
                    end
     end
