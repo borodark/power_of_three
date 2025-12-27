@@ -14,8 +14,7 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
       field(:market_code, :string)
     end
 
-    cube :of_customers,
-      sql_table: "customer" do
+    cube :of_customers do
       dimension(:first_name, name: :given_name)
       dimension(:brand_code, name: :brand)
       dimension(:market_code, name: :market)

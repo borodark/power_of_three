@@ -506,7 +506,6 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           :tax_amount_sum,
           :total_amount_distinct,
           :total_amount_sum
-
         ]
         |> Enum.sort()
 
@@ -531,7 +530,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
     end
 
     test "all measure accessors are callable" do
-      measures = Order.measures() |> IO.inspect()
+      _measures = Order.measures() |> IO.inspect()
       # accessor_name = Order.Mea
       # assert function_exported?(Order.Measures, accessor_name, 0)
       # accessor_result = apply(Order.Measures, accessor_name, [])

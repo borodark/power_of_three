@@ -16,8 +16,8 @@ defmodule PowerOfThree.DefaultCubeTest do
       timestamps()
     end
 
-    # Auto-generated cube (no block)
-    cube(:basic_cube, sql_table: "basic_table")
+    # Auto-generated cube (no block) - sql_table inferred from schema
+    cube(:basic_cube)
   end
 
   defmodule ExplicitSchema do
@@ -32,8 +32,8 @@ defmodule PowerOfThree.DefaultCubeTest do
       field(:email, :string)
     end
 
-    # Explicit block - should NOT auto-generate
-    cube :explicit_cube, sql_table: "explicit_table" do
+    # Explicit block - should NOT auto-generate, sql_table inferred from schema
+    cube :explicit_cube do
       dimension(:name, name: :full_name)
       measure(:count)
     end

@@ -5,17 +5,9 @@ All notable changes to PowerOfThree will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [0.1.3] - 2024-12-24
 
 ### Added
-
-- **Blocky Minecraft-Style Lifter**: Weightlifter character in completed snatch position
-  - Centered on barbell with arms extended to touch the bar
-  - Represents PowerOfThree successfully lifting heavy analytics workloads
-  - Displays on auto-generated cube compile output
-  - Built with Unicode block characters for consistent terminal rendering
 
 - **ASCII Art Barbell Logo**: Olympic weightlifting barbell logo displaying on auto-generated cube output
   - Left plate: Hexagon labeled "Ecto Macro Elixir" (representing Elixir/Ecto)

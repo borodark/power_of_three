@@ -258,10 +258,79 @@ defmodule PowerOfThree do
 
   """
 
+  # Common SQL keywords that could collide with table names
+  @sql_keywords ~w(
+    add all alter and any as asc between by
+    case check column constraint create cross
+    database default delete desc distinct drop
+    exists foreign from full group having
+    in index inner insert into is join
+    left like limit not null on or order
+    outer primary references right select set
+    table then to union unique update
+    user using values view where
+  )
+
+  # Cube.js reserved keywords
+  @cube_keywords ~w(
+    cube dimension measure time_dimension
+    pre_aggregation join refresh_key
+  )
+
+  @doc false
+  def is_sql_keyword?(table_name) when is_binary(table_name) do
+    # Extract just the table name if schema-qualified (e.g., "public.order" -> "order")
+    base_name =
+      table_name
+      |> String.downcase()
+      |> String.split(".")
+      |> List.last()
+
+    base_name in @sql_keywords or base_name in @cube_keywords
+  end
+
+  @doc false
+  def is_schema_qualified?(table_name) when is_binary(table_name) do
+    String.contains?(table_name, ".")
+  end
+
+  @doc false
+  def validate_sql_table(sql_table, cube_name) do
+    require Logger
+
+    cond do
+      is_sql_keyword?(sql_table) and not is_schema_qualified?(sql_table) ->
+        Logger.warning("""
+        Cube #{inspect(cube_name)}: sql_table "#{sql_table}" is a SQL keyword.
+        This may cause query errors. Consider using schema-qualified name:
+          sql_table: "public.#{sql_table}"
+        or ensuring your queries properly quote the table name.
+        """)
+
+      is_sql_keyword?(sql_table) and is_schema_qualified?(sql_table) ->
+        # Schema-qualified, but still log debug info
+        Logger.debug(
+          "Cube #{inspect(cube_name)}: sql_table \"#{sql_table}\" contains SQL keyword but is schema-qualified (safe)"
+        )
+
+      true ->
+        :ok
+    end
+  end
+
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [
+          cube: 1,
+          cube: 2,
+          cube: 3,
+          dimension: 1,
+          dimension: 2,
+          measure: 1,
+          measure: 2,
+          time_dimensions: 1
+        ]
 
       require Logger
 
@@ -278,6 +347,9 @@ defmodule PowerOfThree do
   @doc false
   def generate_cube_source_code(cube_name, opts, ecto_fields) do
     alias IO.ANSI
+
+    # Handle case where ecto_fields might be nil (no Ecto.Schema)
+    ecto_fields = ecto_fields || []
 
     # Fields to skip (only :id, not timestamps)
     skip_fields = [:id]
@@ -325,14 +397,14 @@ defmodule PowerOfThree do
     logo = [
       "",
       "#{ANSI.bright()}#{ANSI.cyan()}#",
-      "#         ________                                                                      ________",
-      "#        /        \\                                                                    /       /|",
-      "#       /   Ecto   \\                                                                  / CUBE  / |",
-      "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/_______/  |",
-      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<<>>>===<<<<-->>>>>==========<<<<-->>>>>===<<<>>>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...  |  |",
-      "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|       |  /",
-      "#       \\  Elixir  /                                                                 | CUBE  | /",
-      "#        \\________/                                                                  |_______|/",
+      "#         ________                                                                      _________",
+      "#        /        \\                                                                    /        /|",
+      "#       /   Ecto   \\                                                                  / CUBE   / |",
+      "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/________/  |",
+      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<--->>====<<--->>=============<<--->>>====<<--->>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...   |  |",
+      "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|        |  /",
+      "#       \\  Elixir  /                                                                 | CUBE   | /",
+      "#        \\________/                                                                  |________|/",
       "#",
       "#               #{ANSI.magenta()}PowerOfThree#{ANSI.cyan()}: Connecting #{ANSI.bright()}Elixir (HEX)#{ANSI.reset()}#{ANSI.cyan()} ←→ #{ANSI.bright()}Cube.js (CUBE)#{ANSI.reset()}#{ANSI.cyan()}",
       "#                        #{ANSI.yellow()}Start with everything. Keep what performs. Pre-aggregate what matters.#{ANSI.reset()}#{ANSI.cyan()}",
@@ -458,6 +530,14 @@ defmodule PowerOfThree do
     end
   end
 
+  # Header declaring default value for cube/2
+  defmacro cube(cube_name, opts \\ [])
+
+  # cube/2 with do block - Explicit block without opts
+  defmacro cube(cube_name, do: block) do
+    cube(__CALLER__, cube_name, [], block)
+  end
+
   # cube/2 - Auto-generates dimensions and measures when no block provided
   defmacro cube(cube_name, opts) do
     auto_generated_block = generate_default_cube_block()
@@ -484,7 +564,7 @@ defmodule PowerOfThree do
     end
   end
 
-  # cube/3 - Explicit block provided
+  # cube/3 - Explicit block provided with opts
   defmacro cube(cube_name, opts, do: block) do
     cube(__CALLER__, cube_name, opts, block)
   end
@@ -531,11 +611,8 @@ defmodule PowerOfThree do
         if code_injection_attempeted != [] do
           Logger.debug("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         end
-        {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
-        # |> IO.inspect(label: :cube_opts)
-        cube_opts = Enum.into(legit_opts, %{})
-        # TODO must match Ecto schema source
 
+        # First, validate that Ecto.Schema is being used with fields
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
@@ -548,6 +625,55 @@ defmodule PowerOfThree do
           [_ | _] ->
             :ok
         end
+
+        # Check if sql_table was explicitly provided (which is not allowed)
+        {sql_table_explicit, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
+
+        if sql_table_explicit do
+          raise ArgumentError, """
+          Explicitly providing sql_table is not allowed for cube #{inspect(unquote(cube_name))}.
+
+          The sql_table is automatically inferred from your Ecto schema source.
+          Remove the sql_table option and ensure your schema matches your database table:
+
+            schema "your_table_name" do
+              ...
+            end
+
+            cube :#{unquote(cube_name)}  # sql_table will be "your_table_name"
+          """
+        end
+
+        # Always infer sql_table from Ecto schema
+        ecto_struct_fields = Module.get_attribute(__MODULE__, :ecto_struct_fields, [])
+
+        sql_table =
+          case Keyword.get(ecto_struct_fields, :__meta__) do
+            %Ecto.Schema.Metadata{source: source} when is_binary(source) ->
+              Logger.info(
+                "Cube #{inspect(unquote(cube_name))}: sql_table inferred from Ecto schema source: \"#{source}\""
+              )
+
+              source
+
+            _ ->
+              # This shouldn't happen if ecto_fields check passed, but just in case
+              raise ArgumentError, """
+              Could not infer sql_table from Ecto schema for cube #{inspect(unquote(cube_name))}.
+
+              Ensure your Ecto schema is properly defined:
+                use Ecto.Schema
+                schema "your_table_name" do
+                  ...
+                end
+              """
+          end
+
+        # |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(legit_opts, %{})
+
+        # Validate sql_table for SQL keyword collisions
+        PowerOfThree.validate_sql_table(sql_table, unquote(cube_name))
 
         @cube_defined unquote(caller.line)
         Module.register_attribute(__MODULE__, :x_cube_primary_keys, accumulate: true)
@@ -601,9 +727,29 @@ defmodule PowerOfThree do
           dimensions
         )
 
+        # Add auto-generation indicator if title/description are empty
+        cube_opts_with_auto =
+          case {Map.get(cube_opts, :title), Map.get(cube_opts, :description)} do
+            {nil, nil} ->
+              # Both empty - prefer description
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {_title, nil} ->
+              # Only description empty
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {nil, _description} ->
+              # Only title empty
+              Map.put(cube_opts, :title, "Auto-generated #{sql_table}")
+
+            {_title, _description} ->
+              # Both exist - leave as is
+              cube_opts
+          end
+
         a_cube_config = [
           %{name: cube_name, sql_table: sql_table}
-          |> Map.merge(cube_opts)
+          |> Map.merge(cube_opts_with_auto)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
 
@@ -1057,7 +1203,7 @@ defmodule PowerOfThree do
 
         true ->
           path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
-          type = opts[:type] || opts[:type] |> dimension_type
+          type = opts[:type] || opts[:type] |> PowerOfThree.dimension_type()
 
           sql =
             opts[:sql] ||
@@ -1121,7 +1267,7 @@ defmodule PowerOfThree do
                 ecto_field: ecto_schema_field
               },
               name: opts[:name] || ecto_schema_field |> Atom.to_string(),
-              type: opts[:type] || ecto_field_type |> dimension_type,
+              type: opts[:type] || ecto_field_type |> PowerOfThree.dimension_type(),
               sql: ecto_schema_field |> Atom.to_string()
             })
           )

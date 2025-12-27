@@ -18,7 +18,6 @@ defmodule PowerOfThreeAccessorTest do
     end
 
     cube :test_cube,
-      sql_table: "customer",
       title: "Test Cube",
       description: "Test cube for accessor testing" do
       # Dimensions
