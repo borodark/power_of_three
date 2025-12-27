@@ -11,7 +11,7 @@ defmodule PowerOfThree.CubeConnection do
 
       config :power_of_three, PowerOfThree.CubeConnection,
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "test",
         username: "username",
         password: "password"
@@ -20,7 +20,7 @@ defmodule PowerOfThree.CubeConnection do
 
       {:ok, conn} = CubeConnection.connect(
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "test"
       )
 
@@ -53,7 +53,7 @@ defmodule PowerOfThree.CubeConnection do
   ## Options
 
     * `:host` - Cube host (default: "localhost")
-    * `:port` - Cube port (default: 4445)
+    * `:port` - Cube port (default: 8120)
     * `:token` - Cube authentication token
     * `:username` - Optional username
     * `:password` - Optional password
@@ -63,7 +63,7 @@ defmodule PowerOfThree.CubeConnection do
 
       {:ok, conn} = CubeConnection.connect(
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "my-token"
       )
   """
@@ -71,7 +71,7 @@ defmodule PowerOfThree.CubeConnection do
   def connect(
         opts \\ [
           host: "localhost",
-          port: 4445,
+          port: 8120,
           token: "test",
           username: "username",
           password: "password"
@@ -80,7 +80,7 @@ defmodule PowerOfThree.CubeConnection do
     opts = merge_config(opts)
 
     host = Keyword.get(opts, :host, "localhost")
-    port = Keyword.get(opts, :port, 4445)
+    port = Keyword.get(opts, :port, 8120)
     token = Keyword.fetch!(opts, :token)
     username = Keyword.get(opts, :username)
     password = Keyword.get(opts, :password)

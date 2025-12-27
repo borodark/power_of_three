@@ -51,7 +51,7 @@ defmodule MyApp.Order do
   end
 
   # Just this - no block needed!
-  cube :orders, sql_table: "orders"
+  cube :my_orders
 end
 ```
 
@@ -91,11 +91,11 @@ How to use cube:
 The future plans are bellow in the order of priority:
 
   - [X] hex.pm documentation
-  - [ ] ~~because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.~~ 
+  - [X] ~~because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.~~ 
 
     This is *Dropped* for now! The `Ecto` is very particular on what kind of catalog introspections supported by the implementation of `Postgres`. Shall we say: _Cube is not Postgres_ and never will be.
 
-  - ~~[ ] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.~~
+  - ~~[X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.~~
 
     ~~Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).~~
 
@@ -103,10 +103,10 @@ The future plans are bellow in the order of priority:
 
   - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md). Uses client-side granularity for time dimensions following Cube.js best practices.
   - [X] Comprehensive test coverage: **290 tests passing**, ensuring reliability and backward compatibility
+  - [X] handle `sql_table` names colisions with keywords
 
   - [ ] support @schema_prefix
   - [ ] validate on pathtrough all options for the cube, dimensions, measures and pre-aggregations
-  - [ ] handle `sql_table` names colisions with keywords
   - [ ] validate use of already defined [cube members](https://cube.dev/docs/product/data-modeling/concepts/calculated-members#members-of-the-same-cube) in definitions of other measures and dimensions
   - [ ] handle dimension's `case`
   - [ ] CI integration: what to do with generated yams: commit to tree? push to S3? when in CI?

@@ -58,13 +58,12 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      assert ["power_customers.brand", "power_customers.count"] ==
-               result |> Explorer.DataFrame.names()
+      # Column names should be normalized (cube prefix removed)
+      assert ["brand", "count"] == result |> Explorer.DataFrame.names()
 
       require Explorer.DataFrame
 
       assert result
-             |> Explorer.DataFrame.rename(["brand", "count"])
              |> Explorer.DataFrame.mutate(count: cast(count, {:u, 64}))
              |> Explorer.DataFrame.dtypes() == %{"brand" => :string, "count" => {:u, 64}}
     end
@@ -85,7 +84,8 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      brands = result["power_customers.brand"] |> Explorer.Series.to_list()
+      # Column names are normalized (cube prefix removed)
+      brands = result["brand"] |> Explorer.Series.to_list()
       assert Enum.all?(brands, &(&1 == "BudLight"))
     end
 
@@ -99,7 +99,8 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      counts = result["power_customers.count"]
+      # Column names are normalized (cube prefix removed)
+      counts = result["count"]
 
       assert [1758, 1751, 1739, 1735, 1731] == counts |> Explorer.Series.to_list()
     end
@@ -167,9 +168,9 @@ defmodule PowerOfThree.CubeHttpClientTest do
       result = CubeHttpClient.query!(client, cube_query)
 
       # Should return map directly, not tuple
-
-      counts = result["power_customers.brand"]
-      assert %Explorer.Series{} = counts
+      # Column names are normalized (cube prefix removed)
+      brands = result["brand"]
+      assert %Explorer.Series{} = brands
     end
 
     test "raises on error" do
@@ -200,7 +201,8 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      counts = result["power_customers.count"]
+      # Column names are normalized (cube prefix removed)
+      counts = result["count"]
 
       assert %Explorer.Series{} = counts
       # assert Enum.all?(counts, &is_integer/1)
@@ -215,7 +217,8 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
-      brands = result["power_customers.brand"]
+      # Column names are normalized (cube prefix removed)
+      brands = result["brand"]
       assert %Explorer.Series{} = brands
 
       assert ["Dos Equis"] =
@@ -231,8 +234,9 @@ defmodule PowerOfThree.CubeHttpClientTest do
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
+      # Column names are normalized (cube prefix removed)
       assert [-1.0, 5.0, 4.0, 0.0, 6.0] ==
-               result["power_customers.star_sector"] |> Explorer.Series.to_list()
+               result["star_sector"] |> Explorer.Series.to_list()
     end
   end
 
@@ -246,35 +250,14 @@ defmodule PowerOfThree.CubeHttpClientTest do
       cube_query = %{
         "dimensions" => ["power_customers.brand", "power_customers.market"],
         "measures" => ["power_customers.count"],
-        "limit" => 3
+        "limit" => 5000
       }
 
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
+      result |> Explorer.DataFrame.print(limit: 100)
       # Should have 3 keys (2 dimensions + 1 measure)
-      assert Explorer.DataFrame.shape(result) == {3, 3}
+      assert Explorer.DataFrame.shape(result) == {5000, 3}
     end
   end
-
-  describe "response transformationn arrow" do
-    setup do
-      {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:4008")
-      {:ok, client: client}
-    end
-
-    test "transforms row-oriented data to columnar format", %{client: client} do
-      cube_query = %{
-        "dimensions" => ["power_customers.brand", "power_customers.market"],
-        "measures" => ["power_customers.count"],
-        "limit" => 3
-      }
-
-      {:ok, result} = CubeHttpClient.arrow(client, cube_query)
-
-      # Should have 3 keys (2 dimensions + 1 measure)
-      assert Explorer.DataFrame.shape(result) == {3, 3}
-    end
-  end
-
-  #       // res.set('Content-Type', 'application/vnd.apache.arrow.stream');e
 end

@@ -15,13 +15,13 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Verify we got a map with the expected keys
-
-      assert ["power_customers.brand", "power_customers.count"] ==
+      # Column names are normalized (cube prefix removed)
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
 
       # Verify data is in columnar format
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
       assert 5 == brands |> Explorer.Series.size()
       assert 5 == counts |> Explorer.Series.size()
       # Verify counts are strings (HTTP returns strings)
@@ -36,8 +36,9 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       assert %Explorer.DataFrame{} = result
-      assert "power_customers.count" in Explorer.DataFrame.names(result)
-      counts = result["power_customers.count"]
+      # Column names are normalized (cube prefix removed)
+      assert "count" in Explorer.DataFrame.names(result)
+      counts = result["count"]
       assert %Explorer.Series{} = counts
     end
 
@@ -52,15 +53,16 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
+      # Column names are normalized (cube prefix removed)
       names = Explorer.DataFrame.names(result)
-      assert "power_customers.brand" in names
-      assert "power_customers.market" in names
-      assert "power_customers.count" in names
+      assert "brand" in names
+      assert "market" in names
+      assert "count" in names
 
       # All columns should have same length
-      brands_len = Explorer.Series.size(result["power_customers.brand"])
-      markets_len = Explorer.Series.size(result["power_customers.market"])
-      counts_len = Explorer.Series.size(result["power_customers.count"])
+      brands_len = Explorer.Series.size(result["brand"])
+      markets_len = Explorer.Series.size(result["market"])
+      counts_len = Explorer.Series.size(result["count"])
 
       assert brands_len == markets_len
       assert markets_len == counts_len
@@ -73,7 +75,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
       assert Explorer.Series.size(brands) <= 3
     end
 
@@ -95,8 +97,9 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Results should be different (assuming we have > 2 rows)
-      refute Explorer.Series.to_list(first_batch["power_customers.brand"]) ==
-               Explorer.Series.to_list(second_batch["power_customers.brand"])
+      # Column names are normalized (cube prefix removed)
+      refute Explorer.Series.to_list(first_batch["brand"]) ==
+               Explorer.Series.to_list(second_batch["brand"])
     end
   end
 
@@ -112,8 +115,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
 
       assert %Explorer.Series{} = brands
       assert %Explorer.Series{} = counts
@@ -151,7 +154,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 10
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       assert %Explorer.Series{} = brands
       # All brands should be either BudLight or Dos Equis
@@ -171,7 +174,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       # No brand should be BudLight
       refute Enum.any?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
@@ -190,7 +193,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       # Verify we got results
       assert 5 == brands |> Explorer.Series.size()
@@ -211,7 +214,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      counts = result["power_customers.count"]
+      counts = result["count"]
 
       # Verify we got results
       assert Explorer.Series.size(counts) > 0
@@ -232,7 +235,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      names = result["power_customers.given_name"]
+      names = result["given_name"]
 
       # Should be sorted
       assert 5 == Explorer.Series.size(names)
@@ -247,7 +250,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      counts = result["power_customers.count"]
+      counts = result["count"]
 
       assert %Explorer.Series{} = counts
       # HTTP client returns strings, conversion happens elsewhere
@@ -261,7 +264,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
       assert :string == Explorer.Series.dtype(brands)
       brands_list = Explorer.Series.to_list(brands)
       assert is_list(brands_list)
@@ -278,7 +281,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      star_sectors = result["power_customers.star_sector"]
+      star_sectors = result["star_sector"]
 
       # star_sector should be numbers (0-11) or strings from HTTP
       # HTTP returns strings, type conversion may happen in Explorer.DataFrame.new
@@ -330,10 +333,10 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Both queries should succeed
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result1 |> Explorer.DataFrame.names()
 
-      assert ["power_customers.count", "power_customers.market"] ==
+      assert ["count", "market"] ==
                result2 |> Explorer.DataFrame.names()
     end
 
@@ -347,7 +350,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert ["power_customers.count"] == result |> Explorer.DataFrame.names()
+      assert ["count"] == result |> Explorer.DataFrame.names()
     end
   end
 
@@ -360,7 +363,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
     end
   end
@@ -373,7 +376,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
     end
 
@@ -402,8 +405,8 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
 
       assert brands |> Explorer.Series.size() <= 5
       assert counts |> Explorer.Series.size() <= 5
@@ -430,7 +433,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 10
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       # All brands should be in the filter list
       assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis", "Blue Moon"]))

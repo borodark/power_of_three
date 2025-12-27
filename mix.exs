@@ -4,7 +4,7 @@ defmodule PowerOfThree.MixProject do
   def project do
     [
       app: :power_of_3,
-      version: "0.1.3",
+      version: "0.1.4",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -42,7 +42,9 @@ defmodule PowerOfThree.MixProject do
       {:ymlr, "~> 5.0"},
       {:ecto_sql, "~> 3.10"},
       {:explorer, "~> 0.11.1"},
-      {:adbc, path: "../adbc/",
+      {:adbc,
+       github: "borodark/adbc",
+       branch: "cleanup-take-II",
        override: true,
        optional: true,
        only: [:dev, :test]},

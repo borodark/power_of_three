@@ -20,7 +20,8 @@ defmodule PowerOfThree.CubeStoreMetastoreTest do
 
   # Cube server connection details
   @cube_host "localhost"
-  @cube_port 4445  # Arrow IPC port
+  # ADBC port
+  @cube_adbc_port 8120
   @cube_token "test"
 
   setup_all do
@@ -28,15 +29,15 @@ defmodule PowerOfThree.CubeStoreMetastoreTest do
       raise "Cube driver not found at #{@cube_driver_path}"
     end
 
-    # Verify cubesqld is running on Arrow IPC port
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_port, [:binary], 1000) do
+    # Verify cubesqld is running on ADBC port
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
         :ok
 
       {:error, :econnrefused} ->
         raise """
-        cubesqld not running on #{@cube_host}:#{@cube_port}.
+        cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
         Start with:
           cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
           source .env
@@ -51,14 +52,15 @@ defmodule PowerOfThree.CubeStoreMetastoreTest do
   end
 
   setup do
-    db = start_supervised!(
-      {Database,
-       driver: @cube_driver_path,
-       "adbc.cube.host": @cube_host,
-       "adbc.cube.port": Integer.to_string(@cube_port),
-       "adbc.cube.connection_mode": "native",
-       "adbc.cube.token": @cube_token}
-    )
+    db =
+      start_supervised!(
+        {Database,
+         driver: @cube_driver_path,
+         "adbc.cube.host": @cube_host,
+         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
+         "adbc.cube.connection_mode": "native",
+         "adbc.cube.token": @cube_token}
+      )
 
     conn = start_supervised!({Connection, database: db})
     %{db: db, conn: conn}
@@ -189,36 +191,37 @@ defmodule PowerOfThree.CubeStoreMetastoreTest do
     column_names = Enum.map(columns, & &1.name)
 
     # Get number of rows (from first column)
-    num_rows = if length(columns) > 0 do
-      hd(columns).data
-      |> Adbc.Column.to_list()
-      |> length()
-    else
-      0
-    end
+    num_rows =
+      if length(columns) > 0 do
+        hd(columns).data
+        |> Adbc.Column.to_list()
+        |> length()
+      else
+        0
+      end
 
     if num_rows == 0 do
       IO.puts("(no rows)")
     else
+      # Convert columns to list of rows
+      rows =
+        for i <- 0..(num_rows - 1) do
+          Enum.map(columns, fn col ->
+            col.data
+            |> Adbc.Column.to_list()
+            |> Enum.at(i)
+            |> format_value()
+          end)
+        end
 
-    # Convert columns to list of rows
-    rows = for i <- 0..(num_rows - 1) do
-      Enum.map(columns, fn col ->
-        col.data
-        |> Adbc.Column.to_list()
-        |> Enum.at(i)
-        |> format_value()
+      # Print header
+      IO.puts(Enum.join(column_names, " | "))
+      IO.puts(String.duplicate("-", 80))
+
+      # Print rows
+      Enum.each(rows, fn row ->
+        IO.puts(Enum.join(row, " | "))
       end)
-    end
-
-    # Print header
-    IO.puts(Enum.join(column_names, " | "))
-    IO.puts(String.duplicate("-", 80))
-
-    # Print rows
-    Enum.each(rows, fn row ->
-      IO.puts(Enum.join(row, " | "))
-    end)
     end
   end
 

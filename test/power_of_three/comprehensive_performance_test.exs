@@ -7,7 +7,8 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
   # Path to Cube ADBC driver
   @cube_driver_path Path.join(:code.priv_dir(:adbc), "lib/libadbc_driver_cube.so")
   @cube_host "localhost"
-  @cube_port 4445  # Arrow IPC port
+  # ADBC port
+  @cube_adbc_port 8120
   @cube_token "test"
 
   setup_all do
@@ -16,13 +17,13 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
     end
 
     # Verify cubesqld is running
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_port, [:binary], 1000) do
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
 
       {:error, _} ->
         raise RuntimeError, """
-        cubesqld not running on #{@cube_host}:#{@cube_port}.
+        cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
         Start with Arrow IPC support:
           cd ~/projects/learn_erl/cube/rust/cubesql
           CUBESQL_CUBESTORE_DIRECT=true \\
@@ -30,7 +31,7 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
           CUBESQL_CUBESTORE_URL=ws://127.0.0.1:3030/ws \\
           CUBESQL_CUBE_TOKEN=test \\
           CUBESQL_PG_PORT=4444 \\
-          CUBEJS_ARROW_PORT=4445 \\
+          CUBEJS_ADBC_PORT=8120 \\
           RUST_LOG=info \\
           ./target/debug/cubesqld
         """
@@ -40,14 +41,15 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
   end
 
   setup do
-    db = start_supervised!(
-      {Database,
-       driver: @cube_driver_path,
-       "adbc.cube.host": @cube_host,
-       "adbc.cube.port": Integer.to_string(@cube_port),
-       "adbc.cube.connection_mode": "native",
-       "adbc.cube.token": @cube_token}
-    )
+    db =
+      start_supervised!(
+        {Database,
+         driver: @cube_driver_path,
+         "adbc.cube.host": @cube_host,
+         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
+         "adbc.cube.connection_mode": "native",
+         "adbc.cube.token": @cube_token}
+      )
 
     conn = start_supervised!({Connection, database: db})
     %{conn: conn}
@@ -125,14 +127,22 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
       with_times =
         for i <- 1..5 do
           result = measure_full_path(conn, query_with_preagg, "CubeStore Direct")
-          IO.puts("  Iteration #{i}: #{result.time_total}ms (query: #{result.time_query}ms, materialize: #{result.time_materialize}ms)")
+
+          IO.puts(
+            "  Iteration #{i}: #{result.time_total}ms (query: #{result.time_query}ms, materialize: #{result.time_materialize}ms)"
+          )
+
           result
         end
 
       without_times =
         for i <- 1..5 do
           result = measure_full_path(conn, query_without_preagg, "HTTP Cached")
-          IO.puts("  Iteration #{i}: #{result.time_total}ms (query: #{result.time_query}ms, materialize: #{result.time_materialize}ms)")
+
+          IO.puts(
+            "  Iteration #{i}: #{result.time_total}ms (query: #{result.time_query}ms, materialize: #{result.time_materialize}ms)"
+          )
+
           result
         end
 
@@ -165,9 +175,13 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
       IO.puts("\n" <> String.duplicate("-", 80))
 
       if avg_with_total < avg_without_total do
-        IO.puts("✅ CubeStore Direct is #{Float.round(speedup, 2)}x FASTER (#{Float.round(avg_without_total - avg_with_total, 1)}ms saved)")
+        IO.puts(
+          "✅ CubeStore Direct is #{Float.round(speedup, 2)}x FASTER (#{Float.round(avg_without_total - avg_with_total, 1)}ms saved)"
+        )
       else
-        IO.puts("⚠️  HTTP is faster (CubeStore: #{Float.round(avg_with_total, 1)}ms vs HTTP: #{Float.round(avg_without_total, 1)}ms)")
+        IO.puts(
+          "⚠️  HTTP is faster (CubeStore: #{Float.round(avg_with_total, 1)}ms vs HTTP: #{Float.round(avg_without_total, 1)}ms)"
+        )
       end
 
       IO.puts(String.duplicate("=", 80))
@@ -215,14 +229,22 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
       with_results =
         for i <- 1..3 do
           result = measure_full_path(conn, query_with_preagg, "CubeStore Direct")
-          IO.puts("  CubeStore #{i}: #{result.time_total}ms total (#{result.time_query}ms query + #{result.time_materialize}ms materialize)")
+
+          IO.puts(
+            "  CubeStore #{i}: #{result.time_total}ms total (#{result.time_query}ms query + #{result.time_materialize}ms materialize)"
+          )
+
           result
         end
 
       without_results =
         for i <- 1..3 do
           result = measure_full_path(conn, query_without_preagg, "HTTP Cached")
-          IO.puts("  HTTP #{i}: #{result.time_total}ms total (#{result.time_query}ms query + #{result.time_materialize}ms materialize)")
+
+          IO.puts(
+            "  HTTP #{i}: #{result.time_total}ms total (#{result.time_query}ms query + #{result.time_materialize}ms materialize)"
+          )
+
           result
         end
 
@@ -355,7 +377,10 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
           query_pct = Float.round(result.time_query / result.time_total * 100, 1)
           mat_pct = Float.round(result.time_materialize / result.time_total * 100, 1)
 
-          IO.puts("  Run #{i}: #{result.time_total}ms (query: #{result.time_query}ms [#{query_pct}%], materialize: #{result.time_materialize}ms [#{mat_pct}%])")
+          IO.puts(
+            "  Run #{i}: #{result.time_total}ms (query: #{result.time_query}ms [#{query_pct}%], materialize: #{result.time_materialize}ms [#{mat_pct}%])"
+          )
+
           result
         end
 
@@ -370,7 +395,10 @@ defmodule PowerOfThree.ComprehensivePerformanceTest do
       IO.puts("  Query execution:    #{Float.round(avg_query, 1)}ms (#{query_pct}%)")
       IO.puts("  DataFrame materialize: #{Float.round(avg_materialize, 1)}ms (#{mat_pct}%)")
       IO.puts("  TOTAL:              #{Float.round(avg_total, 1)}ms (100%)")
-      IO.puts("\n💡 Insight: Materialization overhead is #{Float.round(avg_materialize, 1)}ms regardless of data source")
+
+      IO.puts(
+        "\n💡 Insight: Materialization overhead is #{Float.round(avg_materialize, 1)}ms regardless of data source"
+      )
     end
   end
 end

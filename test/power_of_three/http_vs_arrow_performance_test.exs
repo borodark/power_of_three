@@ -9,7 +9,7 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
   # Configuration
   @cube_driver_path Path.join(:code.priv_dir(:adbc), "lib/libadbc_driver_cube.so")
   @cube_host "localhost"
-  @arrow_port 4445
+  @cube_adbc_port 8120
   @http_port 4008
   @cube_token "test"
 
@@ -19,13 +19,13 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
     end
 
     # Verify CubeSQL is running (Arrow IPC)
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @arrow_port, [:binary], 1000) do
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
 
       {:error, _} ->
         raise RuntimeError, """
-        cubesqld not running on #{@cube_host}:#{@arrow_port}.
+        cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
         """
     end
 
@@ -45,14 +45,15 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
 
   setup do
     # Setup Arrow connection
-    db = start_supervised!(
-      {Database,
-       driver: @cube_driver_path,
-       "adbc.cube.host": @cube_host,
-       "adbc.cube.port": Integer.to_string(@arrow_port),
-       "adbc.cube.connection_mode": "native",
-       "adbc.cube.token": @cube_token}
-    )
+    db =
+      start_supervised!(
+        {Database,
+         driver: @cube_driver_path,
+         "adbc.cube.host": @cube_host,
+         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
+         "adbc.cube.connection_mode": "native",
+         "adbc.cube.token": @cube_token}
+      )
 
     conn = start_supervised!({Connection, database: db})
 
@@ -77,7 +78,9 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
         df = adbc_to_dataframe(materialized)
         row_count = DF.n_rows(df)
 
-        IO.puts("✅ #{row_count} rows, #{DF.n_columns(df)} columns | #{time_query}ms query + #{time_mat}ms materialize")
+        IO.puts(
+          "✅ #{row_count} rows, #{DF.n_columns(df)} columns | #{time_query}ms query + #{time_mat}ms materialize"
+        )
 
         %{
           method: "Arrow IPC",
@@ -115,10 +118,13 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
     IO.puts("\n🌐 HTTP API Query: #{label}")
 
     start = System.monotonic_time(:millisecond)
-    response = Req.get!(url,
-      params: [query: query_json],
-      headers: [{"Authorization", @cube_token}]
-    )
+
+    response =
+      Req.get!(url,
+        params: [query: query_json],
+        headers: [{"Authorization", @cube_token}]
+      )
+
     time_query = System.monotonic_time(:millisecond) - start
 
     start_mat = System.monotonic_time(:millisecond)
@@ -126,15 +132,18 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
     pre_aggs = get_in(response.body, ["usedPreAggregations"])
 
     # Convert to DataFrame
-    df = if length(data) > 0 do
-      DF.new(data)
-    else
-      DF.new(%{})
-    end
+    df =
+      if length(data) > 0 do
+        DF.new(data)
+      else
+        DF.new(%{})
+      end
 
     time_mat = System.monotonic_time(:millisecond) - start_mat
 
-    IO.puts("✅ #{length(data)} rows, #{DF.n_columns(df)} columns | #{time_query}ms query + #{time_mat}ms materialize")
+    IO.puts(
+      "✅ #{length(data)} rows, #{DF.n_columns(df)} columns | #{time_query}ms query + #{time_mat}ms materialize"
+    )
 
     %{
       method: "HTTP API",
@@ -155,10 +164,11 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
       DF.new(%{})
     else
       # Convert each column to a list and create a map
-      column_data = Enum.map(columns, fn col ->
-        {col.name, Adbc.Column.to_list(col)}
-      end)
-      |> Map.new()
+      column_data =
+        Enum.map(columns, fn col ->
+          {col.name, Adbc.Column.to_list(col)}
+        end)
+        |> Map.new()
 
       DF.new(column_data)
     end
@@ -167,10 +177,12 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
   # Helper: Warmup
   defp warmup(conn, sql_query, http_query_map, rounds \\ 2) do
     IO.puts("\n🔥 Warming up (#{rounds} rounds)...")
+
     for _ <- 1..rounds do
       Connection.query(conn, sql_query)
       measure_http(http_query_map, "warmup")
     end
+
     :ok
   end
 
@@ -181,6 +193,7 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
     IO.puts(String.duplicate("=", 80))
 
     IO.puts("\n🔷 Arrow IPC (CubeStore Direct):")
+
     if arrow_result.success do
       IO.puts("  ✅ Success")
       IO.puts("  Query:         #{arrow_result.time_query}ms")
@@ -203,6 +216,7 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
       diff = http_result.time_total - arrow_result.time_total
 
       IO.puts("\n📈 Performance Result:")
+
       if arrow_result.time_total < http_result.time_total do
         IO.puts("  ⚡ Arrow IPC is #{Float.round(speedup, 2)}x FASTER (saved #{diff}ms)")
       else
@@ -210,7 +224,9 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
       end
 
       if arrow_result.row_count != http_result.row_count do
-        IO.puts("  ⚠️  WARNING: Row count mismatch! Arrow: #{arrow_result.row_count}, HTTP: #{http_result.row_count}")
+        IO.puts(
+          "  ⚠️  WARNING: Row count mismatch! Arrow: #{arrow_result.row_count}, HTTP: #{http_result.row_count}"
+        )
       else
         IO.puts("  ✅ Row counts match: #{arrow_result.row_count}")
       end
@@ -224,15 +240,23 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
     IO.puts(String.duplicate("=", 80))
   end
 
+  # Helper: Normalize column names by stripping cube prefix
+  defp normalize_column_name(col_name) when is_binary(col_name) do
+    # Strip cube prefix (e.g., "orders_with_preagg.brand_code" -> "brand_code")
+    col_name
+    |> String.split(".")
+    |> List.last()
+  end
+
   # Helper: Compare DataFrames using Explorer
   defp print_dataframe_comparison(arrow_df, http_df) do
     IO.puts("\n📊 DATA COMPARISON (Explorer DataFrame)")
     IO.puts(String.duplicate("-", 80))
 
     if DF.n_rows(arrow_df) > 0 && DF.n_rows(http_df) > 0 do
-      # Check if column names match
-      arrow_cols = DF.names(arrow_df) |> Enum.sort()
-      http_cols = DF.names(http_df) |> Enum.sort()
+      # Check if column names match (after normalization)
+      arrow_cols = DF.names(arrow_df) |> Enum.map(&normalize_column_name/1) |> Enum.sort()
+      http_cols = DF.names(http_df) |> Enum.map(&normalize_column_name/1) |> Enum.sort()
 
       if arrow_cols == http_cols do
         IO.puts("\n✅ Column schemas match: #{inspect(arrow_cols)}")
@@ -245,13 +269,15 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
         http_df |> DF.head(3) |> IO.inspect(limit: :infinity)
 
         # Calculate summary statistics for numeric columns
-        numeric_cols = arrow_df
-        |> DF.dtypes()
-        |> Enum.filter(fn {_name, dtype} -> dtype in [:integer, :float, :s64, :f64] end)
-        |> Enum.map(fn {name, _dtype} -> name end)
+        numeric_cols =
+          arrow_df
+          |> DF.dtypes()
+          |> Enum.filter(fn {_name, dtype} -> dtype in [:integer, :float, :s64, :f64] end)
+          |> Enum.map(fn {name, _dtype} -> name end)
 
         if length(numeric_cols) > 0 do
           IO.puts("\n📊 Numeric Column Statistics (from Arrow IPC):")
+
           for col <- numeric_cols do
             series = DF.pull(arrow_df, col)
             IO.puts("  #{col}:")
@@ -261,9 +287,16 @@ defmodule PowerOfThree.HttpVsArrowPerformanceTest do
           end
         end
       else
-        IO.puts("\n⚠️  Column schemas differ:")
-        IO.puts("  Arrow: #{inspect(arrow_cols)}")
-        IO.puts("  HTTP:  #{inspect(http_cols)}")
+        # Show normalized names in warning
+        arrow_orig = DF.names(arrow_df) |> Enum.sort()
+        http_orig = DF.names(http_df) |> Enum.sort()
+
+        IO.puts("\n⚠️  Column schemas differ (after normalization):")
+        IO.puts("  Arrow (normalized): #{inspect(arrow_cols)}")
+        IO.puts("  HTTP (normalized):  #{inspect(http_cols)}")
+        IO.puts("\n  Original names:")
+        IO.puts("  Arrow: #{inspect(arrow_orig)}")
+        IO.puts("  HTTP:  #{inspect(http_orig)}")
       end
     end
   end

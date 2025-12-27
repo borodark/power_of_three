@@ -9,7 +9,7 @@ defmodule PowerOfThree.MandataCaptateTest do
   # Configuration
   @cube_driver_path Path.join(:code.priv_dir(:adbc), "lib/libadbc_driver_cube.so")
   @cube_host "localhost"
-  @arrow_port 4445
+  @cube_adbc_port 8120
   @http_port 4008
   @cube_token "test"
 
@@ -19,9 +19,9 @@ defmodule PowerOfThree.MandataCaptateTest do
     end
 
     # Verify CubeSQL is running
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @arrow_port, [:binary], 1000) do
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
       {:ok, socket} -> :gen_tcp.close(socket)
-      {:error, _} -> raise "cubesqld not running on #{@cube_host}:#{@arrow_port}"
+      {:error, _} -> raise "cubesqld not running on #{@cube_host}:#{@cube_adbc_port}"
     end
 
     # Verify Cube API is running
@@ -34,22 +34,23 @@ defmodule PowerOfThree.MandataCaptateTest do
   end
 
   setup do
-    db = start_supervised!(
-      {Database,
-       driver: @cube_driver_path,
-       "adbc.cube.host": @cube_host,
-       "adbc.cube.port": Integer.to_string(@arrow_port),
-       "adbc.cube.connection_mode": "native",
-       "adbc.cube.token": @cube_token}
-    )
+    db =
+      start_supervised!(
+        {Database,
+         driver: @cube_driver_path,
+         "adbc.cube.host": @cube_host,
+         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
+         "adbc.cube.connection_mode": "native",
+         "adbc.cube.token": @cube_token}
+      )
 
     conn = start_supervised!({Connection, database: db})
     %{arrow_conn: conn}
   end
 
-  # Helper: Execute query via Arrow IPC
+  # Helper: Execute query via ADBC(Arrow Native)
   defp measure_arrow(conn, query, label) do
-    IO.puts("\n🔍 Arrow IPC Query: #{label}")
+    IO.puts("\n🔍 ADBC(Arrow Native) Query: #{label}")
 
     start = System.monotonic_time(:millisecond)
     result = Connection.query(conn, query)
@@ -67,7 +68,7 @@ defmodule PowerOfThree.MandataCaptateTest do
         IO.puts("✅ #{row_count} rows | #{time_query}ms query + #{time_mat}ms materialize")
 
         %{
-          method: "Arrow IPC",
+          method: "ADBC(Arrow Native)",
           label: label,
           time_query: time_query,
           time_materialize: time_mat,
@@ -81,7 +82,7 @@ defmodule PowerOfThree.MandataCaptateTest do
         IO.puts("❌ Error: #{inspect(error)}")
 
         %{
-          method: "Arrow IPC",
+          method: "ADBC(Arrow Native)",
           label: label,
           time_query: time_query,
           time_materialize: 0,
@@ -102,10 +103,13 @@ defmodule PowerOfThree.MandataCaptateTest do
     IO.puts("\n🌐 HTTP API Query: #{label}")
 
     start = System.monotonic_time(:millisecond)
-    response = Req.get!(url,
-      params: [query: query_json],
-      headers: [{"Authorization", @cube_token}]
-    )
+
+    response =
+      Req.get!(url,
+        params: [query: query_json],
+        headers: [{"Authorization", @cube_token}]
+      )
+
     time_query = System.monotonic_time(:millisecond) - start
 
     start_mat = System.monotonic_time(:millisecond)
@@ -119,6 +123,7 @@ defmodule PowerOfThree.MandataCaptateTest do
 
     if pre_aggs && map_size(pre_aggs) > 0 do
       IO.puts("📊 Pre-aggregations used:")
+
       Enum.each(pre_aggs, fn {_name, meta} ->
         table = meta["targetTableName"] || "unknown"
         IO.puts("   - #{table}")
@@ -143,10 +148,11 @@ defmodule PowerOfThree.MandataCaptateTest do
     if length(columns) == 0 do
       DF.new(%{})
     else
-      column_data = Enum.map(columns, fn col ->
-        {col.name, Adbc.Column.to_list(col)}
-      end)
-      |> Map.new()
+      column_data =
+        Enum.map(columns, fn col ->
+          {col.name, Adbc.Column.to_list(col)}
+        end)
+        |> Map.new()
 
       DF.new(column_data)
     end
@@ -158,7 +164,8 @@ defmodule PowerOfThree.MandataCaptateTest do
     IO.puts("📊 PERFORMANCE COMPARISON")
     IO.puts(String.duplicate("=", 80))
 
-    IO.puts("\n🔷 Arrow IPC:")
+    IO.puts("\n🔷 ADBC(Arrow Native):")
+
     if arrow_result.success do
       IO.puts("  Query:  #{arrow_result.time_query}ms")
       IO.puts("  Mat:    #{arrow_result.time_materialize}ms")
@@ -179,8 +186,9 @@ defmodule PowerOfThree.MandataCaptateTest do
       diff = http_result.time_total - arrow_result.time_total
 
       IO.puts("\n📈 Result:")
+
       if arrow_result.time_total < http_result.time_total do
-        IO.puts("  ⚡ Arrow IPC is #{Float.round(speedup, 2)}x FASTER (saved #{diff}ms)")
+        IO.puts("  ⚡ ADBC(Arrow Native) is #{Float.round(speedup, 2)}x FASTER (saved #{diff}ms)")
       else
         IO.puts("  ⚠️  HTTP API is faster by #{abs(diff)}ms")
       end
@@ -188,7 +196,9 @@ defmodule PowerOfThree.MandataCaptateTest do
       if arrow_result.row_count == http_result.row_count do
         IO.puts("  ✅ Row counts match: #{arrow_result.row_count}")
       else
-        IO.puts("  ⚠️  Row count mismatch! Arrow: #{arrow_result.row_count}, HTTP: #{http_result.row_count}")
+        IO.puts(
+          "  ⚠️  Row count mismatch! ADBC: #{arrow_result.row_count}, HTTP: #{http_result.row_count}"
+        )
       end
     end
 

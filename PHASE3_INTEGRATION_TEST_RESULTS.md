@@ -25,7 +25,7 @@ Phase 3 DataFrame functions have been successfully implemented and tested with l
 |---------|------|--------|---------|
 | PostgreSQL | 7432 | ✅ Running | Source database with customer data |
 | Cube API | 4008 | ✅ Running | Cube.js semantic layer (HTTP/REST) |
-| cubesqld | 4445 | ✅ Running | Arrow Native protocol server |
+| cubesqld | 8120 | ✅ Running | ADBC(Arrow Native) protocol server |
 
 ### Configuration
 
@@ -38,7 +38,7 @@ Phase 3 DataFrame functions have been successfully implemented and tested with l
 ```elixir
 [
   host: "localhost",
-  port: 4445,
+  port: 8120,
   token: "test",
   driver_path: driver_path
 ]
@@ -233,9 +233,9 @@ end
 ```
 
 **Connection Details:**
-- Protocol: Arrow Native (via ADBC)
+- Protocol: ADBC(Arrow Native) (via ADBC)
 - Driver: `libadbc_driver_cube.so`
-- Connection established to `localhost:4445`
+- Connection established to `localhost:8120`
 - Authentication: Token-based (`token: "test"`)
 
 **Verification:**
@@ -317,9 +317,9 @@ LIMIT 5
 
 **Data Flow Verified:**
 ```
-cubesqld:4445 → Cube API:4008 → PostgreSQL:7432
+cubesqld:8120 → Cube API:4008 → PostgreSQL:7432
     ↓
-Arrow IPC format
+ADBC(Arrow Native) format
     ↓
 Materialized Result
     ↓
@@ -478,8 +478,8 @@ When Explorer is available, the result would be an `Explorer.DataFrame` instead 
                      │ ADBC
                      ▼
 ┌─────────────────────────────────────────────────┐
-│ cubesqld (localhost:4445)                      │
-│ • Arrow Native protocol                        │
+│ cubesqld (localhost:8120)                      │
+│ • ADBC(Arrow Native) protocol                  │
 │ • Receives SQL via ADBC                        │
 │ • Forwards to Cube API                         │
 └────────────────────┬────────────────────────────┘
@@ -664,7 +664,7 @@ end)
   columns: [...],
   connection_opts: [
     host: "localhost",
-    port: 4445,
+    port: 8120,
     token: System.get_env("CUBE_TOKEN")
   ]
 )
@@ -672,7 +672,7 @@ end)
 # Option 2: Reuse connection (recommended for multiple queries)
 {:ok, conn} = PowerOfThree.CubeConnection.connect(
   host: "localhost",
-  port: 4445,
+  port: 8120,
   token: "my-token"
 )
 
@@ -686,7 +686,7 @@ result2 = Customer.df!(columns: [...], connection: conn)
 # config/config.exs
 config :power_of_three, PowerOfThree.CubeConnection,
   host: "localhost",
-  port: 4445,
+  port: 8120,
   token: System.get_env("CUBE_TOKEN")
 
 # Then queries will use this config by default:

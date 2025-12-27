@@ -21,9 +21,10 @@ defmodule PowerOfThree.PreAggRoutingTest do
   # Path to Cube ADBC driver
   @cube_driver_path Path.join(:code.priv_dir(:adbc), "lib/libadbc_driver_cube.so")
 
-  # Cube server connection details (Arrow IPC port for pre-agg routing)
+  # Cube server connection details (ADBC port for pre-agg routing)
   @cube_host "localhost"
-  @cube_port 4445  # Arrow IPC port, NOT psql port 4444!
+  # ADBC port
+  @cube_adbc_port 8120
   @cube_token "test"
 
   setup_all do
@@ -31,16 +32,16 @@ defmodule PowerOfThree.PreAggRoutingTest do
       raise "Cube driver not found at #{@cube_driver_path}"
     end
 
-    # Verify cubesqld is running on Arrow IPC port
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_port, [:binary], 1000) do
+    # Verify cubesqld is running on ADBC port
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
         :ok
 
       {:error, :econnrefused} ->
         raise """
-        cubesqld not running on #{@cube_host}:#{@cube_port}.
-        Start with Arrow IPC support:
+        cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
+        Start with ADBC(Arrow Native) support:
           cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
           source .env
           export CUBESQL_CUBESTORE_DIRECT=true
@@ -48,7 +49,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
           export CUBESQL_CUBESTORE_URL=ws://127.0.0.1:3030/ws
           export CUBESQL_CUBE_TOKEN=test
           export CUBESQL_PG_PORT=4444
-          export CUBEJS_ARROW_PORT=4445
+          export CUBEJS_ADBC_PORT=8120
           export RUST_LOG=info
           ~/projects/learn_erl/cube/rust/cubesql/target/debug/cubesqld
         """
@@ -61,14 +62,15 @@ defmodule PowerOfThree.PreAggRoutingTest do
   end
 
   setup do
-    db = start_supervised!(
-      {Database,
-       driver: @cube_driver_path,
-       "adbc.cube.host": @cube_host,
-       "adbc.cube.port": Integer.to_string(@cube_port),
-       "adbc.cube.connection_mode": "native",
-       "adbc.cube.token": @cube_token}
-    )
+    db =
+      start_supervised!(
+        {Database,
+         driver: @cube_driver_path,
+         "adbc.cube.host": @cube_host,
+         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
+         "adbc.cube.connection_mode": "native",
+         "adbc.cube.token": @cube_token}
+      )
 
     conn = start_supervised!({Connection, database: db})
     %{db: db, conn: conn}
@@ -273,13 +275,14 @@ defmodule PowerOfThree.PreAggRoutingTest do
       test_cases = [
         {["count"], "single measure"},
         {["count", "total_amount_sum"], "two measures"},
-        {["count", "total_amount_sum", "tax_amount_sum"], "three measures"},
+        {["count", "total_amount_sum", "tax_amount_sum"], "three measures"}
       ]
 
       for {measures, description} <- test_cases do
-        measure_select = Enum.map_join(measures, ",\n        ", fn m ->
-          "MEASURE(mandata_captate.#{m}) as #{m}"
-        end)
+        measure_select =
+          Enum.map_join(measures, ",\n        ", fn m ->
+            "MEASURE(mandata_captate.#{m}) as #{m}"
+          end)
 
         query = """
         SELECT
