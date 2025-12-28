@@ -111,7 +111,7 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
           limit: 5
         )
 
@@ -143,14 +143,13 @@ defmodule PowerOfThree.DfHttpTest do
 
     @tag :skip
     test "IN filter" do
-      # Note: IN filter has formatting issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code IN ('BudLight', 'Dos Equis')",
+          where: [{Customer.Dimensions.brand(), :in, ["BudLight", "Dos Equis"]}],
           limit: 10
         )
 
@@ -163,14 +162,13 @@ defmodule PowerOfThree.DfHttpTest do
 
     @tag :skip
     test "not equals filter" do
-      # Note: != filter has issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code != 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :!=, "BudLight"}],
           limit: 5
         )
 
@@ -298,19 +296,20 @@ defmodule PowerOfThree.DfHttpTest do
       end
     end
 
-    test "returns error for complex WHERE clause" do
-      # Complex WHERE with AND/OR not supported in HTTP mode
-      result =
+    test "supports multiple AND conditions" do
+      # Multiple conditions are now supported with typed WHERE (combined with AND)
+      {:ok, result} =
         Customer.df(
           columns: [Customer.Measures.count()],
-          where: "brand_code = 'BudLight' AND market_code = 'US'",
+          where: [
+            {Customer.Dimensions.brand(), :==, "BudLight"},
+            {Customer.Dimensions.market(), :==, "US"}
+          ],
           limit: 5
         )
 
-      # Should return an error
-      assert {:error, error} = result
-      assert error.type == :translation_error
-      assert String.contains?(error.message, "Complex WHERE clause")
+      # Should successfully return results
+      assert %Explorer.DataFrame{} = result
     end
   end
 
@@ -381,11 +380,11 @@ defmodule PowerOfThree.DfHttpTest do
     end
 
     test "raises on error" do
-      # df!/1 re-raises errors as RuntimeError with the error message
-      assert_raise ArgumentError, fn ->
+      # df!/1 re-raises errors with invalid WHERE clause
+      assert_raise FunctionClauseError, fn ->
         Customer.df!(
           columns: [Customer.Measures.count()],
-          where: "complex AND (nested OR conditions)",
+          where: "string WHERE not supported",
           limit: 5
         )
       end
@@ -400,7 +399,7 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
           order_by: [{2, :desc}],
           limit: 5
         )
@@ -420,7 +419,6 @@ defmodule PowerOfThree.DfHttpTest do
 
     @tag :skip
     test "multiple dimensions + filter + order" do
-      # Note: IN filter has formatting issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
@@ -428,7 +426,7 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.market(),
             Customer.Measures.count()
           ],
-          where: "brand_code IN ('BudLight', 'Dos Equis', 'Blue Moon')",
+          where: [{Customer.Dimensions.brand(), :in, ["BudLight", "Dos Equis", "Blue Moon"]}],
           order_by: [{1, :asc}],
           limit: 10
         )
@@ -489,7 +487,7 @@ defmodule PowerOfThree.DfHttpTest do
             my_brand: Customer.Dimensions.brand(),
             num_customers: Customer.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
           limit: 5
         )
 

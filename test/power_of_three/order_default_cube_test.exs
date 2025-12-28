@@ -211,7 +211,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.brand_code(),
             Order.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Order.Dimensions.brand_code(), :==, "BudLight"}],
           limit: 10
         )
 
@@ -229,7 +229,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.financial_status(),
             Order.Measures.count()
           ],
-          where: "financial_status = 'paid'",
+          where: [{Order.Dimensions.financial_status(), :==, "paid"}],
           limit: 5
         )
 
@@ -247,7 +247,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.market_code(),
             Order.Measures.total_amount_sum()
           ],
-          where: "market_code = 'US'",
+          where: [{Order.Dimensions.market_code(), :==, "US"}],
           limit: 5
         )
 
@@ -324,7 +324,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.market_code(),
             Order.Measures.total_amount_sum()
           ],
-          where: "market_code = 'US'",
+          where: [{Order.Dimensions.market_code(), :==, "US"}],
           order_by: [{3, :desc}],
           limit: 10
         )
@@ -550,7 +550,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Measures.tax_amount_sum(),
             Order.Measures.customer_id_distinct()
           ],
-          where: "financial_status = 'paid'",
+          where: [{Order.Dimensions.financial_status(), :==, "paid"}],
           order_by: [{4, :desc}],
           limit: 20
         )
