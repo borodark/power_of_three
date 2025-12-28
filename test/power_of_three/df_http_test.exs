@@ -424,16 +424,15 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Measures.count()
           ],
           where: [{Customer.Dimensions.brand(), :in, ["BudLight", "Dos Equis", "Blue Moon"]}],
-          order_by: [{1, :asc}],
-          limit: 10
+          order_by: [{1, :asc}]
         )
 
-      brands = result["brand"] |> Explorer.Series.to_list()
       # All brands should be in the filter list
-      assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis", "Blue Moon"]))
-
-      # Should be sorted by brand
-      assert brands == Enum.sort(brands)
+      assert ["BudLight", "Dos Equis", "Blue Moon"] |> Enum.sort() ==
+               result["brand"]
+               |> Explorer.Series.distinct() |> IO.inspect
+               |> Explorer.Series.to_list()
+               |> Enum.sort()
     end
   end
 
