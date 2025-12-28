@@ -141,7 +141,6 @@ defmodule PowerOfThree.DfHttpTest do
       assert %Explorer.DataFrame{} = result
     end
 
-    @tag :skip
     test "IN filter" do
       {:ok, result} =
         Customer.df(
@@ -160,7 +159,6 @@ defmodule PowerOfThree.DfHttpTest do
       assert Enum.all?(Explorer.Series.to_list(brands), &(&1 in ["BudLight", "Dos Equis"]))
     end
 
-    @tag :skip
     test "not equals filter" do
       {:ok, result} =
         Customer.df(
@@ -417,7 +415,6 @@ defmodule PowerOfThree.DfHttpTest do
                brands |> Explorer.Series.to_list()
     end
 
-    @tag :skip
     test "multiple dimensions + filter + order" do
       {:ok, result} =
         Customer.df(
@@ -431,8 +428,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 10
         )
 
-      brands = result["brand"]
-
+      brands = result["brand"] |> Explorer.Series.to_list()
       # All brands should be in the filter list
       assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis", "Blue Moon"]))
 
