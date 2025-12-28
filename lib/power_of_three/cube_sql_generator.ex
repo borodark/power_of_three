@@ -13,11 +13,16 @@ defmodule PowerOfThree.CubeSqlGenerator do
   ## Important Notes
 
   - WHERE clause support is provided by delegating to `CubeQueryTranslator`
-  - The SQL returned by Cube's /v1/sql endpoint may use database-specific
-    syntax (e.g., MySQL backticks vs PostgreSQL double quotes) depending on
-    your Cube server configuration
-  - For production use, ensure your Cube server's SQL dialect matches your
-    ADBC driver's expectations
+  - The SQL returned by Cube's /v1/sql endpoint may reference pre-aggregation
+    tables that only exist within Cube's internal cache/database. When using
+    ADBC to query directly against your database, these pre-aggregation tables
+    may not exist. For ADBC with PowerOfThree query options to work, the cube
+    must either:
+    - Not have pre-aggregations configured (e.g., cubes with "no_preagg" suffix)
+    - Have external pre-aggregations materialized in the target database
+  - For maximum compatibility with ADBC, prefer using raw SQL against base tables
+  - MySQL backticks in generated SQL are automatically converted to PostgreSQL
+    double quotes for ADBC compatibility
   """
 
   alias PowerOfThree.CubeQueryTranslator

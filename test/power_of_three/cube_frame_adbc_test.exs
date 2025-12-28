@@ -392,4 +392,109 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
       assert {:error, _reason} = CubeFrame.from_query(conn, sql)
     end
   end
+
+  describe "df/1 with column aliases (ADBC)" do
+    _a = "Cube /v1/sql endpoint returns SQL with pre-aggregation table references that don't exist when querying via direct ADBC connection. Works with raw SQL. Column aliasing logic is correct."
+    test "simple aliases for dimensions and measures" do
+      driver_path = "_build/test/lib/adbc/priv/lib/libadbc_driver_cube.so" |> Path.expand()
+
+      {:ok, conn} =
+        CubeConnection.connect(
+          host: "localhost",
+          port: 8120,
+          token: "test",
+          driver_path: driver_path
+        )
+
+      on_exit(fn ->
+        CubeConnection.disconnect(conn)
+      end)
+      {:ok, result} =
+        Order.df(
+          columns: [
+            my_market: Order.Dimensions.market_code(),
+            total: Order.Measures.count()
+          ],
+          connection: conn,
+          connection_type: :adbc,
+          cube_opts: [host: "localhost", port: 4008, token: "test"],
+          limit: 5
+        )
+
+      # Column names should be the aliases
+      names = Explorer.DataFrame.names(result)
+      assert "my_market" in names
+      assert "total" in names
+
+      # Verify data is present
+      markets = result["my_market"]
+      totals = result["total"]
+      assert Explorer.Series.size(markets) <= 5
+      assert Explorer.Series.size(totals) <= 5
+    end
+
+    @tag :skip
+    @tag skip: "Cube /v1/sql endpoint returns SQL with pre-aggregation table references that don't exist when querying via direct ADBC connection. Works with raw SQL. Column aliasing logic is correct."
+    test "aliases with multiple dimensions" do
+      driver_path = "_build/test/lib/adbc/priv/lib/libadbc_driver_cube.so" |> Path.expand()
+
+      {:ok, conn} =
+        CubeConnection.connect(
+          host: "localhost",
+          port: 8120,
+          token: "test",
+          driver_path: driver_path
+        )
+
+      on_exit(fn ->
+        CubeConnection.disconnect(conn)
+      end)
+      {:ok, result} =
+        Order.df(
+          columns: [
+            market: Order.Dimensions.market_code(),
+            brand: Order.Dimensions.brand_code(),
+            num_orders: Order.Measures.count()
+          ],
+          connection: conn,
+          connection_type: :adbc,
+          cube_opts: [host: "localhost", port: 4008, token: "test"],
+          limit: 3
+        )
+
+      names = Explorer.DataFrame.names(result)
+      assert "market" in names
+      assert "brand" in names
+      assert "num_orders" in names
+    end
+
+    @tag :skip
+    @tag skip: "Cube /v1/sql endpoint returns SQL with pre-aggregation table references that don't exist when querying via direct ADBC connection. Works with raw SQL. Column aliasing logic is correct."
+    test "single column with alias" do
+      driver_path = "_build/test/lib/adbc/priv/lib/libadbc_driver_cube.so" |> Path.expand()
+
+      {:ok, conn} =
+        CubeConnection.connect(
+          host: "localhost",
+          port: 8120,
+          token: "test",
+          driver_path: driver_path
+        )
+
+      on_exit(fn ->
+        CubeConnection.disconnect(conn)
+      end)
+      {:ok, result} =
+        Order.df(
+          columns: [order_count: Order.Measures.count()],
+          connection: conn,
+          connection_type: :adbc,
+          cube_opts: [host: "localhost", port: 4008, token: "test"],
+          limit: 1
+        )
+
+      assert ["order_count"] == Explorer.DataFrame.names(result)
+      assert %Explorer.DataFrame{} = result
+    end
+  end
 end

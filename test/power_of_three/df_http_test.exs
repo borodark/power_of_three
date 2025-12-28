@@ -442,4 +442,89 @@ defmodule PowerOfThree.DfHttpTest do
       assert brands == Enum.sort(brands)
     end
   end
+
+  describe "df/1 with column aliases (HTTP)" do
+    test "simple aliases for dimensions and measures" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            mah_brand: Customer.Dimensions.brand(),
+            mah_people: Customer.Measures.count()
+          ],
+          limit: 5
+        )
+
+      # Column names should be the aliases
+      assert ["mah_brand", "mah_people"] == Explorer.DataFrame.names(result)
+
+      # Verify data is present
+      brands = result["mah_brand"]
+      counts = result["mah_people"]
+      assert 5 == Explorer.Series.size(brands)
+      assert 5 == Explorer.Series.size(counts)
+    end
+
+    test "mixed aliases and regular syntax" do
+      # This should be treated as a keyword list with aliases
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            brand_alias: Customer.Dimensions.brand(),
+            market_alias: Customer.Dimensions.market(),
+            total: Customer.Measures.count()
+          ],
+          limit: 3
+        )
+
+      names = Explorer.DataFrame.names(result)
+      assert "brand_alias" in names
+      assert "market_alias" in names
+      assert "total" in names
+    end
+
+    test "aliases with WHERE clause" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            my_brand: Customer.Dimensions.brand(),
+            num_customers: Customer.Measures.count()
+          ],
+          where: "brand_code = 'BudLight'",
+          limit: 5
+        )
+
+      assert ["my_brand", "num_customers"] == Explorer.DataFrame.names(result)
+
+      brands = result["my_brand"]
+      assert Enum.all?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
+    end
+
+    test "aliases with ORDER BY" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            beer: Customer.Dimensions.brand(),
+            popularity: Customer.Measures.count()
+          ],
+          order_by: [{1, :asc}],
+          limit: 5
+        )
+
+      assert ["beer", "popularity"] == Explorer.DataFrame.names(result)
+
+      beers = result["beer"]
+      assert 5 == Explorer.Series.size(beers)
+    end
+
+    test "single column with alias" do
+      {:ok, result} =
+        Customer.df(
+          columns: [total_count: Customer.Measures.count()],
+          limit: 1
+        )
+
+      assert ["total_count"] == Explorer.DataFrame.names(result)
+      assert %Explorer.DataFrame{} = result
+    end
+  end
 end

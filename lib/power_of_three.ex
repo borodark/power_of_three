@@ -993,6 +993,28 @@ defmodule PowerOfThree do
               limit: 10
             )
 
+            # With column aliases (rename columns in the DataFrame)
+            {:ok, df} = Customer.df(
+              columns: [
+                my_brand: Customer.Dimensions.brand(),
+                total_customers: Customer.Measures.count()
+              ],
+              limit: 5
+            )
+            # DataFrame will have columns: ["my_brand", "total_customers"]
+            # instead of default ["brand", "count"]
+
+            # Column aliases work with all query options
+            {:ok, df} = Customer.df(
+              columns: [
+                beer_brand: Customer.Dimensions.brand(),
+                num_customers: Customer.Measures.count()
+              ],
+              where: "brand_code = 'BudLight'",
+              order_by: [{2, :desc}],
+              limit: 10
+            )
+
             # Reusing an ADBC connection
             {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
             df = Customer.df(columns: [...], connection: conn)
@@ -1010,20 +1032,31 @@ defmodule PowerOfThree do
         """
         def df(opts) do
           cube_name = unquote(cube_name) |> to_string()
-          _columns = Keyword.fetch!(opts, :columns)
+          columns = Keyword.fetch!(opts, :columns)
+
+          # Parse columns to extract aliases if present
+          {column_refs, alias_map} = parse_columns_with_aliases(columns)
 
           query_opts =
             opts
             |> Keyword.put(:cube, cube_name)
+            |> Keyword.put(:columns, column_refs)
             |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
 
           # Determine connection mode (HTTP or ADBC)
-          case determine_connection_mode(opts) do
-            {:http, http_opts} ->
-              execute_http_query(query_opts, http_opts)
+          result =
+            case determine_connection_mode(opts) do
+              {:http, http_opts} ->
+                execute_http_query(query_opts, http_opts)
 
-            {:adbc, adbc_opts} ->
-              execute_adbc_query(query_opts, adbc_opts)
+              {:adbc, adbc_opts} ->
+                execute_adbc_query(query_opts, adbc_opts)
+            end
+
+          # Apply column aliases if present
+          case result do
+            {:ok, df} -> {:ok, apply_column_aliases(df, alias_map)}
+            error -> error
           end
         end
 
@@ -1079,6 +1112,8 @@ defmodule PowerOfThree do
 
           case PowerOfThree.CubeSqlGenerator.generate_sql(query_opts, cube_opts) do
             {:ok, sql} ->
+              # Replace MySQL backticks with PostgreSQL double quotes for ADBC compatibility
+              sql = String.replace(sql, "`", "\"")
               # Get or create connection
               conn =
                 case Keyword.get(opts, :connection) do
@@ -1105,6 +1140,76 @@ defmodule PowerOfThree do
 
             {:error, reason} ->
               {:error, reason}
+          end
+        end
+
+        # Parses columns option and extracts aliases if present
+        # Returns {column_refs, alias_map} where:
+        # - column_refs is a list of DimensionRef/MeasureRef structs
+        # - alias_map is %{cube_member_name => alias_name} or nil if no aliases
+        defp parse_columns_with_aliases(columns) do
+          case columns do
+            # Keyword list with aliases: [mah_brand: dim_ref, mah_count: measure_ref]
+            [{key, _value} | _] = kw_list when is_atom(key) ->
+              # Check if all items are keyword pairs
+              if Keyword.keyword?(kw_list) do
+                {column_refs, alias_pairs} =
+                  Enum.map(kw_list, fn {alias, column_ref} ->
+                    cube_member_name = get_cube_member_name(column_ref)
+                    {column_ref, {cube_member_name, to_string(alias)}}
+                  end)
+                  |> Enum.unzip()
+
+                alias_map = Map.new(alias_pairs)
+                {column_refs, alias_map}
+              else
+                # Mixed list, treat as plain list
+                {columns, nil}
+              end
+
+            # Plain list: [dim_ref, measure_ref]
+            _ ->
+              {columns, nil}
+          end
+        end
+
+        # Gets the Cube member name for a dimension or measure ref
+        defp get_cube_member_name(%PowerOfThree.DimensionRef{} = dim) do
+          PowerOfThree.CubeQueryTranslator.dimension_to_cube_name(dim)
+        end
+
+        defp get_cube_member_name(%PowerOfThree.MeasureRef{} = measure) do
+          PowerOfThree.CubeQueryTranslator.measure_to_cube_name(measure)
+        end
+
+        # Renames DataFrame columns according to alias map
+        defp apply_column_aliases(df, nil), do: df
+
+        defp apply_column_aliases(df, alias_map) when is_map(alias_map) do
+          current_names = Explorer.DataFrame.names(df)
+
+          rename_map =
+            Enum.reduce(current_names, %{}, fn name, acc ->
+              # Try exact match first, then try with just the column name (normalized)
+              alias_name =
+                Map.get(alias_map, name) ||
+                  # Find by matching the suffix after the dot (for normalized names)
+                  Enum.find_value(alias_map, fn {full_name, alias} ->
+                    if String.ends_with?(full_name, ".#{name}") or full_name == name do
+                      alias
+                    end
+                  end)
+
+              case alias_name do
+                nil -> acc
+                alias -> Map.put(acc, name, alias)
+              end
+            end)
+
+          if map_size(rename_map) > 0 do
+            Explorer.DataFrame.rename(df, rename_map)
+          else
+            df
           end
         end
 
