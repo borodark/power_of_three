@@ -38,7 +38,7 @@ defmodule PowerOfThree.CubeSqlGenerator do
   - Pre-aggregation matching happens server-side (not client-side)
   """
 
-  alias PowerOfThree.{CubeQueryTranslator, DimensionRef, MeasureRef}
+  alias PowerOfThree.{CubeQueryTranslator, DimensionRef, MeasureRef, FilterBuilder}
 
   @doc """
   Generates SQL that references cube names for ADBC execution.
@@ -75,12 +75,12 @@ defmodule PowerOfThree.CubeSqlGenerator do
         cube_name
       ]
 
-      # Add WHERE clause if present
+      # Add WHERE clause if present (supports typed filters only)
       sql_parts =
-        case Keyword.get(query_opts, :where) do
-          nil -> sql_parts
-          "" -> sql_parts
-          where_clause -> sql_parts ++ ["WHERE", where_clause]
+        case FilterBuilder.to_sql(Keyword.get(query_opts, :where)) do
+          {:ok, ""} -> sql_parts
+          {:ok, where_sql} -> sql_parts ++ ["WHERE", where_sql]
+          {:error, reason} -> throw({:error, reason})
         end
 
       # Add GROUP BY if we have dimensions
@@ -96,8 +96,12 @@ defmodule PowerOfThree.CubeSqlGenerator do
 
       sql_parts =
         case order_result do
-          {:ok, ""} -> sql_parts
-          {:ok, order_clause} -> sql_parts ++ ["ORDER BY", order_clause]
+          {:ok, ""} ->
+            sql_parts
+
+          {:ok, order_clause} ->
+            sql_parts ++ ["ORDER BY", order_clause]
+
           {:error, _} = err ->
             # Early return on error
             throw(err)
@@ -301,5 +305,4 @@ defmodule PowerOfThree.CubeSqlGenerator do
     # Delegate to CubeQueryTranslator which has full WHERE clause parsing support
     CubeQueryTranslator.to_cube_query(query_opts)
   end
-
 end

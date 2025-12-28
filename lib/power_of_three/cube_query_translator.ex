@@ -14,7 +14,7 @@ defmodule PowerOfThree.CubeQueryTranslator do
           %DimensionRef{name: :brand, module: Customer},
           %MeasureRef{name: :count, module: Customer}
         ],
-        where: "brand_code = 'NIKE'",
+        where: [{Customer.Dimensions.brand(), :==, "NIKE"}],
         order_by: [{2, :desc}],
         limit: 10,
         offset: 5
@@ -25,26 +25,27 @@ defmodule PowerOfThree.CubeQueryTranslator do
         "dimensions" => ["of_customers.brand"],
         "measures" => ["of_customers.count"],
         "filters" => [
-          %{"member" => "of_customers.brand_code", "operator" => "equals", "values" => ["NIKE"]}
+          %{"member" => "of_customers.brand", "operator" => "equals", "values" => ["NIKE"]}
         ],
         "order" => [["of_customers.count", "desc"]],
         "limit" => 10,
         "offset" => 5
       }
 
-  ## Limitations
+  ## WHERE Clause Support
 
-  Phase 1 supports simple WHERE clauses with basic operators:
-  - `=` (equals)
-  - `!=` (notEquals)
-  - `>`, `>=`, `<`, `<=` (comparison operators)
-  - `IN (...)` (set membership)
+  Supports typed WHERE clauses using DimensionRef and MeasureRef:
+  - `:==` (equals)
+  - `:!=` (not equals)
+  - `:>`, `:>=`, `:<`, `:<=` (comparison operators)
+  - `:in`, `:not_in` (set membership)
+  - `:like`, `:not_like` (pattern matching)
+  - `:is_nil`, `:is_not_nil` (NULL checks)
 
-  Complex WHERE clauses with multiple conditions or subqueries are not
-  supported and will return an error. For complex queries, use ADBC instead.
+  All conditions in the WHERE list are combined with AND logic.
   """
 
-  alias PowerOfThree.{DimensionRef, MeasureRef, QueryError}
+  alias PowerOfThree.{DimensionRef, MeasureRef, QueryError, FilterBuilder}
 
   @doc """
   Translates PowerOfThree query options to Cube Query JSON format.
@@ -59,7 +60,7 @@ defmodule PowerOfThree.CubeQueryTranslator do
 
   ## Optional Options
 
-  - `:where` - SQL WHERE clause (simple expressions only)
+  - `:where` - List of typed filter conditions `[{column_ref, operator, value}]`
   - `:order_by` - List of `{column_index, direction}` tuples
   - `:limit` - Maximum number of rows
   - `:offset` - Number of rows to skip
@@ -76,7 +77,7 @@ defmodule PowerOfThree.CubeQueryTranslator do
       ...>     %DimensionRef{name: :brand, module: Customer},
       ...>     %MeasureRef{name: :count, module: Customer}
       ...>   ],
-      ...>   where: "brand_code = 'NIKE'",
+      ...>   where: [{Customer.Dimensions.brand(), :==, "NIKE"}],
       ...>   limit: 10
       ...> ]
       iex> PowerOfThree.CubeQueryTranslator.to_cube_query(opts)
@@ -169,147 +170,13 @@ defmodule PowerOfThree.CubeQueryTranslator do
     |> to_string()
   end
 
-  # Parses SQL WHERE clause to Cube filters
+  # Parses WHERE clause to Cube filters
   defp parse_where_clause(nil, _columns), do: {:ok, []}
-  defp parse_where_clause("", _columns), do: {:ok, []}
+  defp parse_where_clause([], _columns), do: {:ok, []}
 
-  defp parse_where_clause(where_sql, columns) when is_binary(where_sql) do
-    # Simple WHERE clause parser for common patterns
-    # Supports: field = 'value', field != 'value', field > value, field IN (...)
-
-    where_sql = String.trim(where_sql)
-
-    cond do
-      # Pattern: field = 'value' or field = value
-      Regex.match?(~r/^(\w+)\s*=\s*'([^']+)'$/, where_sql) ->
-        parse_equals_filter(where_sql, columns)
-
-      Regex.match?(~r/^(\w+)\s*=\s*(\d+)$/, where_sql) ->
-        parse_equals_filter(where_sql, columns)
-
-      # Pattern: field != 'value'
-      Regex.match?(~r/^(\w+)\s*!=\s*'([^']+)'$/, where_sql) ->
-        parse_not_equals_filter(where_sql, columns)
-
-      # Pattern: field > value, field >= value, etc.
-      Regex.match?(~r/^(\w+)\s*(>|>=|<|<=)\s*(\d+)$/, where_sql) ->
-        parse_comparison_filter(where_sql, columns)
-
-      # Pattern: field IN ('a', 'b', 'c')
-      Regex.match?(~r/^(\w+)\s+IN\s*\(/i, where_sql) ->
-        parse_in_filter(where_sql, columns)
-
-      true ->
-        {:error,
-         QueryError.translation_error(
-           "Complex WHERE clause not supported in HTTP mode. " <>
-             "Use ADBC or structured filters. WHERE: #{where_sql}"
-         )}
-    end
-  end
-
-  # Parses "field = 'value'" pattern
-  defp parse_equals_filter(where_sql, columns) do
-    case Regex.run(~r/^(\w+)\s*=\s*'([^']+)'$/, where_sql) do
-      [_, field, value] ->
-        member = field_to_cube_member(field, columns)
-        {:ok, [%{"member" => member, "operator" => "equals", "values" => [value]}]}
-
-      nil ->
-        # Try numeric value
-        case Regex.run(~r/^(\w+)\s*=\s*(\d+)$/, where_sql) do
-          [_, field, value] ->
-            member = field_to_cube_member(field, columns)
-            {:ok, [%{"member" => member, "operator" => "equals", "values" => [value]}]}
-
-          nil ->
-            {:error, QueryError.translation_error("Failed to parse WHERE clause: #{where_sql}")}
-        end
-    end
-  end
-
-  # Parses "field != 'value'" pattern
-  defp parse_not_equals_filter(where_sql, _columns) do
-    case Regex.run(~r/^(\w+)\s*!=\s*'([^']+)'$/, where_sql) do
-      [_, field, value] ->
-        {:ok, [%{"member" => field, "operator" => "notEquals", "values" => [value]}]}
-
-      nil ->
-        {:error, QueryError.translation_error("Failed to parse WHERE clause: #{where_sql}")}
-    end
-  end
-
-  # Parses "field > value" patterns
-  defp parse_comparison_filter(where_sql, _columns) do
-    case Regex.run(~r/^(\w+)\s*(>|>=|<|<=)\s*(\d+)$/, where_sql) do
-      [_, field, operator, value] ->
-        cube_operator =
-          case operator do
-            ">" -> "gt"
-            ">=" -> "gte"
-            "<" -> "lt"
-            "<=" -> "lte"
-          end
-
-        {:ok, [%{"member" => field, "operator" => cube_operator, "values" => [value]}]}
-
-      nil ->
-        {:error, QueryError.translation_error("Failed to parse WHERE clause: #{where_sql}")}
-    end
-  end
-
-  # Parses "field IN ('a', 'b', 'c')" pattern
-  defp parse_in_filter(where_sql, _columns) do
-    case Regex.run(~r/^(\w+)\s+IN\s*\(([^)]+)\)/i, where_sql) do
-      [_, field, values_str] ->
-        values =
-          values_str
-          |> String.split(",")
-          |> Enum.map(&String.trim/1)
-          |> Enum.map(&String.trim(&1, "'\""))
-
-        {:ok, [%{"member" => field, "operator" => "set", "values" => values}]}
-
-      nil ->
-        {:error, QueryError.translation_error("Failed to parse WHERE clause: #{where_sql}")}
-    end
-  end
-
-  # Converts a field name to Cube member format
-  # Tries to find matching dimension/measure in columns list by SQL field name
-  defp field_to_cube_member(field, columns) do
-    # First, try to find a dimension/measure that uses this SQL field
-    found =
-      Enum.find(columns, fn
-        %DimensionRef{sql: ^field} -> true
-        %DimensionRef{meta: %{ecto_field: ecto_field}} -> to_string(ecto_field) == field
-        %MeasureRef{sql: sql} when is_binary(sql) -> sql == field
-        %MeasureRef{meta: %{ecto_field: ecto_field}} -> to_string(ecto_field) == field
-        _ -> false
-      end)
-
-    case found do
-      %DimensionRef{} = dim ->
-        dimension_to_cube_name(dim)
-
-      %MeasureRef{} = measure ->
-        measure_to_cube_name(measure)
-
-      nil ->
-        # If not found, try to construct cube member from first column's cube name
-        case List.first(columns) do
-          %DimensionRef{module: module} ->
-            cube_name = extract_cube_name(module)
-            "#{cube_name}.#{field}"
-
-          %MeasureRef{module: module} ->
-            cube_name = extract_cube_name(module)
-            "#{cube_name}.#{field}"
-
-          _ ->
-            field
-        end
-    end
+  # Typed filter syntax (list of filter conditions)
+  defp parse_where_clause(conditions, _columns) when is_list(conditions) do
+    FilterBuilder.to_cube_filters(conditions)
   end
 
   # Translates ORDER BY from column indices to field names

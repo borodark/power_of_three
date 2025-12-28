@@ -137,7 +137,7 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
           TestSchema.Dimensions.brand(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code = 'BudLight'"
+        where: [{TestSchema.Dimensions.brand(), :==, "BudLight"}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
@@ -156,14 +156,14 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
           TestSchema.Dimensions.brand(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code = 123"
+        where: [{TestSchema.Dimensions.brand(), :==, 123}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "equals"
-      assert filter["values"] == ["123"]
+      assert filter["values"] == [123]
     end
   end
 
@@ -174,7 +174,7 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
           TestSchema.Dimensions.brand(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code != 'Unknown'"
+        where: [{TestSchema.Dimensions.brand(), :!=, "Unknown"}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
@@ -189,53 +189,53 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
     test "parses greater than filter" do
       opts = [
         columns: [TestSchema.Measures.count()],
-        where: "count > 100"
+        where: [{TestSchema.Measures.count(), :>, 100}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "gt"
-      assert filter["values"] == ["100"]
+      assert filter["values"] == [100]
     end
 
     test "parses greater than or equal filter" do
       opts = [
         columns: [TestSchema.Measures.count()],
-        where: "count >= 50"
+        where: [{TestSchema.Measures.count(), :>=, 50}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "gte"
-      assert filter["values"] == ["50"]
+      assert filter["values"] == [50]
     end
 
     test "parses less than filter" do
       opts = [
         columns: [TestSchema.Measures.count()],
-        where: "count < 1000"
+        where: [{TestSchema.Measures.count(), :<, 1000}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "lt"
-      assert filter["values"] == ["1000"]
+      assert filter["values"] == [1000]
     end
 
     test "parses less than or equal filter" do
       opts = [
         columns: [TestSchema.Measures.count()],
-        where: "count <= 500"
+        where: [{TestSchema.Measures.count(), :<=, 500}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
       assert filter["operator"] == "lte"
-      assert filter["values"] == ["500"]
+      assert filter["values"] == [500]
     end
   end
 
@@ -246,37 +246,38 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
           TestSchema.Dimensions.brand(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code IN ('BudLight', 'Dos Equis', 'Blue Moon')"
+        where: [{TestSchema.Dimensions.brand(), :in, ["BudLight", "Dos Equis", "Blue Moon"]}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
-      assert filter["operator"] == "set"
-      assert filter["values"] == ["'BudLight'", "'Dos Equis'", "'Blue Moon'"]
+      assert filter["operator"] == "equals"
+      assert filter["values"] == ["BudLight", "Dos Equis", "Blue Moon"]
     end
 
-    test "parses IN filter case insensitive" do
+    test "parses IN filter with two values" do
       opts = [
         columns: [
           TestSchema.Dimensions.brand(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code in ('BudLight', 'Corona')"
+        where: [{TestSchema.Dimensions.brand(), :in, ["BudLight", "Corona"]}]
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       filter = List.first(cube_query["filters"])
-      assert filter["operator"] == "set"
+      assert filter["operator"] == "equals"
+      assert filter["values"] == ["BudLight", "Corona"]
     end
   end
 
   describe "WHERE clause parsing - edge cases" do
-    test "handles empty WHERE clause" do
+    test "handles empty WHERE list" do
       opts = [
         columns: [TestSchema.Measures.count()],
-        where: ""
+        where: []
       ]
 
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
@@ -293,31 +294,6 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
       {:ok, cube_query} = CubeQueryTranslator.to_cube_query(opts)
 
       refute Map.has_key?(cube_query, "filters")
-    end
-
-    test "returns error for complex WHERE clause" do
-      opts = [
-        columns: [TestSchema.Measures.count()],
-        where: "brand_code = 'BudLight' AND market_code = 'US'"
-      ]
-
-      {:error, error} = CubeQueryTranslator.to_cube_query(opts)
-
-      assert %QueryError{} = error
-      assert error.type == :translation_error
-      assert String.contains?(error.message, "Complex WHERE clause")
-    end
-
-    test "returns error for unsupported WHERE pattern" do
-      opts = [
-        columns: [TestSchema.Measures.count()],
-        where: "EXTRACT(YEAR FROM created_at) = 2023"
-      ]
-
-      {:error, error} = CubeQueryTranslator.to_cube_query(opts)
-
-      assert %QueryError{} = error
-      assert error.type == :translation_error
     end
   end
 
@@ -413,7 +389,7 @@ defmodule PowerOfThree.CubeQueryTranslatorTest do
           TestSchema.Dimensions.market(),
           TestSchema.Measures.count()
         ],
-        where: "brand_code = 'BudLight'",
+        where: [{TestSchema.Dimensions.brand(), :==, "BudLight"}],
         order_by: [{3, :desc}],
         limit: 10,
         offset: 5

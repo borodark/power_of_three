@@ -1191,9 +1191,9 @@ defmodule PowerOfThree do
           rename_map =
             Enum.reduce(current_names, %{}, fn name, acc ->
               # Try exact match first, then try with just the column name (normalized)
+              # Find by matching the suffix after the dot (for normalized names)
               alias_name =
                 Map.get(alias_map, name) ||
-                  # Find by matching the suffix after the dot (for normalized names)
                   Enum.find_value(alias_map, fn {full_name, alias} ->
                     if String.ends_with?(full_name, ".#{name}") or full_name == name do
                       alias

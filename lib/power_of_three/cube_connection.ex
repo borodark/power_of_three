@@ -168,6 +168,7 @@ defmodule PowerOfThree.CubeConnection do
 
     Adbc.Database.start_link(db_opts)
   end
+
   # TODO poolboy this
   defp start_connection(db, username, password) do
     conn_opts = [database: db]
