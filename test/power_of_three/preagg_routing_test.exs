@@ -14,7 +14,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
     mix test test/power_of_three/preagg_routing_test.exs --trace
   """
 
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Adbc.{Database, Connection, Result}
 

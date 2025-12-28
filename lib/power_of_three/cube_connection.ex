@@ -122,38 +122,6 @@ defmodule PowerOfThree.CubeConnection do
     end
   end
 
-  @doc """
-  Executes a SQL query and returns results as a map.
-
-  ## Examples
-
-      {:ok, data} = CubeConnection.query_to_map(conn, "SELECT 1 as test")
-      # => {:ok, %{"test" => [1]}}
-  """
-  @spec query_to_map(connection(), String.t()) :: {:ok, map()} | {:error, query_error()}
-  def query_to_map(conn, sql) do
-    case query(conn, sql) do
-      {:ok, result} -> {:ok, Adbc.Result.to_map(result)}
-      error -> error
-    end
-  end
-
-  @doc """
-  Executes a SQL query and returns results as a map, raising on error.
-
-  ## Examples
-
-      data = CubeConnection.query_to_map!(conn, "SELECT 1 as test")
-      # => %{"test" => [1]}
-  """
-  @spec query_to_map!(connection(), String.t()) :: map()
-  def query_to_map!(conn, sql) do
-    case query_to_map(conn, sql) do
-      {:ok, data} -> data
-      {:error, error} -> raise error
-    end
-  end
-
   # Private functions
 
   defp merge_config(opts) do
@@ -172,7 +140,7 @@ defmodule PowerOfThree.CubeConnection do
 
     Adbc.Database.start_link(db_opts)
   end
-
+  # TODO poolboy this
   defp start_connection(db, username, password) do
     conn_opts = [database: db]
 

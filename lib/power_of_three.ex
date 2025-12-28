@@ -1096,6 +1096,7 @@ defmodule PowerOfThree do
               error
 
             conn ->
+              # TODO NO MAPS! Staight to DataFrame! 
               case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
                 {:ok, result_map} ->
                   {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
