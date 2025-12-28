@@ -394,7 +394,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Empty result set")
 
       assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      _materialized = Result.materialize(result)
 
       IO.puts("✅ Empty result handled correctly")
     end

@@ -2,12 +2,12 @@ defmodule PowerOfThree.CubeQueryTranslator do
   @moduledoc """
   Translates PowerOfThree query options to Cube Query JSON format.
 
-  Converts from the QueryBuilder-style options (SQL-oriented) to the
-  Cube REST API JSON query format.
+  Converts PowerOfThree query options (dimensions, measures, filters) to the
+  Cube REST API JSON query format for HTTP API queries.
 
   ## Translation Examples
 
-      # Input (QueryBuilder options):
+      # Input (PowerOfThree query options):
       [
         cube: "customer",
         columns: [
@@ -47,7 +47,7 @@ defmodule PowerOfThree.CubeQueryTranslator do
   alias PowerOfThree.{DimensionRef, MeasureRef, QueryError}
 
   @doc """
-  Translates QueryBuilder options to Cube Query JSON format.
+  Translates PowerOfThree query options to Cube Query JSON format.
 
   ## Parameters
 

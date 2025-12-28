@@ -29,8 +29,8 @@ defmodule PowerOfThree.CubeConnection do
       # Execute a query
       {:ok, result} = CubeConnection.query(conn, "SELECT 1 as test")
 
-      # Get results as a map
-      {:ok, data} = CubeConnection.query_to_map(conn, sql)
+      # Get results as DataFrame (recommended)
+      {:ok, df} = PowerOfThree.CubeFrame.from_query(conn, "SELECT * FROM cube_name LIMIT 10")
 
   """
 
@@ -108,6 +108,22 @@ defmodule PowerOfThree.CubeConnection do
   end
 
   @doc """
+  Executes a SQL query with parameters and options.
+
+  ## Examples
+
+      {:ok, result} = CubeConnection.query(conn, "SELECT * FROM orders WHERE id = ?", [123])
+  """
+  @spec query(connection(), String.t(), list(), keyword()) ::
+          {:ok, query_result()} | {:error, query_error()}
+  def query(conn, sql, params, _opts \\ []) when is_binary(sql) and is_list(params) do
+    # For now, ADBC doesn't support parameterized queries with Cube
+    # So we'll just call the simple query/2 version
+    # In the future, this could be extended to support parameters
+    query(conn, sql)
+  end
+
+  @doc """
   Executes a SQL query and raises on error.
 
   ## Examples
@@ -120,6 +136,18 @@ defmodule PowerOfThree.CubeConnection do
       {:ok, result} -> result
       {:error, error} -> raise error
     end
+  end
+
+  @doc """
+  Disconnects from Cube.
+
+  ## Examples
+
+      :ok = CubeConnection.disconnect(conn)
+  """
+  @spec disconnect(connection()) :: :ok
+  def disconnect(conn) when is_pid(conn) do
+    GenServer.stop(conn, :normal)
   end
 
   # Private functions

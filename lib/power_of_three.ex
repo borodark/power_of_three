@@ -197,7 +197,7 @@ defmodule PowerOfThree do
 
   ### Building Queries
 
-  Both accessor styles can be used with QueryBuilder and df/1:
+  Both accessor styles can be used with df/1:
 
       # Using module accessors
       Customer.df(columns: [
@@ -1074,36 +1074,37 @@ defmodule PowerOfThree do
 
         # Executes query via ADBC
         defp execute_adbc_query(query_opts, opts) do
-          sql = PowerOfThree.QueryBuilder.build(query_opts)
+          # Get SQL from Cube's /v1/sql endpoint instead of building it ourselves
+          cube_opts = Keyword.get(opts, :cube_opts, [])
 
-          # Get or create connection
-          conn =
-            case Keyword.get(opts, :connection) do
-              nil ->
-                conn_opts = Keyword.get(opts, :connection_opts, [])
+          case PowerOfThree.CubeSqlGenerator.generate_sql(query_opts, cube_opts) do
+            {:ok, sql} ->
+              # Get or create connection
+              conn =
+                case Keyword.get(opts, :connection) do
+                  nil ->
+                    conn_opts = Keyword.get(opts, :connection_opts, [])
 
-                case PowerOfThree.CubeConnection.connect(conn_opts) do
-                  {:ok, conn} -> conn
-                  {:error, error} -> {:error, error}
+                    case PowerOfThree.CubeConnection.connect(conn_opts) do
+                      {:ok, conn} -> conn
+                      {:error, error} -> {:error, error}
+                    end
+
+                  conn ->
+                    conn
                 end
 
-              conn ->
-                conn
-            end
-
-          case conn do
-            {:error, _} = error ->
-              error
-
-            conn ->
-              # TODO NO MAPS! Staight to DataFrame! 
-              case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
-                {:ok, result_map} ->
-                  {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
-
+              case conn do
                 {:error, _} = error ->
                   error
+
+                conn ->
+                  # Query directly to DataFrame - no intermediate map materialization
+                  PowerOfThree.CubeFrame.from_query(conn, sql)
               end
+
+            {:error, reason} ->
+              {:error, reason}
           end
         end
 
