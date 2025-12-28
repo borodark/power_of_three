@@ -201,30 +201,7 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
     end
   end
 
-  describe "Cube SQL generation via /v1/sql endpoint" do
-    test "fetches SQL from Cube REST API" do
-      cube_query = %{
-        "dimensions" => ["orders_no_preagg.market_code", "orders_no_preagg.brand_code"],
-        "measures" => ["orders_no_preagg.count"],
-        "limit" => 5
-      }
-
-      {:ok, sql} =
-        PowerOfThree.CubeSqlGenerator.fetch_sql_from_cube(
-          cube_query,
-          host: "localhost",
-          port: 4008,
-          token: "test"
-        )
-
-      assert is_binary(sql)
-      assert sql =~ "SELECT"
-      assert sql =~ "market_code"
-      assert sql =~ "brand_code"
-      assert sql =~ "count"
-      assert sql =~ "LIMIT 5"
-    end
-
+  describe "Direct SQL generation for ADBC" do
     test "converts PowerOfThree query options to Cube query format" do
       query_opts = [
         columns: [
@@ -260,7 +237,7 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
       assert cube_query["limit"] == 5
     end
 
-    test "generates SQL end-to-end" do
+    test "generates SQL with cube names (not pre-agg tables)" do
       query_opts = [
         columns: [
           %DimensionRef{
@@ -278,21 +255,24 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
         limit: 10
       ]
 
-      {:ok, sql} =
-        PowerOfThree.CubeSqlGenerator.generate_sql(
-          query_opts,
-          host: "localhost",
-          port: 4008,
-          token: "test"
-        )
+      {:ok, sql} = PowerOfThree.CubeSqlGenerator.generate_sql(query_opts)
 
       assert is_binary(sql)
+      # Should reference cube name
+      assert sql =~ "FROM mandata_captate"
+      # Should have SELECT with column aliases
       assert sql =~ "SELECT"
-      assert sql =~ "market_code"
+      assert sql =~ "market_code as market_code"
+      assert sql =~ "COUNT(*) as count"
+      # Should have GROUP BY for dimension
+      assert sql =~ "GROUP BY market_code"
       assert sql =~ "LIMIT 10"
+
+      # Should NOT contain pre-aggregation table references
+      refute sql =~ "dev_pre_aggregations"
     end
 
-    test "handles WHERE clause in PowerOfThree options" do
+    test "handles WHERE clause in generated SQL" do
       query_opts = [
         columns: [
           %DimensionRef{
@@ -311,18 +291,12 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
         limit: 10
       ]
 
-      {:ok, sql} =
-        PowerOfThree.CubeSqlGenerator.generate_sql(
-          query_opts,
-          host: "localhost",
-          port: 4008,
-          token: "test"
-        )
+      {:ok, sql} = PowerOfThree.CubeSqlGenerator.generate_sql(query_opts)
 
       assert is_binary(sql)
-      assert sql =~ "SELECT"
-      assert sql =~ "market_code"
-      # Cube may optimize the WHERE clause in various ways
+      assert sql =~ "FROM mandata_captate"
+      assert sql =~ "WHERE market_code = 'US'"
+      assert sql =~ "GROUP BY market_code"
       assert sql =~ "LIMIT 10"
     end
   end
