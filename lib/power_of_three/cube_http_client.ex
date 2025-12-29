@@ -21,7 +21,7 @@ defmodule PowerOfThree.CubeHttpClient do
       }
 
       {:ok, result} = PowerOfThree.CubeHttpClient.query(client, cube_query)
-      # Returns columnar data: %{"of_customers.brand" => [...], "of_customers.count" => [...]}
+      # Returns columnar data with normalized names: %{"brand" => [...], "count" => [...]}
 
   ## Configuration
 
@@ -32,8 +32,9 @@ defmodule PowerOfThree.CubeHttpClient do
 
   ## Response Format
 
-  The Cube API returns row-oriented data, which this module transforms to
-  columnar format (matching ADBC output):
+  The Cube API returns row-oriented data with fully-qualified column names.
+  This module transforms it to columnar format with normalized column names
+  (matching ADBC output):
 
       # Cube API response:
       %{"data" => [
@@ -41,11 +42,16 @@ defmodule PowerOfThree.CubeHttpClient do
         %{"of_customers.brand" => "Adidas", "of_customers.count" => "38"}
       ]}
 
-      # Transformed output:
+      # Transformed output (column names normalized):
       %{
-        "of_customers.brand" => ["NIKE", "Adidas"],
-        "of_customers.count" => [42, 38]  # Type-converted from strings
+        "brand" => ["NIKE", "Adidas"],      # Cube prefix stripped
+        "count" => [42, 38]                  # Type-converted from strings
       }
+
+  Column names are normalized by stripping the cube name prefix:
+  - "of_customers.brand" → "brand"
+  - "orders_with_preagg.count" → "count"
+  - "updated_at.hour" → "hour"
 
   ## Type Conversion
 
@@ -156,8 +162,8 @@ defmodule PowerOfThree.CubeHttpClient do
       ...> }
       iex> PowerOfThree.CubeHttpClient.query(client, cube_query)
       {:ok, %{
-        "of_customers.brand" => ["NIKE", "Adidas", "Puma"],
-        "of_customers.count" => [42, 38, 25]
+        "brand" => ["NIKE", "Adidas", "Puma"],
+        "count" => [42, 38, 25]
       }}
   """
   def query(client, cube_query) do
@@ -165,56 +171,6 @@ defmodule PowerOfThree.CubeHttpClient do
 
     case Req.post(client.req, url: "/cubejs-api/v1/load", json: request_body) do
       {:ok, %{status: 200, body: body}} ->
-        parse_response(body)
-
-      {:ok, %{status: status, body: body}} ->
-        {:error, QueryError.from_http_status(status, body)}
-
-      {:error, %Req.TransportError{reason: :timeout}} ->
-        {:error, QueryError.timeout()}
-
-      {:error, %Req.TransportError{reason: :econnrefused}} ->
-        {:error, QueryError.connection_error("Connection refused. Is the Cube server running?")}
-
-      {:error, error} ->
-        {:error, QueryError.connection_error("HTTP request failed", error)}
-    end
-  end
-
-  @doc """
-  Executes a Cube Query and returns arrow TODO result data.
-
-  ## Parameters
-
-  - `client` - The CubeHttpClient struct
-  - `cube_query` - Map representing the Cube Query JSON format
-
-  ## Returns
-
-  - `{:ok, result_map}` - Columnar data where keys are field names and values are lists
-  - `{:error, %QueryError{}}` - Error details
-
-  ## Examples
-
-      iex> cube_query = %{
-      ...>   "dimensions" => ["of_customers.brand"],
-      ...>   "measures" => ["of_customers.count"],
-      ...>   "limit" => 5
-      ...> }
-      iex> PowerOfThree.CubeHttpClient.arrow(client, cube_query)
-      {:ok, %{
-        "of_customers.brand" => ["NIKE", "Adidas", "Puma"],
-        "of_customers.count" => [42, 38, 25]
-      }}
-  """
-  def arrow(client, cube_query) do
-    request_body = %{"query" => cube_query}
-
-    case Req.post(client.req, url: "/cubejs-api/v1/arrow", json: request_body) do
-      {:ok, %{status: 200, body: body}} ->
-        # TODO parse actual arrow ->>>------>- when cube starts sending it.
-        # _Sending it_ is a  TODO in cubes codebase.
-        #
         parse_response(body)
 
       {:ok, %{status: status, body: body}} ->
@@ -284,14 +240,33 @@ defmodule PowerOfThree.CubeHttpClient do
   defp transform_to_columnar([], _annotation), do: {:ok, %{}}
 
   defp transform_to_columnar(rows, _annotations) do
-    {
-      :ok,
+    df =
       Explorer.DataFrame.new(rows)
       |> Explorer.DataFrame.dump_csv!()
       |> Explorer.DataFrame.load_csv!()
-    }
+      |> normalize_column_names()
+
+    {:ok, df}
   rescue
     error ->
       {:error, QueryError.parse_error("Failed to transform response", error)}
+  end
+
+  # Normalizes column names by removing cube name prefixes
+  # Converts "orders_with_preagg.brand_code" -> "brand_code"
+  # Converts "orders_with_preagg.count" -> "count"
+  # Keeps columns without prefixes unchanged
+  defp normalize_column_names(df) do
+    old_names = Explorer.DataFrame.names(df)
+
+    new_names =
+      Enum.map(old_names, fn name ->
+        case String.split(name, ".", parts: 2) do
+          [_cube_name, column_name] -> column_name
+          [column_name] -> column_name
+        end
+      end)
+
+    Explorer.DataFrame.rename(df, new_names)
   end
 end

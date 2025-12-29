@@ -14,7 +14,6 @@ defmodule Customer do
   end
 
   cube :power_customers,
-    sql_table: "customer",
     title: "customers cube",
     description: "of Customers" do
     dimension(:first_name, name: :given_name, description: "good documentation")
@@ -82,7 +81,7 @@ defmodule Order do
   use Ecto.Schema
   use PowerOfThree
 
-  schema "order" do
+  schema "public.order" do
     field(:delivery_subtotal_amount, :integer)
     field(:discount_total_amount, :integer)
     field(:email, :string)
@@ -99,7 +98,8 @@ defmodule Order do
   end
 
   # Auto-generated cube - no explicit dimensions/measures
-  cube(:mandata_captate, sql_table: "public.order")
+  # sql_table is automatically inferred from schema "public.order"
+  cube(:mandata_captate, default_pre_aggregation: true)
 end
 
 ExUnit.start(exclude: :live_cube)

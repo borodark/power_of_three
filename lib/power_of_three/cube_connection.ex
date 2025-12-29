@@ -11,7 +11,7 @@ defmodule PowerOfThree.CubeConnection do
 
       config :power_of_three, PowerOfThree.CubeConnection,
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "test",
         username: "username",
         password: "password"
@@ -20,7 +20,7 @@ defmodule PowerOfThree.CubeConnection do
 
       {:ok, conn} = CubeConnection.connect(
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "test"
       )
 
@@ -29,8 +29,8 @@ defmodule PowerOfThree.CubeConnection do
       # Execute a query
       {:ok, result} = CubeConnection.query(conn, "SELECT 1 as test")
 
-      # Get results as a map
-      {:ok, data} = CubeConnection.query_to_map(conn, sql)
+      # Get results as DataFrame (recommended)
+      {:ok, df} = PowerOfThree.CubeFrame.from_query(conn, "SELECT * FROM cube_name LIMIT 10")
 
   """
 
@@ -53,7 +53,7 @@ defmodule PowerOfThree.CubeConnection do
   ## Options
 
     * `:host` - Cube host (default: "localhost")
-    * `:port` - Cube port (default: 4445)
+    * `:port` - Cube port (default: 8120)
     * `:token` - Cube authentication token
     * `:username` - Optional username
     * `:password` - Optional password
@@ -63,7 +63,7 @@ defmodule PowerOfThree.CubeConnection do
 
       {:ok, conn} = CubeConnection.connect(
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: "my-token"
       )
   """
@@ -71,7 +71,7 @@ defmodule PowerOfThree.CubeConnection do
   def connect(
         opts \\ [
           host: "localhost",
-          port: 4445,
+          port: 8120,
           token: "test",
           username: "username",
           password: "password"
@@ -80,7 +80,7 @@ defmodule PowerOfThree.CubeConnection do
     opts = merge_config(opts)
 
     host = Keyword.get(opts, :host, "localhost")
-    port = Keyword.get(opts, :port, 4445)
+    port = Keyword.get(opts, :port, 8120)
     token = Keyword.fetch!(opts, :token)
     username = Keyword.get(opts, :username)
     password = Keyword.get(opts, :password)
@@ -108,6 +108,22 @@ defmodule PowerOfThree.CubeConnection do
   end
 
   @doc """
+  Executes a SQL query with parameters and options.
+
+  ## Examples
+
+      {:ok, result} = CubeConnection.query(conn, "SELECT * FROM orders WHERE id = ?", [123])
+  """
+  @spec query(connection(), String.t(), list(), keyword()) ::
+          {:ok, query_result()} | {:error, query_error()}
+  def query(conn, sql, params, _opts \\ []) when is_binary(sql) and is_list(params) do
+    # For now, ADBC doesn't support parameterized queries with Cube
+    # So we'll just call the simple query/2 version
+    # In the future, this could be extended to support parameters
+    query(conn, sql)
+  end
+
+  @doc """
   Executes a SQL query and raises on error.
 
   ## Examples
@@ -123,35 +139,15 @@ defmodule PowerOfThree.CubeConnection do
   end
 
   @doc """
-  Executes a SQL query and returns results as a map.
+  Disconnects from Cube.
 
   ## Examples
 
-      {:ok, data} = CubeConnection.query_to_map(conn, "SELECT 1 as test")
-      # => {:ok, %{"test" => [1]}}
+      :ok = CubeConnection.disconnect(conn)
   """
-  @spec query_to_map(connection(), String.t()) :: {:ok, map()} | {:error, query_error()}
-  def query_to_map(conn, sql) do
-    case query(conn, sql) do
-      {:ok, result} -> {:ok, Adbc.Result.to_map(result)}
-      error -> error
-    end
-  end
-
-  @doc """
-  Executes a SQL query and returns results as a map, raising on error.
-
-  ## Examples
-
-      data = CubeConnection.query_to_map!(conn, "SELECT 1 as test")
-      # => %{"test" => [1]}
-  """
-  @spec query_to_map!(connection(), String.t()) :: map()
-  def query_to_map!(conn, sql) do
-    case query_to_map(conn, sql) do
-      {:ok, data} -> data
-      {:error, error} -> raise error
-    end
+  @spec disconnect(connection()) :: :ok
+  def disconnect(conn) when is_pid(conn) do
+    GenServer.stop(conn, :normal)
   end
 
   # Private functions
@@ -173,19 +169,20 @@ defmodule PowerOfThree.CubeConnection do
     Adbc.Database.start_link(db_opts)
   end
 
+  # TODO poolboy this
   defp start_connection(db, username, password) do
     conn_opts = [database: db]
 
     conn_opts =
       if username do
-        Keyword.put(conn_opts, "adbc.cube.username", username)
+        conn_opts ++ [{"adbc.cube.username", username}]
       else
         conn_opts
       end
 
     conn_opts =
       if password do
-        Keyword.put(conn_opts, "adbc.cube.password", password)
+        conn_opts ++ [{"adbc.cube.password", password}]
       else
         conn_opts
       end

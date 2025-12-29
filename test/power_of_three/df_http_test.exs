@@ -15,13 +15,13 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Verify we got a map with the expected keys
-
-      assert ["power_customers.brand", "power_customers.count"] ==
+      # Column names are normalized (cube prefix removed)
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
 
       # Verify data is in columnar format
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
       assert 5 == brands |> Explorer.Series.size()
       assert 5 == counts |> Explorer.Series.size()
       # Verify counts are strings (HTTP returns strings)
@@ -36,8 +36,9 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       assert %Explorer.DataFrame{} = result
-      assert "power_customers.count" in Explorer.DataFrame.names(result)
-      counts = result["power_customers.count"]
+      # Column names are normalized (cube prefix removed)
+      assert "count" in Explorer.DataFrame.names(result)
+      counts = result["count"]
       assert %Explorer.Series{} = counts
     end
 
@@ -52,15 +53,16 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
+      # Column names are normalized (cube prefix removed)
       names = Explorer.DataFrame.names(result)
-      assert "power_customers.brand" in names
-      assert "power_customers.market" in names
-      assert "power_customers.count" in names
+      assert "brand" in names
+      assert "market" in names
+      assert "count" in names
 
       # All columns should have same length
-      brands_len = Explorer.Series.size(result["power_customers.brand"])
-      markets_len = Explorer.Series.size(result["power_customers.market"])
-      counts_len = Explorer.Series.size(result["power_customers.count"])
+      brands_len = Explorer.Series.size(result["brand"])
+      markets_len = Explorer.Series.size(result["market"])
+      counts_len = Explorer.Series.size(result["count"])
 
       assert brands_len == markets_len
       assert markets_len == counts_len
@@ -73,7 +75,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
       assert Explorer.Series.size(brands) <= 3
     end
 
@@ -95,8 +97,9 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Results should be different (assuming we have > 2 rows)
-      refute Explorer.Series.to_list(first_batch["power_customers.brand"]) ==
-               Explorer.Series.to_list(second_batch["power_customers.brand"])
+      # Column names are normalized (cube prefix removed)
+      refute Explorer.Series.to_list(first_batch["brand"]) ==
+               Explorer.Series.to_list(second_batch["brand"])
     end
   end
 
@@ -108,12 +111,12 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
 
       assert %Explorer.Series{} = brands
       assert %Explorer.Series{} = counts
@@ -138,40 +141,36 @@ defmodule PowerOfThree.DfHttpTest do
       assert %Explorer.DataFrame{} = result
     end
 
-    @tag :skip
     test "IN filter" do
-      # Note: IN filter has formatting issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code IN ('BudLight', 'Dos Equis')",
+          where: [{Customer.Dimensions.brand(), :in, ["BudLight", "Dos Equis"]}],
           limit: 10
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       assert %Explorer.Series{} = brands
       # All brands should be either BudLight or Dos Equis
       assert Enum.all?(Explorer.Series.to_list(brands), &(&1 in ["BudLight", "Dos Equis"]))
     end
 
-    @tag :skip
     test "not equals filter" do
-      # Note: != filter has issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code != 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :!=, "BudLight"}],
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       # No brand should be BudLight
       refute Enum.any?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
@@ -190,7 +189,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
 
       # Verify we got results
       assert 5 == brands |> Explorer.Series.size()
@@ -211,7 +210,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      counts = result["power_customers.count"]
+      counts = result["count"]
 
       # Verify we got results
       assert Explorer.Series.size(counts) > 0
@@ -232,7 +231,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      names = result["power_customers.given_name"]
+      names = result["given_name"]
 
       # Should be sorted
       assert 5 == Explorer.Series.size(names)
@@ -247,7 +246,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      counts = result["power_customers.count"]
+      counts = result["count"]
 
       assert %Explorer.Series{} = counts
       # HTTP client returns strings, conversion happens elsewhere
@@ -261,7 +260,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      brands = result["power_customers.brand"]
+      brands = result["brand"]
       assert :string == Explorer.Series.dtype(brands)
       brands_list = Explorer.Series.to_list(brands)
       assert is_list(brands_list)
@@ -278,7 +277,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 5
         )
 
-      star_sectors = result["power_customers.star_sector"]
+      star_sectors = result["star_sector"]
 
       # star_sector should be numbers (0-11) or strings from HTTP
       # HTTP returns strings, type conversion may happen in Explorer.DataFrame.new
@@ -295,19 +294,20 @@ defmodule PowerOfThree.DfHttpTest do
       end
     end
 
-    test "returns error for complex WHERE clause" do
-      # Complex WHERE with AND/OR not supported in HTTP mode
-      result =
+    test "supports multiple AND conditions" do
+      # Multiple conditions are now supported with typed WHERE (combined with AND)
+      {:ok, result} =
         Customer.df(
           columns: [Customer.Measures.count()],
-          where: "brand_code = 'BudLight' AND market_code = 'US'",
+          where: [
+            {Customer.Dimensions.brand(), :==, "BudLight"},
+            {Customer.Dimensions.market(), :==, "US"}
+          ],
           limit: 5
         )
 
-      # Should return an error
-      assert {:error, error} = result
-      assert error.type == :translation_error
-      assert String.contains?(error.message, "Complex WHERE clause")
+      # Should successfully return results
+      assert %Explorer.DataFrame{} = result
     end
   end
 
@@ -330,10 +330,10 @@ defmodule PowerOfThree.DfHttpTest do
         )
 
       # Both queries should succeed
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result1 |> Explorer.DataFrame.names()
 
-      assert ["power_customers.count", "power_customers.market"] ==
+      assert ["count", "market"] ==
                result2 |> Explorer.DataFrame.names()
     end
 
@@ -347,7 +347,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 1
         )
 
-      assert ["power_customers.count"] == result |> Explorer.DataFrame.names()
+      assert ["count"] == result |> Explorer.DataFrame.names()
     end
   end
 
@@ -360,7 +360,7 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
     end
   end
@@ -373,16 +373,16 @@ defmodule PowerOfThree.DfHttpTest do
           limit: 3
         )
 
-      assert ["power_customers.brand", "power_customers.count"] ==
+      assert ["brand", "count"] ==
                result |> Explorer.DataFrame.names()
     end
 
     test "raises on error" do
-      # df!/1 re-raises errors as RuntimeError with the error message
-      assert_raise ArgumentError, fn ->
+      # df!/1 re-raises errors with invalid WHERE clause
+      assert_raise FunctionClauseError, fn ->
         Customer.df!(
           columns: [Customer.Measures.count()],
-          where: "complex AND (nested OR conditions)",
+          where: "string WHERE not supported",
           limit: 5
         )
       end
@@ -397,13 +397,13 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.brand(),
             Customer.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
           order_by: [{2, :desc}],
           limit: 5
         )
 
-      brands = result["power_customers.brand"]
-      counts = result["power_customers.count"]
+      brands = result["brand"]
+      counts = result["count"]
 
       assert brands |> Explorer.Series.size() <= 5
       assert counts |> Explorer.Series.size() <= 5
@@ -415,9 +415,7 @@ defmodule PowerOfThree.DfHttpTest do
                brands |> Explorer.Series.to_list()
     end
 
-    @tag :skip
     test "multiple dimensions + filter + order" do
-      # Note: IN filter has formatting issues with current parser
       {:ok, result} =
         Customer.df(
           columns: [
@@ -425,18 +423,102 @@ defmodule PowerOfThree.DfHttpTest do
             Customer.Dimensions.market(),
             Customer.Measures.count()
           ],
-          where: "brand_code IN ('BudLight', 'Dos Equis', 'Blue Moon')",
-          order_by: [{1, :asc}],
-          limit: 10
+          where: [{Customer.Dimensions.brand(), :in, ["BudLight", "Dos Equis", "Blue Moon"]}],
+          order_by: [{1, :asc}]
         )
 
-      brands = result["power_customers.brand"]
-
       # All brands should be in the filter list
-      assert Enum.all?(brands, &(&1 in ["BudLight", "Dos Equis", "Blue Moon"]))
+      assert ["BudLight", "Dos Equis", "Blue Moon"] |> Enum.sort() ==
+               result["brand"]
+               |> Explorer.Series.distinct()
+               |> IO.inspect()
+               |> Explorer.Series.to_list()
+               |> Enum.sort()
+    end
+  end
 
-      # Should be sorted by brand
-      assert brands == Enum.sort(brands)
+  describe "df/1 with column aliases (HTTP)" do
+    test "simple aliases for dimensions and measures" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            mah_brand: Customer.Dimensions.brand(),
+            mah_people: Customer.Measures.count()
+          ],
+          limit: 5
+        )
+
+      # Column names should be the aliases
+      assert ["mah_brand", "mah_people"] == Explorer.DataFrame.names(result)
+
+      # Verify data is present
+      brands = result["mah_brand"]
+      counts = result["mah_people"]
+      assert 5 == Explorer.Series.size(brands)
+      assert 5 == Explorer.Series.size(counts)
+    end
+
+    test "mixed aliases and regular syntax" do
+      # This should be treated as a keyword list with aliases
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            brand_alias: Customer.Dimensions.brand(),
+            market_alias: Customer.Dimensions.market(),
+            total: Customer.Measures.count()
+          ],
+          limit: 3
+        )
+
+      names = Explorer.DataFrame.names(result)
+      assert "brand_alias" in names
+      assert "market_alias" in names
+      assert "total" in names
+    end
+
+    test "aliases with WHERE clause" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            my_brand: Customer.Dimensions.brand(),
+            num_customers: Customer.Measures.count()
+          ],
+          where: [{Customer.Dimensions.brand(), :==, "BudLight"}],
+          limit: 5
+        )
+
+      assert ["my_brand", "num_customers"] == Explorer.DataFrame.names(result)
+
+      brands = result["my_brand"]
+      assert Enum.all?(Explorer.Series.to_list(brands), &(&1 == "BudLight"))
+    end
+
+    test "aliases with ORDER BY" do
+      {:ok, result} =
+        Customer.df(
+          columns: [
+            beer: Customer.Dimensions.brand(),
+            popularity: Customer.Measures.count()
+          ],
+          order_by: [{1, :asc}],
+          limit: 5
+        )
+
+      assert ["beer", "popularity"] == Explorer.DataFrame.names(result)
+
+      beers = result["beer"]
+      assert 5 == Explorer.Series.size(beers)
+    end
+
+    test "single column with alias" do
+      {:ok, result} =
+        Customer.df(
+          columns: [total_count: Customer.Measures.count()],
+          limit: 1
+        )
+
+      assert ["total_count"] == Explorer.DataFrame.names(result)
+      assert %Explorer.DataFrame{} = result
     end
   end
 end

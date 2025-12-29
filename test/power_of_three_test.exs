@@ -24,7 +24,6 @@ defmodule PowerOfThreeTest do
     end
 
     cube :of_customers,
-      sql_table: "customer",
       title: "Demo cube",
       description: "of Customers" do
       dimension(
@@ -186,7 +185,7 @@ defmodule PowerOfThreeTest do
             field(:valid_field, :string)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             dimension(:non_existent_field)
           end
         end
@@ -204,7 +203,7 @@ defmodule PowerOfThreeTest do
             field(:field_two, :string)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             dimension([:field_one, :non_existent_field])
           end
         end
@@ -224,7 +223,7 @@ defmodule PowerOfThreeTest do
             field(:valid_field, :string)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure(:non_existent_field, type: :count_distinct)
           end
         end
@@ -242,7 +241,7 @@ defmodule PowerOfThreeTest do
             field(:field_two, :integer)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure([:field_one, :non_existent_field], sql: "field_one + field_two", type: :sum)
           end
         end
@@ -260,7 +259,7 @@ defmodule PowerOfThreeTest do
             field(:field_two, :integer)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure([:field_one, :field_two], type: :sum)
           end
         end
@@ -277,7 +276,7 @@ defmodule PowerOfThreeTest do
             field(:amount, :integer)
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure(:amount)
           end
         end
@@ -296,7 +295,7 @@ defmodule PowerOfThreeTest do
           schema "test" do
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure(:count)
           end
         end
@@ -313,7 +312,7 @@ defmodule PowerOfThreeTest do
             # Ecto.Schema defines :id by default, not adding any custom fields
           end
 
-          cube :test_cube, sql_table: "test" do
+          cube :test_cube do
             measure(:count)
           end
         end
@@ -333,11 +332,11 @@ defmodule PowerOfThreeTest do
             field(:field_one, :string)
           end
 
-          cube :first_cube, sql_table: "test" do
+          cube :first_cube do
             dimension(:field_one)
           end
 
-          cube :second_cube, sql_table: "test" do
+          cube :second_cube do
             dimension(:field_one)
           end
         end
@@ -357,7 +356,7 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension([:email, :name], primary_key: true)
           measure(:count)
         end
@@ -375,7 +374,7 @@ defmodule PowerOfThreeTest do
           field(:email, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:email, primary_key: false)
           measure(:count)
         end
@@ -396,7 +395,7 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure(:count, description: "Total records")
         end
       end
@@ -414,7 +413,7 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure(:count)
         end
       end
@@ -433,7 +432,7 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure(:count, name: :total_records)
         end
       end
@@ -454,7 +453,7 @@ defmodule PowerOfThreeTest do
           field(:customer_email, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:customer_email)
         end
       end
@@ -473,7 +472,7 @@ defmodule PowerOfThreeTest do
           field(:last_name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension([:first_name, :last_name])
         end
       end
@@ -494,7 +493,7 @@ defmodule PowerOfThreeTest do
           field(:amount, :integer)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure(:amount, type: :sum)
         end
       end
@@ -513,7 +512,7 @@ defmodule PowerOfThreeTest do
           field(:discount, :integer)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure([:tax, :discount], sql: "tax + discount", type: :sum)
         end
       end
@@ -534,7 +533,7 @@ defmodule PowerOfThreeTest do
           field(:email, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:email,
             description: "Customer email",
             format: :link,
@@ -558,7 +557,7 @@ defmodule PowerOfThreeTest do
           field(:revenue, :integer)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure(:revenue,
             type: :sum,
             description: "Total revenue",
@@ -590,7 +589,7 @@ defmodule PowerOfThreeTest do
           timestamps()
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:name)
           time_dimensions()
         end
@@ -610,7 +609,7 @@ defmodule PowerOfThreeTest do
           timestamps()
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:name)
           time_dimensions()
         end
@@ -639,7 +638,6 @@ defmodule PowerOfThreeTest do
             end
 
             cube :test_cube,
-              sql_table: "test",
               invalid_option: "should be logged" do
               measure(:count)
             end
@@ -661,7 +659,7 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:name)
         end
       end
@@ -680,7 +678,7 @@ defmodule PowerOfThreeTest do
           field(:count, :integer)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:count)
         end
       end
@@ -699,7 +697,7 @@ defmodule PowerOfThreeTest do
           field(:created_date, :date)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:created_date)
         end
       end
@@ -718,7 +716,7 @@ defmodule PowerOfThreeTest do
           field(:updated_at, :naive_datetime)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:updated_at)
         end
       end
@@ -737,7 +735,7 @@ defmodule PowerOfThreeTest do
           field(:created_at, :utc_datetime)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:created_at)
         end
       end
@@ -756,7 +754,7 @@ defmodule PowerOfThreeTest do
           field(:code, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension(:code, type: :number)
         end
       end
@@ -780,7 +778,7 @@ defmodule PowerOfThreeTest do
           field(:third, :string)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           dimension([:first, :second, :third])
         end
       end
@@ -800,7 +798,7 @@ defmodule PowerOfThreeTest do
           field(:quantity, :integer)
         end
 
-        cube :test_cube, sql_table: "test" do
+        cube :test_cube do
           measure([:amount, :quantity], sql: "(amount * quantity)", type: :sum)
         end
       end
@@ -823,14 +821,14 @@ defmodule PowerOfThreeTest do
           field(:name, :string)
         end
 
-        cube :my_cube, sql_table: "my_table" do
+        cube :my_cube do
           measure(:count)
         end
       end
 
       cube_config = CubeConfig.__info__(:attributes)[:cube_config]
       assert Enum.at(cube_config, 0).name == :my_cube
-      assert Enum.at(cube_config, 0).sql_table == "my_table"
+      assert Enum.at(cube_config, 0).sql_table == "test"
     end
 
     test "cube includes title and description in config" do
@@ -843,7 +841,6 @@ defmodule PowerOfThreeTest do
         end
 
         cube :test_cube,
-          sql_table: "test",
           title: "Test Title",
           description: "Test Description" do
           measure(:count)

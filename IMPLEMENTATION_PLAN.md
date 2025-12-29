@@ -73,7 +73,7 @@ Implement the TODO from `lib/power_of_three.ex:152-191`:
                          ↓
 ┌──────────────────────────────────────────────────────┐
 │ ADBC Connection Pool (via CubeQuery)                 │
-│  • Executes query against Cube (port 4445)           │
+│  • Executes query against Cube (port 8120)           │
 │  • Returns Adbc.Result                               │
 └──────────────────────────────────────────────────────┘
                          ↓
@@ -483,7 +483,7 @@ Must be called before using df/1.
 
   * `:pool_module` - Module implementing the connection pool
   * `:host` - Cube server host (default: "localhost")
-  * `:port` - Cube Arrow Native port (default: 4445)
+  * `:port` - Cube ADBC port (default: 8120)
   * `:token` - Authentication token (default: "test")
 
 ## Examples
@@ -495,7 +495,7 @@ Must be called before using df/1.
       # Configure cube pool
       cube_pool MyApp.CubePool,
         host: "localhost",
-        port: 4445,
+        port: 8120,
         token: System.get_env("CUBE_TOKEN")
 
       schema "customer" do

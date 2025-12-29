@@ -5,7 +5,7 @@
 The PowerOfThree `df/2` functionality requires three services to be running:
 1. **PostgreSQL** - Data storage (port 7432)
 2. **Cube API** - Cube.js server (port 4008)
-3. **cubesqld** - Arrow Native protocol server (port 4445)
+3. **cubesqld** - ADBC(Arrow Native) protocol server (port 8120)
 
 All scripts are located in: `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/`
 
@@ -40,7 +40,7 @@ cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
 ```
 
 **Features:**
-- Provides Arrow Native protocol on port 4445
+- Provides ADBC(Arrow Native) protocol on port 8120
 - Provides PostgreSQL protocol on port 4444
 - **Logs:** Output to terminal (stdout)
 
@@ -63,7 +63,7 @@ tail -f ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cubesqld.log
 ```bash
 # If running in foreground: Ctrl+C
 # If running in background:
-kill $(lsof -ti:4445)
+kill $(lsof -ti:8120)
 ```
 
 ### Stop Cube API
@@ -85,14 +85,14 @@ docker-compose down
 
 ```bash
 # Check all services at once
-lsof -i :7432,4008,4445 | grep LISTEN
+lsof -i :7432,4008,8120 | grep LISTEN
 ```
 
 Expected output:
 ```
 postgres  <pid> io    5u  IPv4 ... TCP *:7432 (LISTEN)
 node      <pid> io   21u  IPv4 ... TCP *:4008 (LISTEN)
-cubesqld  <pid> io    9u  IPv4 ... TCP *:4445 (LISTEN)
+cubesqld  <pid> io    9u  IPv4 ... TCP *:8120 (LISTEN)
 ```
 
 ---
@@ -133,7 +133,7 @@ Based on `~/projects/learn_erl/power-of-three-examples/config/config.exs`:
 config :your_app, Adbc.CubePool,
   pool_size: 10,
   host: "localhost",
-  port: 4445,          # Arrow Native protocol
+  port: 8120,          # ADBC(Arrow Native) protocol
   token: "test",
   username: "username",
   password: "password"
@@ -151,7 +151,7 @@ CUBEJS_DB_NAME=pot_examples_dev
 CUBEJS_DB_USER=postgres
 CUBEJS_DB_PASS=postgres
 CUBEJS_DB_HOST=localhost
-CUBEJS_ARROW_PORT=4445         # Arrow Native port
+CUBEJS_ADBC_PORT=8120          # ADBC(Arrow Native) port
 CUBESQL_CUBE_TOKEN=test        # Authentication token
 ```
 
@@ -213,7 +213,7 @@ chmod +x ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/start-all.sh
 ### Port Already in Use
 ```bash
 # Find and kill process on specific port
-lsof -ti:4445 | xargs kill -9
+lsof -ti:8120 | xargs kill -9
 ```
 
 ### PostgreSQL Not Running

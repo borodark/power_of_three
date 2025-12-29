@@ -197,7 +197,7 @@ defmodule PowerOfThree do
 
   ### Building Queries
 
-  Both accessor styles can be used with QueryBuilder and df/1:
+  Both accessor styles can be used with df/1:
 
       # Using module accessors
       Customer.df(columns: [
@@ -258,10 +258,79 @@ defmodule PowerOfThree do
 
   """
 
+  # Common SQL keywords that could collide with table names
+  @sql_keywords ~w(
+    add all alter and any as asc between by
+    case check column constraint create cross
+    database default delete desc distinct drop
+    exists foreign from full group having
+    in index inner insert into is join
+    left like limit not null on or order
+    outer primary references right select set
+    table then to union unique update
+    user using values view where
+  )
+
+  # Cube.js reserved keywords
+  @cube_keywords ~w(
+    cube dimension measure time_dimension
+    pre_aggregation join refresh_key
+  )
+
+  @doc false
+  def is_sql_keyword?(table_name) when is_binary(table_name) do
+    # Extract just the table name if schema-qualified (e.g., "public.order" -> "order")
+    base_name =
+      table_name
+      |> String.downcase()
+      |> String.split(".")
+      |> List.last()
+
+    base_name in @sql_keywords or base_name in @cube_keywords
+  end
+
+  @doc false
+  def is_schema_qualified?(table_name) when is_binary(table_name) do
+    String.contains?(table_name, ".")
+  end
+
+  @doc false
+  def validate_sql_table(sql_table, cube_name) do
+    require Logger
+
+    cond do
+      is_sql_keyword?(sql_table) and not is_schema_qualified?(sql_table) ->
+        Logger.warning("""
+        Cube #{inspect(cube_name)}: sql_table "#{sql_table}" is a SQL keyword.
+        This may cause query errors. Consider using schema-qualified name:
+          sql_table: "public.#{sql_table}"
+        or ensuring your queries properly quote the table name.
+        """)
+
+      is_sql_keyword?(sql_table) and is_schema_qualified?(sql_table) ->
+        # Schema-qualified, but still log debug info
+        Logger.debug(
+          "Cube #{inspect(cube_name)}: sql_table \"#{sql_table}\" contains SQL keyword but is schema-qualified (safe)"
+        )
+
+      true ->
+        :ok
+    end
+  end
+
   defmacro __using__(_) do
     quote do
       import PowerOfThree,
-        only: [cube: 2, cube: 3, dimension: 2, measure: 2, time_dimensions: 1]
+        only: [
+          cube: 1,
+          cube: 2,
+          cube: 3,
+          dimension: 1,
+          dimension: 2,
+          measure: 1,
+          measure: 2,
+          time_dimensions: 1
+        ]
 
       require Logger
 
@@ -278,6 +347,9 @@ defmodule PowerOfThree do
   @doc false
   def generate_cube_source_code(cube_name, opts, ecto_fields) do
     alias IO.ANSI
+
+    # Handle case where ecto_fields might be nil (no Ecto.Schema)
+    ecto_fields = ecto_fields || []
 
     # Fields to skip (only :id, not timestamps)
     skip_fields = [:id]
@@ -325,14 +397,14 @@ defmodule PowerOfThree do
     logo = [
       "",
       "#{ANSI.bright()}#{ANSI.cyan()}#",
-      "#         ________                                                                      ________",
-      "#        /        \\                                                                    /       /|",
-      "#       /   Ecto   \\                                                                  / CUBE  / |",
-      "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/_______/  |",
-      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<<>>>===<<<<-->>>>>==========<<<<-->>>>>===<<<>>>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...  |  |",
-      "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|       |  /",
-      "#       \\  Elixir  /                                                                 | CUBE  | /",
-      "#        \\________/                                                                  |_______|/",
+      "#         ________                                                                      _________",
+      "#        /        \\                                                                    /        /|",
+      "#       /   Ecto   \\                                                                  / CUBE   / |",
+      "#      /            \\ #{ANSI.yellow()}||#{ANSI.cyan()}                                                           #{ANSI.yellow()}||#{ANSI.cyan()}/________/  |",
+      "#     |     Macro    #{ANSI.yellow()}|||=|#{ANSI.cyan()}===<<--->>====<<--->>=============<<--->>>====<<--->>==#{ANSI.yellow()}|=|||#{ANSI.cyan()}  ...   |  |",
+      "#      \\            / #{ANSI.yellow()}||#{ANSI.cyan()}                                                          #{ANSI.yellow()} ||#{ANSI.cyan()}|        |  /",
+      "#       \\  Elixir  /                                                                 | CUBE   | /",
+      "#        \\________/                                                                  |________|/",
       "#",
       "#               #{ANSI.magenta()}PowerOfThree#{ANSI.cyan()}: Connecting #{ANSI.bright()}Elixir (HEX)#{ANSI.reset()}#{ANSI.cyan()} ←→ #{ANSI.bright()}Cube.js (CUBE)#{ANSI.reset()}#{ANSI.cyan()}",
       "#                        #{ANSI.yellow()}Start with everything. Keep what performs. Pre-aggregate what matters.#{ANSI.reset()}#{ANSI.cyan()}",
@@ -458,6 +530,14 @@ defmodule PowerOfThree do
     end
   end
 
+  # Header declaring default value for cube/2
+  defmacro cube(cube_name, opts \\ [])
+
+  # cube/2 with do block - Explicit block without opts
+  defmacro cube(cube_name, do: block) do
+    cube(__CALLER__, cube_name, [], block)
+  end
+
   # cube/2 - Auto-generates dimensions and measures when no block provided
   defmacro cube(cube_name, opts) do
     auto_generated_block = generate_default_cube_block()
@@ -484,7 +564,7 @@ defmodule PowerOfThree do
     end
   end
 
-  # cube/3 - Explicit block provided
+  # cube/3 - Explicit block provided with opts
   defmacro cube(cube_name, opts, do: block) do
     cube(__CALLER__, cube_name, opts, block)
   end
@@ -502,6 +582,7 @@ defmodule PowerOfThree do
 
         legit_cube_properties = [
           :pre_aggregations,
+          :default_pre_aggregation,
           :joins,
           :dimensions,
           :hierarchies,
@@ -513,7 +594,7 @@ defmodule PowerOfThree do
           :sql_table,
           # [*] path through
           :title,
-          # [*] path through 
+          # [*] path through
           :description,
           # TODO path through
           :public,
@@ -531,11 +612,8 @@ defmodule PowerOfThree do
         if code_injection_attempeted != [] do
           Logger.debug("Detected Inrusions list:  #{inspect(code_injection_attempeted)}")
         end
-        {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
-        # |> IO.inspect(label: :cube_opts)
-        cube_opts = Enum.into(legit_opts, %{})
-        # TODO must match Ecto schema source
 
+        # First, validate that Ecto.Schema is being used with fields
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
             raise ArgumentError,
@@ -548,6 +626,55 @@ defmodule PowerOfThree do
           [_ | _] ->
             :ok
         end
+
+        # Check if sql_table was explicitly provided (which is not allowed)
+        {sql_table_explicit, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
+
+        if sql_table_explicit do
+          raise ArgumentError, """
+          Explicitly providing sql_table is not allowed for cube #{inspect(unquote(cube_name))}.
+
+          The sql_table is automatically inferred from your Ecto schema source.
+          Remove the sql_table option and ensure your schema matches your database table:
+
+            schema "your_table_name" do
+              ...
+            end
+
+            cube :#{unquote(cube_name)}  # sql_table will be "your_table_name"
+          """
+        end
+
+        # Always infer sql_table from Ecto schema
+        ecto_struct_fields = Module.get_attribute(__MODULE__, :ecto_struct_fields, [])
+
+        sql_table =
+          case Keyword.get(ecto_struct_fields, :__meta__) do
+            %Ecto.Schema.Metadata{source: source} when is_binary(source) ->
+              Logger.info(
+                "Cube #{inspect(unquote(cube_name))}: sql_table inferred from Ecto schema source: \"#{source}\""
+              )
+
+              source
+
+            _ ->
+              # This shouldn't happen if ecto_fields check passed, but just in case
+              raise ArgumentError, """
+              Could not infer sql_table from Ecto schema for cube #{inspect(unquote(cube_name))}.
+
+              Ensure your Ecto schema is properly defined:
+                use Ecto.Schema
+                schema "your_table_name" do
+                  ...
+                end
+              """
+          end
+
+        # |> IO.inspect(label: :cube_opts)
+        cube_opts = Enum.into(legit_opts, %{})
+
+        # Validate sql_table for SQL keyword collisions
+        PowerOfThree.validate_sql_table(sql_table, unquote(cube_name))
 
         @cube_defined unquote(caller.line)
         Module.register_attribute(__MODULE__, :x_cube_primary_keys, accumulate: true)
@@ -601,10 +728,79 @@ defmodule PowerOfThree do
           dimensions
         )
 
+        # Add auto-generation indicator if title/description are empty
+        cube_opts_with_auto =
+          case {Map.get(cube_opts, :title), Map.get(cube_opts, :description)} do
+            {nil, nil} ->
+              # Both empty - prefer description
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {_title, nil} ->
+              # Only description empty
+              Map.put(cube_opts, :description, "Auto-generated from #{sql_table}")
+
+            {nil, _description} ->
+              # Only title empty
+              Map.put(cube_opts, :title, "Auto-generated #{sql_table}")
+
+            {_title, _description} ->
+              # Both exist - leave as is
+              cube_opts
+          end
+
+        # Generate default pre-aggregation if explicitly enabled (default: false)
+        # To enable: cube :my_cube, default_pre_aggregation: true
+        auto_gen_enabled = Map.get(cube_opts, :default_pre_aggregation, false)
+
+        pre_aggregations =
+          if auto_gen_enabled and length(measures) > 0 and
+               length(dimensions ++ time_dimensions) > 0 do
+            # Check if updated_at time dimension exists (in either dimensions or time_dimensions)
+            all_dims = dimensions ++ time_dimensions
+
+            has_updated_at =
+              Enum.any?(all_dims, fn dim ->
+                dim.name == "updated_at" or dim.name == :updated_at
+              end)
+
+            if has_updated_at do
+              pre_agg = %{
+                name: "automatic4#{sql_table |> String.replace(".", "_")}",
+                type: :rollup,
+                external: true,
+                measures: Enum.map(measures, & &1.name),
+                dimensions:
+                  dimensions
+                  |> Enum.reject(fn map -> map[:name] in ["updated_at", "inserted_at"] end)
+                  # Do not include "updated_at", "inserted_at" by default
+                  |> Enum.map(& &1.name),
+                time_dimension: :updated_at,
+                granularity: :hour,
+                refresh_key: %{sql: "SELECT MAX(id) FROM #{sql_table}"},
+                build_range_start: %{sql: "SELECT NOW() - INTERVAL '1 year'"},
+                build_range_end: %{sql: "SELECT NOW()"}
+              }
+
+              [pre_agg]
+            else
+              []
+            end
+          else
+            []
+          end
+
         a_cube_config = [
           %{name: cube_name, sql_table: sql_table}
-          |> Map.merge(cube_opts)
+          |> Map.merge(cube_opts_with_auto)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
+          |> (fn config ->
+                if length(pre_aggregations) > 0 do
+                  Map.put(config, :pre_aggregations, pre_aggregations)
+                  |> Map.delete(:default_pre_aggregation)
+                else
+                  config |> Map.delete(:default_pre_aggregation)
+                end
+              end).()
         ]
 
         Module.register_attribute(__MODULE__, :cube_config, persist: true)
@@ -619,8 +815,8 @@ defmodule PowerOfThree do
           ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml")
           |> IO.inspect(label: :cube_config_file),
           %{cubes: a_cube_config}
-          |> IO.inspect(label: :cube_config_file_content)
-          |> Ymlr.document!()
+          # |> IO.inspect(label: :cube_config_file_content)
+          |> Ymlr.document!(sort_maps: false)
         )
 
         # Generate Measures accessor module
@@ -847,6 +1043,28 @@ defmodule PowerOfThree do
               limit: 10
             )
 
+            # With column aliases (rename columns in the DataFrame)
+            {:ok, df} = Customer.df(
+              columns: [
+                my_brand: Customer.Dimensions.brand(),
+                total_customers: Customer.Measures.count()
+              ],
+              limit: 5
+            )
+            # DataFrame will have columns: ["my_brand", "total_customers"]
+            # instead of default ["brand", "count"]
+
+            # Column aliases work with all query options
+            {:ok, df} = Customer.df(
+              columns: [
+                beer_brand: Customer.Dimensions.brand(),
+                num_customers: Customer.Measures.count()
+              ],
+              where: "brand_code = 'BudLight'",
+              order_by: [{2, :desc}],
+              limit: 10
+            )
+
             # Reusing an ADBC connection
             {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
             df = Customer.df(columns: [...], connection: conn)
@@ -864,20 +1082,31 @@ defmodule PowerOfThree do
         """
         def df(opts) do
           cube_name = unquote(cube_name) |> to_string()
-          _columns = Keyword.fetch!(opts, :columns)
+          columns = Keyword.fetch!(opts, :columns)
+
+          # Parse columns to extract aliases if present
+          {column_refs, alias_map} = parse_columns_with_aliases(columns)
 
           query_opts =
             opts
             |> Keyword.put(:cube, cube_name)
+            |> Keyword.put(:columns, column_refs)
             |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
 
           # Determine connection mode (HTTP or ADBC)
-          case determine_connection_mode(opts) do
-            {:http, http_opts} ->
-              execute_http_query(query_opts, http_opts)
+          result =
+            case determine_connection_mode(opts) do
+              {:http, http_opts} ->
+                execute_http_query(query_opts, http_opts)
 
-            {:adbc, adbc_opts} ->
-              execute_adbc_query(query_opts, adbc_opts)
+              {:adbc, adbc_opts} ->
+                execute_adbc_query(query_opts, adbc_opts)
+            end
+
+          # Apply column aliases if present
+          case result do
+            {:ok, df} -> {:ok, apply_column_aliases(df, alias_map)}
+            error -> error
           end
         end
 
@@ -928,35 +1157,109 @@ defmodule PowerOfThree do
 
         # Executes query via ADBC
         defp execute_adbc_query(query_opts, opts) do
-          sql = PowerOfThree.QueryBuilder.build(query_opts)
+          # Get SQL from Cube's /v1/sql endpoint instead of building it ourselves
+          cube_opts = Keyword.get(opts, :cube_opts, [])
 
-          # Get or create connection
-          conn =
-            case Keyword.get(opts, :connection) do
-              nil ->
-                conn_opts = Keyword.get(opts, :connection_opts, [])
+          case PowerOfThree.CubeSqlGenerator.generate_sql(query_opts, cube_opts) do
+            {:ok, sql} ->
+              # Replace MySQL backticks with PostgreSQL double quotes for ADBC compatibility
+              sql = String.replace(sql, "`", "\"")
+              # Get or create connection
+              conn =
+                case Keyword.get(opts, :connection) do
+                  nil ->
+                    conn_opts = Keyword.get(opts, :connection_opts, [])
 
-                case PowerOfThree.CubeConnection.connect(conn_opts) do
-                  {:ok, conn} -> conn
-                  {:error, error} -> {:error, error}
+                    case PowerOfThree.CubeConnection.connect(conn_opts) do
+                      {:ok, conn} -> conn
+                      {:error, error} -> {:error, error}
+                    end
+
+                  conn ->
+                    conn
                 end
 
-              conn ->
-                conn
-            end
-
-          case conn do
-            {:error, _} = error ->
-              error
-
-            conn ->
-              case PowerOfThree.CubeConnection.query_to_map(conn, sql) do
-                {:ok, result_map} ->
-                  {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
-
+              case conn do
                 {:error, _} = error ->
                   error
+
+                conn ->
+                  # Query directly to DataFrame - no intermediate map materialization
+                  PowerOfThree.CubeFrame.from_query(conn, sql)
               end
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+        end
+
+        # Parses columns option and extracts aliases if present
+        # Returns {column_refs, alias_map} where:
+        # - column_refs is a list of DimensionRef/MeasureRef structs
+        # - alias_map is %{cube_member_name => alias_name} or nil if no aliases
+        defp parse_columns_with_aliases(columns) do
+          case columns do
+            # Keyword list with aliases: [mah_brand: dim_ref, mah_count: measure_ref]
+            [{key, _value} | _] = kw_list when is_atom(key) ->
+              # Check if all items are keyword pairs
+              if Keyword.keyword?(kw_list) do
+                {column_refs, alias_pairs} =
+                  Enum.map(kw_list, fn {alias, column_ref} ->
+                    cube_member_name = get_cube_member_name(column_ref)
+                    {column_ref, {cube_member_name, to_string(alias)}}
+                  end)
+                  |> Enum.unzip()
+
+                alias_map = Map.new(alias_pairs)
+                {column_refs, alias_map}
+              else
+                # Mixed list, treat as plain list
+                {columns, nil}
+              end
+
+            # Plain list: [dim_ref, measure_ref]
+            _ ->
+              {columns, nil}
+          end
+        end
+
+        # Gets the Cube member name for a dimension or measure ref
+        defp get_cube_member_name(%PowerOfThree.DimensionRef{} = dim) do
+          PowerOfThree.CubeQueryTranslator.dimension_to_cube_name(dim)
+        end
+
+        defp get_cube_member_name(%PowerOfThree.MeasureRef{} = measure) do
+          PowerOfThree.CubeQueryTranslator.measure_to_cube_name(measure)
+        end
+
+        # Renames DataFrame columns according to alias map
+        defp apply_column_aliases(df, nil), do: df
+
+        defp apply_column_aliases(df, alias_map) when is_map(alias_map) do
+          current_names = Explorer.DataFrame.names(df)
+
+          rename_map =
+            Enum.reduce(current_names, %{}, fn name, acc ->
+              # Try exact match first, then try with just the column name (normalized)
+              # Find by matching the suffix after the dot (for normalized names)
+              alias_name =
+                Map.get(alias_map, name) ||
+                  Enum.find_value(alias_map, fn {full_name, alias} ->
+                    if String.ends_with?(full_name, ".#{name}") or full_name == name do
+                      alias
+                    end
+                  end)
+
+              case alias_name do
+                nil -> acc
+                alias -> Map.put(acc, name, alias)
+              end
+            end)
+
+          if map_size(rename_map) > 0 do
+            Explorer.DataFrame.rename(df, rename_map)
+          else
+            df
           end
         end
 
@@ -1057,7 +1360,7 @@ defmodule PowerOfThree do
 
         true ->
           path_throw_opts = opts |> Keyword.drop([:sql, :name, :type]) |> Enum.into(%{})
-          type = opts[:type] || opts[:type] |> dimension_type
+          type = opts[:type] || opts[:type] |> PowerOfThree.dimension_type()
 
           sql =
             opts[:sql] ||
@@ -1121,7 +1424,7 @@ defmodule PowerOfThree do
                 ecto_field: ecto_schema_field
               },
               name: opts[:name] || ecto_schema_field |> Atom.to_string(),
-              type: opts[:type] || ecto_field_type |> dimension_type,
+              type: opts[:type] || ecto_field_type |> PowerOfThree.dimension_type(),
               sql: ecto_schema_field |> Atom.to_string()
             })
           )

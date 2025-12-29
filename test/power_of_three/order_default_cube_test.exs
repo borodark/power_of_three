@@ -114,11 +114,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
 
       assert %Explorer.DataFrame{} = result
       names = Explorer.DataFrame.names(result)
-      assert "mandata_captate.brand_code" in names
-      assert "mandata_captate.count" in names
+      assert "brand_code" in names
+      assert "count" in names
 
       # Verify we got data
-      brands = result["mandata_captate.brand_code"]
+      brands = result["brand_code"]
       assert Explorer.Series.size(brands) > 0
       assert Explorer.Series.size(brands) <= 5
     end
@@ -135,14 +135,14 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
         )
 
       names = Explorer.DataFrame.names(result)
-      assert "mandata_captate.brand_code" in names
-      assert "mandata_captate.market_code" in names
-      assert "mandata_captate.count" in names
+      assert "brand_code" in names
+      assert "market_code" in names
+      assert "count" in names
 
       # All series should have same length
-      brands_len = Explorer.Series.size(result["mandata_captate.brand_code"])
-      markets_len = Explorer.Series.size(result["mandata_captate.market_code"])
-      counts_len = Explorer.Series.size(result["mandata_captate.count"])
+      brands_len = Explorer.Series.size(result["brand_code"])
+      markets_len = Explorer.Series.size(result["market_code"])
+      counts_len = Explorer.Series.size(result["count"])
 
       assert brands_len == markets_len
       assert markets_len == counts_len
@@ -160,13 +160,13 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
         )
 
       names = Explorer.DataFrame.names(result)
-      assert "mandata_captate.brand_code" in names
-      assert "mandata_captate.total_amount_sum" in names
-      assert "mandata_captate.tax_amount_sum" in names
+      assert "brand_code" in names
+      assert "total_amount_sum" in names
+      assert "tax_amount_sum" in names
 
       # Verify numeric data
-      totals = result["mandata_captate.total_amount_sum"]
-      taxes = result["mandata_captate.tax_amount_sum"]
+      totals = result["total_amount_sum"]
+      taxes = result["tax_amount_sum"]
 
       assert Explorer.Series.size(totals) > 0
       assert Explorer.Series.size(taxes) > 0
@@ -183,10 +183,10 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
         )
 
       names = Explorer.DataFrame.names(result)
-      assert "mandata_captate.brand_code" in names
-      assert "mandata_captate.customer_id_distinct" in names
+      assert "brand_code" in names
+      assert "customer_id_distinct" in names
 
-      distinct_customers = result["mandata_captate.customer_id_distinct"]
+      distinct_customers = result["customer_id_distinct"]
       assert Explorer.Series.size(distinct_customers) > 0
     end
 
@@ -197,8 +197,8 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 1
         )
 
-      assert ["mandata_captate.count"] == Explorer.DataFrame.names(result)
-      count = result["mandata_captate.count"]
+      assert ["count"] == Explorer.DataFrame.names(result)
+      count = result["count"]
       assert Explorer.Series.size(count) == 1
     end
   end
@@ -211,11 +211,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.brand_code(),
             Order.Measures.count()
           ],
-          where: "brand_code = 'BudLight'",
+          where: [{Order.Dimensions.brand_code(), :==, "BudLight"}],
           limit: 10
         )
 
-      brands = result["mandata_captate.brand_code"]
+      brands = result["brand_code"]
 
       # All brands should be BudLight
       brand_list = Explorer.Series.to_list(brands)
@@ -229,11 +229,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.financial_status(),
             Order.Measures.count()
           ],
-          where: "financial_status = 'paid'",
+          where: [{Order.Dimensions.financial_status(), :==, "paid"}],
           limit: 5
         )
 
-      statuses = result["mandata_captate.financial_status"]
+      statuses = result["financial_status"]
       status_list = Explorer.Series.to_list(statuses)
 
       # All should be 'paid'
@@ -247,12 +247,12 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.market_code(),
             Order.Measures.total_amount_sum()
           ],
-          where: "market_code = 'US'",
+          where: [{Order.Dimensions.market_code(), :==, "US"}],
           limit: 5
         )
 
-      markets = result["mandata_captate.market_code"]
-      totals = result["mandata_captate.total_amount_sum"]
+      markets = result["market_code"]
+      totals = result["total_amount_sum"]
 
       assert Explorer.Series.size(markets) > 0
       assert Explorer.Series.size(totals) > 0
@@ -275,7 +275,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 5
         )
 
-      brands = result["mandata_captate.brand_code"]
+      brands = result["brand_code"]
       brand_list = Explorer.Series.to_list(brands)
 
       # Should be sorted
@@ -293,7 +293,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 5
         )
 
-      totals = result["mandata_captate.total_amount_sum"]
+      totals = result["total_amount_sum"]
 
       # Should be in descending order
       assert Explorer.Series.size(totals) > 0
@@ -310,7 +310,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 5
         )
 
-      counts = result["mandata_captate.count"]
+      counts = result["count"]
       assert Explorer.Series.size(counts) > 0
     end
   end
@@ -324,14 +324,14 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Dimensions.market_code(),
             Order.Measures.total_amount_sum()
           ],
-          where: "market_code = 'US'",
+          where: [{Order.Dimensions.market_code(), :==, "US"}],
           order_by: [{3, :desc}],
           limit: 10
         )
 
-      markets = result["mandata_captate.market_code"]
-      brands = result["mandata_captate.brand_code"]
-      totals = result["mandata_captate.total_amount_sum"]
+      markets = result["market_code"]
+      brands = result["brand_code"]
+      totals = result["total_amount_sum"]
 
       assert Explorer.Series.size(markets) > 0
       assert Explorer.Series.size(brands) > 0
@@ -357,11 +357,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
 
       names = Explorer.DataFrame.names(result)
       assert length(names) == 5
-      assert "mandata_captate.brand_code" in names
-      assert "mandata_captate.financial_status" in names
-      assert "mandata_captate.count" in names
-      assert "mandata_captate.total_amount_sum" in names
-      assert "mandata_captate.tax_amount_sum" in names
+      assert "brand_code" in names
+      assert "financial_status" in names
+      assert "count" in names
+      assert "total_amount_sum" in names
+      assert "tax_amount_sum" in names
     end
 
     test "aggregation by multiple dimensions" do
@@ -379,11 +379,11 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
         )
 
       # All series should have data
-      brands = result["mandata_captate.brand_code"]
-      markets = result["mandata_captate.market_code"]
-      statuses = result["mandata_captate.financial_status"]
-      counts = result["mandata_captate.count"]
-      totals = result["mandata_captate.total_amount_sum"]
+      brands = result["brand_code"]
+      markets = result["market_code"]
+      statuses = result["financial_status"]
+      counts = result["count"]
+      totals = result["total_amount_sum"]
 
       assert Explorer.Series.size(brands) > 0
       assert Explorer.Series.size(markets) > 0
@@ -404,9 +404,9 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 10
         )
 
-      brands = result["mandata_captate.brand_code"]
-      distinct_customers = result["mandata_captate.customer_id_distinct"]
-      counts = result["mandata_captate.count"]
+      brands = result["brand_code"]
+      distinct_customers = result["customer_id_distinct"]
+      counts = result["count"]
 
       assert Explorer.Series.size(brands) > 0
       assert Explorer.Series.size(distinct_customers) > 0
@@ -440,8 +440,8 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           offset: 5
         )
 
-      first_brands = Explorer.Series.to_list(first_batch["mandata_captate.brand_code"])
-      second_brands = Explorer.Series.to_list(second_batch["mandata_captate.brand_code"])
+      first_brands = Explorer.Series.to_list(first_batch["brand_code"])
+      second_brands = Explorer.Series.to_list(second_batch["brand_code"])
 
       # Should be different (assuming enough data)
       refute first_brands == second_brands
@@ -460,7 +460,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
         )
 
       assert %Explorer.DataFrame{} = result
-      assert "mandata_captate.brand_code" in Explorer.DataFrame.names(result)
+      assert "brand_code" in Explorer.DataFrame.names(result)
     end
   end
 
@@ -506,7 +506,6 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           :tax_amount_sum,
           :total_amount_distinct,
           :total_amount_sum
-
         ]
         |> Enum.sort()
 
@@ -531,7 +530,7 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
     end
 
     test "all measure accessors are callable" do
-      measures = Order.measures() |> IO.inspect()
+      _measures = Order.measures() |> IO.inspect()
       # accessor_name = Order.Mea
       # assert function_exported?(Order.Measures, accessor_name, 0)
       # accessor_result = apply(Order.Measures, accessor_name, [])
@@ -551,16 +550,16 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
             Order.Measures.tax_amount_sum(),
             Order.Measures.customer_id_distinct()
           ],
-          where: "financial_status = 'paid'",
+          where: [{Order.Dimensions.financial_status(), :==, "paid"}],
           order_by: [{4, :desc}],
           limit: 20
         )
 
       # Should have meaningful data for analytics
-      brands = result["mandata_captate.brand_code"]
-      statuses = result["mandata_captate.financial_status"]
-      counts = result["mandata_captate.count"]
-      totals = result["mandata_captate.total_amount_sum"]
+      brands = result["brand_code"]
+      statuses = result["financial_status"]
+      counts = result["count"]
+      totals = result["total_amount_sum"]
 
       assert Explorer.Series.size(brands) > 0
       assert Enum.all?(Explorer.Series.to_list(statuses), &(&1 == "paid"))
@@ -581,10 +580,10 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 10
         )
 
-      markets = result["mandata_captate.market_code"]
-      counts = result["mandata_captate.count"]
-      totals = result["mandata_captate.total_amount_sum"]
-      customers = result["mandata_captate.customer_id_distinct"]
+      markets = result["market_code"]
+      counts = result["count"]
+      totals = result["total_amount_sum"]
+      customers = result["customer_id_distinct"]
 
       assert Explorer.Series.size(markets) > 0
       assert Explorer.Series.size(counts) > 0
@@ -604,9 +603,9 @@ defmodule PowerOfThree.OrderDefaultCubeTest do
           limit: 15
         )
 
-      statuses = result["mandata_captate.fulfillment_status"]
-      counts = result["mandata_captate.count"]
-      totals = result["mandata_captate.total_amount_sum"]
+      statuses = result["fulfillment_status"]
+      counts = result["count"]
+      totals = result["total_amount_sum"]
 
       assert Explorer.Series.size(statuses) > 0
       assert Explorer.Series.size(counts) > 0
