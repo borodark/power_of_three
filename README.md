@@ -98,7 +98,7 @@ The future plans are bellow in the order of priority:
 
     This is *Dropped* for now! The `Ecto` is very particular on what kind of catalog introspections supported by the implementation of `Postgres`. Shall we say: _Cube is not Postgres_ and never will be.
 
-  - ~~[ ] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) having generated Cubes mearures and dimensions as columns, connecting over ADBC to a separate Repo where Cube is deployed.~~
+  - [ ] ADBC Client to support [Explorer.DataFrame](https://hexdocs.pm/explorer/Explorer.DataFrame.html#from_query/4)
 
     ~~Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).~~
 
