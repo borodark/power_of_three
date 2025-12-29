@@ -99,7 +99,7 @@ defmodule Order do
 
   # Auto-generated cube - no explicit dimensions/measures
   # sql_table is automatically inferred from schema "public.order"
-  cube(:mandata_captate)
+  cube(:mandata_captate, default_pre_aggregation: true)
 end
 
 ExUnit.start(exclude: :live_cube)

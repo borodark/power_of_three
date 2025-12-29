@@ -430,7 +430,8 @@ defmodule PowerOfThree.DfHttpTest do
       # All brands should be in the filter list
       assert ["BudLight", "Dos Equis", "Blue Moon"] |> Enum.sort() ==
                result["brand"]
-               |> Explorer.Series.distinct() |> IO.inspect
+               |> Explorer.Series.distinct()
+               |> IO.inspect()
                |> Explorer.Series.to_list()
                |> Enum.sort()
     end

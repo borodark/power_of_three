@@ -582,6 +582,7 @@ defmodule PowerOfThree do
 
         legit_cube_properties = [
           :pre_aggregations,
+          :default_pre_aggregation,
           :joins,
           :dimensions,
           :hierarchies,
@@ -593,7 +594,7 @@ defmodule PowerOfThree do
           :sql_table,
           # [*] path through
           :title,
-          # [*] path through 
+          # [*] path through
           :description,
           # TODO path through
           :public,
@@ -747,10 +748,59 @@ defmodule PowerOfThree do
               cube_opts
           end
 
+        # Generate default pre-aggregation if explicitly enabled (default: false)
+        # To enable: cube :my_cube, default_pre_aggregation: true
+        auto_gen_enabled = Map.get(cube_opts, :default_pre_aggregation, false)
+
+        pre_aggregations =
+          if auto_gen_enabled and length(measures) > 0 and
+               length(dimensions ++ time_dimensions) > 0 do
+            # Check if updated_at time dimension exists (in either dimensions or time_dimensions)
+            all_dims = dimensions ++ time_dimensions
+
+            has_updated_at =
+              Enum.any?(all_dims, fn dim ->
+                dim.name == "updated_at" or dim.name == :updated_at
+              end)
+
+            if has_updated_at do
+              pre_agg = %{
+                name: "automatic4#{sql_table |> String.replace(".", "_")}",
+                type: :rollup,
+                external: true,
+                measures: Enum.map(measures, & &1.name),
+                dimensions:
+                  dimensions
+                  |> Enum.reject(fn map -> map[:name] in ["updated_at", "inserted_at"] end)
+                  # Do not include "updated_at", "inserted_at" by default
+                  |> Enum.map(& &1.name),
+                time_dimension: :updated_at,
+                granularity: :hour,
+                refresh_key: %{sql: "SELECT MAX(id) FROM #{sql_table}"},
+                build_range_start: %{sql: "SELECT NOW() - INTERVAL '1 year'"},
+                build_range_end: %{sql: "SELECT NOW()"}
+              }
+
+              [pre_agg]
+            else
+              []
+            end
+          else
+            []
+          end
+
         a_cube_config = [
           %{name: cube_name, sql_table: sql_table}
           |> Map.merge(cube_opts_with_auto)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
+          |> (fn config ->
+                if length(pre_aggregations) > 0 do
+                  Map.put(config, :pre_aggregations, pre_aggregations)
+                  |> Map.delete(:default_pre_aggregation)
+                else
+                  config |> Map.delete(:default_pre_aggregation)
+                end
+              end).()
         ]
 
         Module.register_attribute(__MODULE__, :cube_config, persist: true)
@@ -765,8 +815,8 @@ defmodule PowerOfThree do
           ("model/cubes/" <> Atom.to_string(cube_name) <> ".yaml")
           |> IO.inspect(label: :cube_config_file),
           %{cubes: a_cube_config}
-          |> IO.inspect(label: :cube_config_file_content)
-          |> Ymlr.document!()
+          # |> IO.inspect(label: :cube_config_file_content)
+          |> Ymlr.document!(sort_maps: false)
         )
 
         # Generate Measures accessor module
