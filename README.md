@@ -94,6 +94,11 @@ How to use cube:
 The future plans are bellow in the order of priority:
 
   - [X] hex.pm documentation
+  - [X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) using Cube JSON REST API. Having compile time generated Cubes Mearures and Dimensions deployed to [your instance of running Cluster of Cubes](https://github.com/gadsme/charts) , [query it from `iex` in a remshell](https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md) to where the code changes deployed or the [locally sourced development instance off Cube](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml). _le chemin le plus direct et le plus court_
+
+  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md). Uses client-side granularity for time dimensions following Cube.js best practices.
+  - [ ] ADBC Client to support [Explorer.DataFrame](https://hexdocs.pm/explorer/Explorer.DataFrame.html#from_query/4)
+  
   - [ ] ~~because the `cube` can impersonate `postgres` generate an `Ecto.Schema` Module for the Cubes defined (_full loop_): columns are measures and dimensions connecting to the separate Repo where Cube is deployed.~~ 
 
     This is *Dropped* for now! The `Ecto` is very particular on what kind of catalog introspections supported by the implementation of `Postgres`. Shall we say: _Cube is not Postgres_ and never will be.
@@ -101,10 +106,6 @@ The future plans are bellow in the order of priority:
   - [ ] ADBC Client to support [Explorer.DataFrame](https://hexdocs.pm/explorer/Explorer.DataFrame.html#from_query/4)
 
     ~~Original hope was on `Cube Postgres API` but started [The jorney into the Forests of Traits and the Swamps of Virtual Destructors](https://github.com/borodark/power_of_three/wiki/The-Arrow-Apostasy).~~
-
-  - [X] Integrate [Explorer.DataFrame](https://cigrainger.com/introducing-explorer/) using Cube JSON REST API. Having compile time generated Cubes Mearures and Dimensions deployed to [your instance of running Cluster of Cubes](https://github.com/gadsme/charts) , [query it from `iex` in a remshell](https://github.com/borodark/power_of_three/blob/master/ANALYTICS_WORKFLOW.md) to where the code changes deployed or the [locally sourced development instance off Cube](https://github.com/borodark/power-of-three-examples/blob/main/compose.yml). _le chemin le plus direct et le plus court_
-
-  - [X] [generate default](https://github.com/borodark/power_of_three/pull/4)  `dimensions`, `measures` for _all columns_ of the `Ecto.Schema` if `cube()` macro call omits members. [This complements the capability of the local cube dev environment to make cubes from tables](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md). Uses client-side granularity for time dimensions following Cube.js best practices.
   - [X] Comprehensive test coverage: **290 tests passing**, ensuring reliability and backward compatibility
 
   - [ ] support @schema_prefix
