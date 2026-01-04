@@ -102,7 +102,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
       # Column names are normalized (cube prefix removed)
       counts = result["count"]
 
-      assert [1758, 1751, 1739, 1735, 1731] == counts |> Explorer.Series.to_list()
+      assert [1208, 1205, 1205, 1201, 1198] == counts |> Explorer.Series.to_list()
     end
 
     test "handles empty result set", %{client: client} do
@@ -221,7 +221,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
       brands = result["brand"]
       assert %Explorer.Series{} = brands
 
-      assert ["Dos Equis"] =
+      assert ["Tsingtao"] =
                brands |> Explorer.Series.to_list()
     end
 
@@ -235,7 +235,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
       {:ok, result} = CubeHttpClient.query(client, cube_query)
 
       # Column names are normalized (cube prefix removed)
-      assert [-1.0, 5.0, 4.0, 0.0, 6.0] ==
+      assert [-1.0, 5.0, 6.0, 9.0, 10.0] ==
                result["star_sector"] |> Explorer.Series.to_list()
     end
   end
@@ -258,6 +258,70 @@ defmodule PowerOfThree.CubeHttpClientTest do
       result |> Explorer.DataFrame.print(limit: 100)
       # Should have 3 keys (2 dimensions + 1 measure)
       assert Explorer.DataFrame.shape(result) == {5000, 3}
+    end
+  end
+
+  describe "query/3 with retry options" do
+    setup do
+      {:ok, client} = CubeHttpClient.new(base_url: "http://localhost:4008")
+      {:ok, client: client}
+    end
+
+    test "accepts max_wait option", %{client: client} do
+      cube_query = %{
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
+        "limit" => 3
+      }
+
+      # Query with custom max_wait should work
+      {:ok, result} = CubeHttpClient.query(client, cube_query, max_wait: 120_000)
+
+      assert ["brand", "count"] == result |> Explorer.DataFrame.names()
+    end
+
+    test "accepts poll_interval option", %{client: client} do
+      cube_query = %{
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
+        "limit" => 3
+      }
+
+      # Query with custom poll_interval should work
+      {:ok, result} = CubeHttpClient.query(client, cube_query, poll_interval: 500)
+
+      assert ["brand", "count"] == result |> Explorer.DataFrame.names()
+    end
+
+    test "query without options uses defaults", %{client: client} do
+      cube_query = %{
+        "dimensions" => ["power_customers.brand"],
+        "measures" => ["power_customers.count"],
+        "limit" => 3
+      }
+
+      # Query with no options (default retry behavior)
+      {:ok, result} = CubeHttpClient.query(client, cube_query)
+
+      assert ["brand", "count"] == result |> Explorer.DataFrame.names()
+    end
+  end
+
+  describe "QueryError timeout message" do
+    test "timeout error includes elapsed time for max_wait_exceeded" do
+      error = QueryError.timeout(%{reason: :max_wait_exceeded, elapsed_ms: 5000})
+
+      assert error.type == :timeout
+      assert error.message == "Query timed out after 5000ms waiting for Cube to complete"
+      assert error.details[:reason] == :max_wait_exceeded
+      assert error.details[:elapsed_ms] == 5000
+    end
+
+    test "regular timeout error has generic message" do
+      error = QueryError.timeout()
+
+      assert error.type == :timeout
+      assert error.message == "Request timeout"
     end
   end
 end

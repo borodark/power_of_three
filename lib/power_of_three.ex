@@ -1138,10 +1138,16 @@ defmodule PowerOfThree do
 
         # Executes query via HTTP API
         defp execute_http_query(query_opts, http_opts) do
+          # Extract retry options from query_opts
+          retry_opts = [
+            max_wait: Keyword.get(query_opts, :max_wait, 60_000),
+            poll_interval: Keyword.get(query_opts, :poll_interval, 1_000)
+          ]
+
           with {:ok, client} <- get_or_create_http_client(http_opts),
                {:ok, cube_query} <-
                  PowerOfThree.CubeQueryTranslator.to_cube_query(query_opts),
-               {:ok, result_map} <- PowerOfThree.CubeHttpClient.query(client, cube_query) do
+               {:ok, result_map} <- PowerOfThree.CubeHttpClient.query(client, cube_query, retry_opts) do
             {:ok, PowerOfThree.CubeFrame.from_result(result_map)}
           end
         end

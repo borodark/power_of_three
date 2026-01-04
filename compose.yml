@@ -1,14 +1,4 @@
 services:
-  cockroach:
-    image: docker.io/cockroachdb/cockroach:v23.1.6
-    restart: always
-    ports:
-      - 36257:26257
-      - 8088:8080
-    command: start-single-node --insecure
-    volumes:
-      - crdb_data:/cockroach/cockroach-data
-
   postgresql:
     image: docker.io/postgres:14.7-alpine
     restart: always
@@ -17,29 +7,28 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - 7432:5432
+      - 5432:5432
     volumes:
       - postgresql:/var/lib/postgresql/data
 
   cube_api:
     restart: always
-    image: docker.io/cubejs/cube:latest
+    image: borodark/cube:dev #docker.io/cubejs/cube:latest
     ports:
       - 4008:4000
     environment:
       CUBEJS_DB_TYPE: postgres
       CUBEJS_DB_NAME: power_of_3_repo
-      #CUBEJS_DB_HOST: postgresql
-      #CUBEJS_DB_USER: postgres
-      #CUBEJS_DB_PASS: postgres
-      ######
-      CUBEJS_DB_HOST: cockroach
-      CUBEJS_DB_USER: admin
-      CUBEJS_DB_PASS: admin
-      CUBEJS_DB_PORT: 26257
+      CUBEJS_DB_HOST: postgresql
+      CUBEJS_DB_USER: postgres
+      CUBEJS_DB_PASS: postgres
       CUBEJS_CUBESTORE_HOST: cubestore_router
       CUBEJS_API_SECRET: secret
       CUBEJS_DEV_MODE: "TRUE"
+      CUBEJS_ADBC_PORT: 8120
+      CUBESQL_LOG_LEVEL: trace
+      CUBESQL_ARROW_RESULTS_CACHE_ENABLED: false
+
     volumes:
       - ./:/cube/conf
     depends_on:
@@ -50,7 +39,7 @@ services:
 
   cube_refresh_worker:
     restart: always
-    image: docker.io/cubejs/cube:latest
+    image: borodark/cube:dev #docker.io/cubejs/cube:latest
     environment:
       CUBEJS_DB_TYPE: postgres
       CUBEJS_DB_NAME: power_of_3_repo
@@ -70,7 +59,7 @@ services:
 
   cubestore_router:
     restart: always
-    image: docker.io/cubejs/cubestore:latest
+    image: borodark/cubestore:dev #docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_REMOTE_DIR: /cube/data
@@ -81,7 +70,7 @@ services:
 
   cubestore_worker_1:
     restart: always
-    image: docker.io/cubejs/cubestore:latest
+    image: borodark/cubestore:dev # docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_SERVER_NAME: cubestore_worker_1:10001
@@ -95,7 +84,7 @@ services:
 
   cubestore_worker_2:
     restart: always
-    image: docker.io/cubejs/cubestore:latest
+    image: borodark/cubestore:dev # docker.io/cubejs/cubestore:latest
     environment:
       CUBESTORE_WORKERS: cubestore_worker_1:10001,cubestore_worker_2:10002
       CUBESTORE_SERVER_NAME: cubestore_worker_2:10002
@@ -109,4 +98,3 @@ services:
 
 volumes:
   postgresql:
-  crdb_data:

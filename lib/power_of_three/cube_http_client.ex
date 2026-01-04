@@ -65,6 +65,7 @@ defmodule PowerOfThree.CubeHttpClient do
   """
 
   require Explorer.DataFrame
+  require Logger
   alias PowerOfThree.QueryError
 
   @enforce_keys [:req]
@@ -141,12 +142,23 @@ defmodule PowerOfThree.CubeHttpClient do
   end
 
   @doc """
-  Executes a Cube Query and returns columnar result data.
+  Executes a Cube Query with retry support for "Continue wait" responses.
 
   ## Parameters
 
   - `client` - The CubeHttpClient struct
   - `cube_query` - Map representing the Cube Query JSON format
+  - `opts` - Query options
+
+  ## Options
+
+  - `:max_wait` - Maximum time to wait for query completion (ms). Default: 60_000
+  - `:poll_interval` - Time between retries (ms). Default: 1_000
+
+  ## Continue Wait Behavior
+
+  When Cube returns `{"error": "Continue wait"}`, this function automatically
+  retries until the query completes or max_wait is exceeded.
 
   ## Returns
 
@@ -165,11 +177,73 @@ defmodule PowerOfThree.CubeHttpClient do
         "brand" => ["NIKE", "Adidas", "Puma"],
         "count" => [42, 38, 25]
       }}
+
+      # With custom timeout
+      iex> PowerOfThree.CubeHttpClient.query(client, cube_query, max_wait: 120_000)
+      {:ok, %{...}}
+
+      # Disable retry (immediate error on Continue wait)
+      iex> PowerOfThree.CubeHttpClient.query(client, cube_query, max_wait: 0)
+      {:error, %QueryError{message: "Continue wait", ...}}
   """
-  def query(client, cube_query) do
+  # Spinner frames for Continue wait animation
+  @spinner_frames ["|", "/", "-", "\\"]
+
+  def query(client, cube_query, opts \\ []) do
+    max_wait = Keyword.get(opts, :max_wait, 60_000)
+    poll_interval = Keyword.get(opts, :poll_interval, 1_000)
+
+    query_with_retry(client, cube_query, max_wait, poll_interval, System.monotonic_time(:millisecond), 0)
+  end
+
+  defp query_with_retry(client, cube_query, max_wait, poll_interval, start_time, spinner_idx) do
+    elapsed = System.monotonic_time(:millisecond) - start_time
+    remaining = max_wait - elapsed
+
+    if remaining <= 0 and elapsed > 0 do
+      clear_spinner()
+      Logger.warning("[PowerOfThree] Query timed out after #{elapsed}ms waiting for Cube")
+      {:error, QueryError.timeout(%{reason: :max_wait_exceeded, elapsed_ms: elapsed})}
+    else
+      case do_query(client, cube_query) do
+        {:continue_wait, _} ->
+          if remaining <= 0 do
+            # max_wait: 0 case - don't retry, return error immediately
+            {:error, QueryError.new("Continue wait", :query_error)}
+          else
+            show_spinner(spinner_idx, elapsed, max_wait)
+            Logger.debug("[PowerOfThree] Cube responded 'Continue wait', retrying... (#{remaining}ms remaining)")
+            Process.sleep(poll_interval)
+            next_idx = rem(spinner_idx + 1, length(@spinner_frames))
+            query_with_retry(client, cube_query, max_wait, poll_interval, start_time, next_idx)
+          end
+
+        other ->
+          # Clear spinner on success or other result
+          if spinner_idx > 0, do: clear_spinner()
+          other
+      end
+    end
+  end
+
+  defp show_spinner(idx, elapsed_ms, max_wait_ms) do
+    frame = Enum.at(@spinner_frames, idx)
+    elapsed_s = div(elapsed_ms, 1000)
+    max_s = div(max_wait_ms, 1000)
+    IO.write(:stderr, "\r\e[33m#{frame}\e[0m Cube processing... #{elapsed_s}s/#{max_s}s ")
+  end
+
+  defp clear_spinner do
+    IO.write(:stderr, "\r\e[K")
+  end
+
+  defp do_query(client, cube_query) do
     request_body = %{"query" => cube_query}
 
     case Req.post(client.req, url: "/cubejs-api/v1/load", json: request_body) do
+      {:ok, %{status: 200, body: %{"error" => "Continue wait"}}} ->
+        {:continue_wait, :waiting}
+
       {:ok, %{status: 200, body: body}} ->
         parse_response(body)
 

@@ -75,9 +75,23 @@ defmodule PowerOfThree.QueryError do
 
   @doc """
   Creates a QueryError from a timeout.
+
+  ## Details
+
+  - `:reason` - `:max_wait_exceeded` when Continue wait retry times out
+  - `:elapsed_ms` - Time spent waiting (for max_wait_exceeded)
   """
   def timeout(details \\ %{}) do
-    new("Request timeout", :timeout, details)
+    message =
+      case details[:reason] do
+        :max_wait_exceeded ->
+          "Query timed out after #{details[:elapsed_ms]}ms waiting for Cube to complete"
+
+        _ ->
+          "Request timeout"
+      end
+
+    new(message, :timeout, details)
   end
 
   @doc """
