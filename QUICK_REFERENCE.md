@@ -101,6 +101,14 @@ measure :email,
 time_dimensions()  # Adds inserted_at, updated_at from timestamps()
 ```
 
+### Default Pre-Aggregation (Optional)
+```elixir
+cube :orders, default_pre_aggregation: true
+```
+
+Creates a single rollup pre-aggregation when `updated_at` exists. Uses `external: true`
+with hourly granularity and a MAX(id) refresh key.
+
 ---
 
 ## Query Patterns

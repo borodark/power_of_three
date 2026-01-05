@@ -39,6 +39,20 @@ defmodule PowerOfThree.DefaultCubeTest do
     end
   end
 
+  defmodule NoTimestampSchema do
+    @moduledoc false
+
+    use Ecto.Schema
+    use PowerOfThree
+
+    schema "no_timestamps" do
+      field(:name, :string)
+      field(:amount, :integer)
+    end
+
+    cube(:no_timestamps_cube, default_pre_aggregation: true)
+  end
+
   describe "auto-generated dimensions" do
     test "generates dimensions for string fields" do
       dimensions = BasicSchema.dimensions()
@@ -216,6 +230,38 @@ defmodule PowerOfThree.DefaultCubeTest do
       measures = BasicSchema.measures()
 
       assert length(measures) == 4
+    end
+  end
+
+  describe "default pre-aggregation" do
+    test "adds a rollup when enabled and updated_at exists" do
+      [config] = Order.__info__(:attributes)[:cube_config]
+      pre_aggs = Map.get(config, :pre_aggregations, [])
+
+      assert length(pre_aggs) == 1
+
+      pre_agg = List.first(pre_aggs)
+      assert pre_agg[:name] == "public_order_automatic_for_the_people"
+      assert pre_agg[:type] == :rollup
+      assert pre_agg[:external] == true
+      assert pre_agg[:time_dimension] == :updated_at
+      assert pre_agg[:granularity] == :hour
+      assert pre_agg[:refresh_key][:sql] =~ "SELECT MAX(id)"
+      refute "updated_at" in pre_agg[:dimensions]
+      refute "inserted_at" in pre_agg[:dimensions]
+      refute Map.has_key?(config, :default_pre_aggregation)
+    end
+
+    test "skips pre-aggregation when updated_at is missing" do
+      [config] = NoTimestampSchema.__info__(:attributes)[:cube_config]
+
+      refute Map.has_key?(config, :pre_aggregations)
+    end
+
+    test "skips pre-aggregation when option is not enabled" do
+      [config] = BasicSchema.__info__(:attributes)[:cube_config]
+
+      refute Map.has_key?(config, :pre_aggregations)
     end
   end
 end

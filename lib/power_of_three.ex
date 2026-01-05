@@ -393,6 +393,30 @@ defmodule PowerOfThree do
     # Get sql_table from opts
     sql_table = Keyword.get(opts, :sql_table, "unknown")
 
+    auto_gen_enabled = Keyword.get(opts, :default_pre_aggregation, false)
+
+    dimension_names =
+      (string_fields ++ time_fields)
+      |> Enum.map(fn {field, _} -> field end)
+
+    measure_names =
+      [:count] ++
+        Enum.flat_map(integer_fields, fn {field, _} ->
+          [:"#{field}_sum", :"#{field}_distinct"]
+        end) ++
+        Enum.map(float_fields, fn {field, _} -> :"#{field}_sum" end)
+
+    has_updated_at = Enum.any?(dimension_names, fn field -> field == :updated_at end)
+
+    pre_agg_dimension_names =
+      Enum.reject(dimension_names, fn field ->
+        field in [:updated_at, :inserted_at]
+      end)
+
+    include_pre_agg =
+      auto_gen_enabled and has_updated_at and length(measure_names) > 0 and
+        length(dimension_names) > 0 and sql_table != "unknown"
+
     # ASCII Art Logo - Olympic Barbell with HEX and CUBE plates
     logo = [
       "",
@@ -413,15 +437,92 @@ defmodule PowerOfThree do
     ]
 
     # Build the source code string with syntax highlighting
-    lines =
-      logo ++
+    base_lines = [
+      "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
+      "",
+      "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},"
+    ]
+
+    option_blocks = [
+      "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()}"
+    ]
+
+    option_blocks =
+      if auto_gen_enabled do
+        option_blocks ++
+          [
+            "  #{ANSI.magenta()}default_pre_aggregation:#{ANSI.reset()} #{ANSI.cyan()}true#{ANSI.reset()}"
+          ]
+      else
+        option_blocks
+      end
+
+    pre_agg_lines =
+      if include_pre_agg do
+        pre_agg_name = "#{sql_table |> String.replace(".", "_")}_automatic_for_the_people"
+
+        format_atom = fn
+          atom when is_atom(atom) ->
+            "#{ANSI.cyan()}:#{Atom.to_string(atom)}#{ANSI.reset()}"
+
+          atom when is_binary(atom) ->
+            "#{ANSI.cyan()}:#{atom}#{ANSI.reset()}"
+        end
+
+        measure_list =
+          measure_names
+          |> Enum.map(&format_atom.(&1))
+
+        dimension_list =
+          pre_agg_dimension_names
+          |> Enum.map(&format_atom.(&1))
+
         [
-          "#{ANSI.bright()}#{ANSI.blue()}# Auto-generated cube definition (copy-paste ready):#{ANSI.reset()}",
-          "",
-          "#{ANSI.yellow()}cube#{ANSI.reset()} #{ANSI.cyan()}:#{cube_name}#{ANSI.reset()},",
-          "  #{ANSI.magenta()}sql_table:#{ANSI.reset()} #{ANSI.green()}\"#{sql_table}\"#{ANSI.reset()} #{ANSI.blue()}do#{ANSI.reset()}",
-          ""
+          "  #{ANSI.magenta()}pre_aggregations:#{ANSI.reset()} [",
+          "    %{",
+          "      #{ANSI.magenta()}name:#{ANSI.reset()} #{format_atom.(pre_agg_name)},",
+          "      #{ANSI.magenta()}type:#{ANSI.reset()} #{ANSI.cyan()}:rollup#{ANSI.reset()},",
+          "      #{ANSI.magenta()}external:#{ANSI.reset()} #{ANSI.cyan()}true#{ANSI.reset()},",
+          "      #{ANSI.magenta()}measures:#{ANSI.reset()} [",
+          Enum.map_join(measure_list, ",\n", fn item -> "        #{item}" end),
+          "      ],",
+          "      #{ANSI.magenta()}dimensions:#{ANSI.reset()} [",
+          Enum.map_join(dimension_list, ",\n", fn item -> "        #{item}" end),
+          "      ],",
+          "      #{ANSI.magenta()}time_dimension:#{ANSI.reset()} #{ANSI.cyan()}:updated_at#{ANSI.reset()},",
+          "      #{ANSI.magenta()}granularity:#{ANSI.reset()} #{ANSI.cyan()}:hour#{ANSI.reset()},",
+          "      #{ANSI.magenta()}refresh_key:#{ANSI.reset()} %{#{ANSI.magenta()}sql:#{ANSI.reset()} #{ANSI.green()}\"SELECT MAX(id) FROM #{sql_table}\"#{ANSI.reset()}},",
+          "      #{ANSI.magenta()}build_range_start:#{ANSI.reset()} %{#{ANSI.magenta()}sql:#{ANSI.reset()} #{ANSI.green()}\"SELECT NOW() - INTERVAL '1 year'\"#{ANSI.reset()}},",
+          "      #{ANSI.magenta()}build_range_end:#{ANSI.reset()} %{#{ANSI.magenta()}sql:#{ANSI.reset()} #{ANSI.green()}\"SELECT NOW()\"#{ANSI.reset()}}",
+          "    }",
+          "  ]"
         ]
+      else
+        []
+      end
+
+    option_blocks =
+      if pre_agg_lines == [] do
+        option_blocks
+      else
+        option_blocks ++ [Enum.join(pre_agg_lines, "\n")]
+      end
+
+    {last_option, option_blocks} = List.pop_at(option_blocks, -1)
+
+    option_blocks =
+      if last_option do
+        option_blocks =
+          Enum.map(option_blocks, fn block -> "#{block}," end)
+
+        option_blocks ++ ["#{last_option} #{ANSI.blue()}do#{ANSI.reset()}"]
+      else
+        ["  #{ANSI.blue()}do#{ANSI.reset()}"]
+      end
+
+    option_lines = Enum.flat_map(option_blocks, &String.split(&1, "\n"))
+
+    lines = logo ++ base_lines ++ option_lines ++ [""]
 
     # Add dimensions (string and time fields)
     dimension_lines =
@@ -765,7 +866,7 @@ defmodule PowerOfThree do
 
             if has_updated_at do
               pre_agg = %{
-                name: "automatic4#{sql_table |> String.replace(".", "_")}",
+                name: "#{sql_table |> String.replace(".", "_")}_automatic_for_the_people",
                 type: :rollup,
                 external: true,
                 measures: Enum.map(measures, & &1.name),

@@ -25,6 +25,22 @@ Just write `cube :my_cube, sql_table: "my_table"` and get a complete, syntax-hig
 - **Measures**: `count` (always), `sum` and `count_distinct` for integers, `sum` for floats/decimals
 - **Client-side granularity**: Time dimensions support all 8 granularities (second, minute, hour, day, week, month, quarter, year) specified at query time using Cube.js native `date_trunc`
 
+**Default pre-aggregation (optional):**
+Enable a starter rollup pre-aggregation when `updated_at` exists:
+
+```elixir
+cube :orders, default_pre_aggregation: true
+```
+
+The generated pre-aggregation uses:
+- `external: true`
+- `time_dimension: :updated_at`
+- `granularity: :hour`
+- `refresh_key: "SELECT MAX(id) FROM <sql_table>"`
+- `build_range_start/end` based on `NOW()`
+
+`updated_at` and `inserted_at` are excluded from the rollup dimensions by default.
+
 Read the full story: [Auto-Generation Blog Post](https://github.com/borodark/power_of_three/blob/master/docs/blog/auto-generation.md)
 
 ### Type Safety and Validation
@@ -162,5 +178,4 @@ def deps do
   ]
 end
 ```
-
 
