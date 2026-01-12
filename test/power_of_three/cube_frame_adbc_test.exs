@@ -4,12 +4,13 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
   alias PowerOfThree.{CubeConnection, CubeFrame, DimensionRef, MeasureRef}
 
   @moduletag :live_cube
+  @moduletag :adbc
+  @cube_driver_version System.get_env("CUBE_DRIVER_VERSION", "0.1.2")
 
   setup_all do
-    # Find the Cube ADBC driver
-    driver_path =
-      "_build/test/lib/adbc/priv/lib/libadbc_driver_cube.so"
-      |> Path.expand()
+    unless Code.ensure_loaded?(Adbc) do
+      {:skip, "adbc dependency not available"}
+    end
 
     # Connect to live Cube ADBC endpoint on port 8120
     {:ok, conn} =
@@ -17,7 +18,8 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
         host: "localhost",
         port: 8120,
         token: "test",
-        driver_path: driver_path
+        driver: :cube,
+        driver_version: @cube_driver_version
       )
 
     on_exit(fn ->

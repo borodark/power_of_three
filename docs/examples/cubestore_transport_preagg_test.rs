@@ -9,7 +9,7 @@
 /// Run with:
 /// ```bash
 /// # Start Cube API first
-/// cd /home/io/projects/learn_erl/cube/examples/recipes/arrow-ipc
+/// cd ../cube/examples/recipes/arrow-ipc
 /// ./start-cube-api.sh
 ///
 /// # Run test

@@ -31,7 +31,7 @@ Phase 3 DataFrame functions have been successfully implemented and tested with l
 
 **ADBC Driver:**
 ```
-/home/io/projects/learn_erl/power-of-three-examples/_build/dev/lib/adbc/priv/lib/libadbc_driver_cube.so
+../power-of-three-examples/_build/dev/lib/adbc/priv/lib/libadbc_driver_cube.so
 ```
 
 **Connection Options:**

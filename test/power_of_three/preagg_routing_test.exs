@@ -10,16 +10,18 @@ defmodule PowerOfThree.PreAggRoutingTest do
   - Edge cases and error conditions
 
   Run with:
-    cd ~/projects/learn_erl/power-of-three
-    mix test test/power_of_three/preagg_routing_test.exs --trace
+    cd path/to/power-of-three
+    mix test test/power_of_three/preagg_routing_test.exs --trace --include live_cube --include adbc
   """
 
   use ExUnit.Case, async: true
 
   alias Adbc.{Database, Connection, Result}
 
-  # Path to Cube ADBC driver
-  @cube_driver_path Path.join(:code.priv_dir(:adbc), "lib/libadbc_driver_cube.so")
+  @moduletag :live_cube
+  @moduletag :adbc
+
+  @cube_driver_version System.get_env("CUBE_DRIVER_VERSION", "0.1.2")
 
   # Cube server connection details (ADBC port for pre-agg routing)
   @cube_host "localhost"
@@ -28,8 +30,16 @@ defmodule PowerOfThree.PreAggRoutingTest do
   @cube_token "test"
 
   setup_all do
-    unless File.exists?(@cube_driver_path) do
-      raise "Cube driver not found at #{@cube_driver_path}"
+    unless Code.ensure_loaded?(Adbc) do
+      {:skip, "adbc dependency not available"}
+    end
+
+    case Adbc.Driver.so_path(:cube, version: @cube_driver_version) do
+      {:ok, _path} ->
+        :ok
+
+      {:error, reason} ->
+        raise "Cube driver not available: #{reason}"
     end
 
     # Verify cubesqld is running on ADBC port
@@ -42,7 +52,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
         raise """
         cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
         Start with ADBC(Arrow Native) support:
-          cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+          cd path/to/cube/examples/recipes/arrow-ipc
           source .env
           export CUBESQL_CUBESTORE_DIRECT=true
           export CUBESQL_CUBE_URL=http://localhost:4008/cubejs-api
@@ -51,7 +61,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
           export CUBESQL_PG_PORT=4444
           export CUBEJS_ADBC_PORT=8120
           export RUST_LOG=info
-          ~/projects/learn_erl/cube/rust/cubesql/target/debug/cubesqld
+          path/to/cube/rust/cubesql/target/debug/cubesqld
         """
 
       {:error, reason} ->
@@ -65,7 +75,8 @@ defmodule PowerOfThree.PreAggRoutingTest do
     db =
       start_supervised!(
         {Database,
-         driver: @cube_driver_path,
+         driver: :cube,
+         version: @cube_driver_version,
          "adbc.cube.host": @cube_host,
          "adbc.cube.port": Integer.to_string(@cube_adbc_port),
          "adbc.cube.connection_mode": "native",

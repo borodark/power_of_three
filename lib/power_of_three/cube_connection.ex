@@ -9,7 +9,7 @@ defmodule PowerOfThree.CubeConnection do
 
   Configure the Cube connection in your application config:
 
-      config :power_of_three, PowerOfThree.CubeConnection,
+      config :power_of_3, PowerOfThree.CubeConnection,
         host: "localhost",
         port: 8120,
         token: "test",
@@ -44,7 +44,9 @@ defmodule PowerOfThree.CubeConnection do
           token: String.t(),
           username: String.t() | nil,
           password: String.t() | nil,
-          driver_path: String.t() | nil
+          driver_path: String.t() | nil,
+          driver: atom() | String.t() | nil,
+          driver_version: String.t() | nil
         ]
 
   @doc """
@@ -58,6 +60,8 @@ defmodule PowerOfThree.CubeConnection do
     * `:username` - Optional username
     * `:password` - Optional password
     * `:driver_path` - Path to Cube ADBC driver (auto-detected if not provided)
+    * `:driver` - Driver name or path (defaults to `:cube`)
+    * `:driver_version` - Driver version to use when `:driver` is an atom
 
   ## Examples
 
@@ -84,9 +88,19 @@ defmodule PowerOfThree.CubeConnection do
     token = Keyword.fetch!(opts, :token)
     username = Keyword.get(opts, :username)
     password = Keyword.get(opts, :password)
-    driver_path = Keyword.get(opts, :driver_path) || find_cube_driver()
+    driver = Keyword.get(opts, :driver, :cube)
+    driver_version = Keyword.get(opts, :driver_version)
+    driver_path = Keyword.get(opts, :driver_path)
+    driver_opts = if driver_version, do: [version: driver_version], else: []
 
-    with {:ok, db} <- start_database(driver_path, host, port, token),
+    driver =
+      cond do
+        driver_path -> driver_path
+        driver -> driver
+        true -> find_cube_driver()
+      end
+
+    with {:ok, db} <- start_database(driver, driver_opts, host, port, token),
          {:ok, conn} <- start_connection(db, username, password) do
       {:ok, conn}
     end
@@ -153,20 +167,23 @@ defmodule PowerOfThree.CubeConnection do
   # Private functions
 
   defp merge_config(opts) do
-    app_config = Application.get_env(:power_of_three, __MODULE__, [])
+    app_config =
+      Application.get_env(:power_of_3, __MODULE__, []) ++
+        Application.get_env(:power_of_three, __MODULE__, [])
+
     Keyword.merge(app_config, opts)
   end
 
-  defp start_database(driver_path, host, port, token) do
+  defp start_database(driver, driver_opts, host, port, token) do
     db_opts = [
-      driver: driver_path,
+      driver: driver,
       "adbc.cube.host": host,
       "adbc.cube.port": Integer.to_string(port),
       "adbc.cube.connection_mode": "native",
       "adbc.cube.token": token
     ]
 
-    Adbc.Database.start_link(db_opts)
+    Adbc.Database.start_link(db_opts ++ driver_opts)
   end
 
   # TODO poolboy this
@@ -195,7 +212,7 @@ defmodule PowerOfThree.CubeConnection do
     possible_paths = [
       # Relative to adbc project
       # TODO Noice
-      # Path.expand("~/projects/learn_erl/adbc/_build/dev/lib/adbc/priv/adbc_driver_cube.so"),
+      # Path.expand("path/to/adbc/_build/dev/lib/adbc/priv/adbc_driver_cube.so"),
       # In the application's priv directory
       Path.join(:code.priv_dir(:adbc), "adbc_driver_cube.so")
     ]

@@ -7,7 +7,7 @@
 /// 1. CubeStore must be running on ws://127.0.0.1:3030/ws
 ///
 /// Run with:
-///   cd ~/projects/learn_erl/cube/rust/cubesql
+///   cd path/to/cube/rust/cubesql
 ///   cargo run --example test_preagg_discovery
 use cubesql::cubestore::client::CubeStoreClient;
 use datafusion::arrow::array::StringArray;

@@ -7,7 +7,7 @@
 /// 4. Rewrite SQL to use actual pre-agg table names
 ///
 /// Run with:
-///   cd ~/projects/learn_erl/cube/rust/cubesql
+///   cd path/to/cube/rust/cubesql
 ///   RUST_LOG=info \
 ///   CUBESQL_CUBESTORE_DIRECT=true \
 ///   CUBESQL_CUBE_URL=http://localhost:4008/cubejs-api \

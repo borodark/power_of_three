@@ -2,6 +2,7 @@ defmodule PowerOfThree.DfHttpTest do
   use ExUnit.Case, async: true
 
   @moduletag :live_cube
+  @moduletag :http
 
   describe "df/1 with HTTP (default)" do
     test "simple query with dimensions and measures" do

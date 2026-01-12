@@ -175,7 +175,7 @@ All tests have been updated and should continue to work with the new port and te
 
 ```bash
 # Run comprehensive performance tests
-cd ~/projects/learn_erl/power-of-three
+cd path/to/power-of-three
 mix test test/power_of_three/comprehensive_performance_test.exs
 
 # Run HTTP vs ADBC comparison tests
@@ -226,7 +226,7 @@ If you have existing code or configurations:
 Run this command to verify all references are updated:
 
 ```bash
-cd ~/projects/learn_erl/power-of-three
+cd path/to/power-of-three
 grep -r "4445\|CUBEJS_ARROW_PORT\|@arrow_port\|@cube_port[^_]" . \
   --include="*.ex" --include="*.exs" --include="*.md" \
   2>/dev/null | grep -v "_build\|deps/"

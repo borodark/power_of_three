@@ -2,7 +2,7 @@
 
 ## Location
 ```bash
-cd /home/io/projects/learn_erl/adbc/tests/cpp
+cd ../adbc_driver_cube/tests/cpp
 ```
 
 ## Compile & Run (One Command)
@@ -37,13 +37,13 @@ cd /home/io/projects/learn_erl/adbc/tests/cpp
 
 **1. ADBC driver built:**
 ```bash
-cd /home/io/projects/learn_erl/adbc
+cd ../adbc_driver_cube
 make
 ```
 
 **2. Cube ADBC Server running:**
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd ../cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh
 ```
 
@@ -63,12 +63,12 @@ export CUBE_TOKEN=test
 
 **Library not found:**
 ```bash
-cd /home/io/projects/learn_erl/adbc && make
+cd ../adbc_driver_cube && make
 ```
 
 **Cube ADBC Server not running:**
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd ../cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh
 # Wait 5 seconds
 ```

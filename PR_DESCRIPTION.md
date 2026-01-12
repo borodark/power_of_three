@@ -4,17 +4,72 @@
 
 This PR adds comprehensive performance testing, SQL keyword collision detection, and extensive performance benchmarking documentation. Major focus on validating Arrow IPC cache performance gains and improving developer safety.
 
-## 📊 Performance Results
+## 📊 Performance Results (Saturation, 100 Concurrent)
 
-**Arrow IPC vs HTTP API (with cache enabled):**
-- **Small queries (200 rows):** Arrow is **25.5x faster** (2ms vs 51ms)
-- **Medium queries (1,827 rows):** Arrow is **66x faster** (1ms vs 66ms)
-- **Large queries (50K rows):** Arrow is **25x faster** (46ms vs 1,149ms)
+From `mix test test/saturation_test.exs --include saturation` using the
+mandata_captate query set (512 variants, 2016-2025, LIMIT 1k-50k). Two runs
+captured cold-start vs warm-cache behavior, plus a cache-off run
+(`CUBESQL_ARROW_RESULTS_CACHE_ENABLED=false`).
 
-**Cache impact on Arrow IPC:**
-- **Average speedup:** 30.6x faster with cache
-- **Best case:** 89x faster (89ms → 1ms)
-- **Worst case:** 3x faster (138ms → 46ms)
+```
++----------------------+----------------+----------------+----------------+
+| Metric               | Cube HTTP      | ADBC Direct    | Phoenix/ADBC   |
++----------------------+----------------+----------------+----------------+
+| Success Rate         |         100.0% |         100.0% |         100.0% |
+| Throughput (qps)     |          19.53 |          58.65 |          25.34 |
+| Avg Latency (ms)     |        2412.93 |          42.84 |         1616.9 |
+| P50 Latency (ms)     |           2406 |             43 |           1759 |
+| P95 Latency (ms)     |           4017 |             50 |           3001 |
+| P99 Latency (ms)     |           4892 |             57 |           3548 |
++----------------------+----------------+----------------+----------------+
+```
+
+Warm-cache run:
+
+```
+| Metric               | Cube HTTP      | ADBC Direct    | Phoenix/ADBC   |
+| Success Rate         |         100.0% |         100.0% |         100.0% |
+| Throughput (qps)     |          22.66 |          63.61 |          21.46 |
+| Avg Latency (ms)     |        1416.77 |          37.47 |        1102.71 |
+| P50 Latency (ms)     |           1432 |             41 |            395 |
+| P95 Latency (ms)     |           3338 |             51 |           3998 |
+| P99 Latency (ms)     |           3824 |             58 |           4348 |
++----------------------+----------------+----------------+----------------+
+```
+
+Cache-off run:
+
+```
+| Metric               | Cube HTTP      | ADBC Direct    | Phoenix/ADBC   |
+| Success Rate         |         100.0% |         100.0% |         100.0% |
+| Throughput (qps)     |          20.35 |          19.58 |          19.58 |
+| Avg Latency (ms)     |        1803.39 |        3325.44 |        2307.94 |
+| P50 Latency (ms)     |           1862 |           3300 |           2418 |
+| P95 Latency (ms)     |           3939 |           3536 |           4266 |
+| P99 Latency (ms)     |           4663 |           4075 |           4726 |
++----------------------+----------------+----------------+----------------+
+```
+
+**Variety tests (7 variants, 100 concurrent):**
+- HTTP: 815.81ms avg, 94.7 qps (warm run)
+- ADBC: 6.81ms avg, 1515.15 qps (cold run); 9.19ms avg, 1449.28 qps (warm run)
+  - Cache-off: 2385.95ms avg, 39.18 qps
+
+**Mandata variety (512 variants, 100 concurrent):**
+- ADBC: 38.95ms avg, 55.16 qps (cold run); 41.6ms avg, 62.66 qps (warm run)
+- Phoenix/ADBC: 1839.58ms avg, 21.98 qps (warm run)
+  - Cache-off ADBC: 25914.64ms avg, 1.93 qps
+  - Cache-off Phoenix/ADBC: 2328.17ms avg, 18.07 qps
+
+**High concurrency (mandata variety):**
+- ADBC 1000: 419.67ms avg, 38.6 qps (cold run); 325.13ms avg, 40.0 qps (warm run)
+- ADBC 2000: 581.9ms avg, 37.32 qps (cold run); 502.02ms avg, 36.48 qps (warm run)
+  - Cache-off ADBC 1000: 34057.56ms avg, 16.97 qps
+  - Cache-off ADBC 2000: 46534.61ms avg, 22.3 qps
+
+**Cache-off pre-aggregation vs no pre-aggregation (50 queries):**
+- ADBC: Pre-Agg 1353.56ms avg, 36.1 qps; No Pre-Agg 1008.5ms avg, 47.21 qps (speedup 0.75x)
+- HTTP: Pre-Agg 994.84ms avg, 48.69 qps; No Pre-Agg 852.02ms avg, 57.54 qps (speedup 0.86x)
 
 ## ✨ New Features
 

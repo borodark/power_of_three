@@ -7,7 +7,7 @@ The PowerOfThree `df/2` functionality requires three services to be running:
 2. **Cube API** - Cube.js server (port 4008)
 3. **cubesqld** - ADBC(Arrow Native) protocol server (port 8120)
 
-All scripts are located in: `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/`
+All scripts are located in: `path/to/cube/examples/recipes/arrow-ipc/`
 
 ---
 
@@ -16,18 +16,18 @@ All scripts are located in: `~/projects/learn_erl/cube/examples/recipes/arrow-ip
 ### 1. Start Cube API Server
 
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd path/to/cube/examples/recipes/arrow-ipc
 ./start-cube-api.sh
 ```
 
 **Features:**
 - Automatically starts PostgreSQL via docker-compose if not running
 - Runs on port 4008
-- **Logs:** `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cube-api.log`
+- **Logs:** `path/to/cube/examples/recipes/arrow-ipc/cube-api.log`
 
 **To monitor logs:**
 ```bash
-tail -f ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cube-api.log
+tail -f path/to/cube/examples/recipes/arrow-ipc/cube-api.log
 ```
 
 ### 2. Start cubesqld Server
@@ -35,7 +35,7 @@ tail -f ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cube-api.log
 **Important:** Must start Cube API first!
 
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd path/to/cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh
 ```
 
@@ -46,13 +46,13 @@ cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
 
 **To run in background with logs:**
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd path/to/cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh 2>&1 | tee cubesqld.log &
 ```
 
 **To monitor logs:**
 ```bash
-tail -f ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cubesqld.log
+tail -f path/to/cube/examples/recipes/arrow-ipc/cubesqld.log
 ```
 
 ---
@@ -75,7 +75,7 @@ kill $(lsof -ti:4008)
 
 ### Stop PostgreSQL
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd path/to/cube/examples/recipes/arrow-ipc
 docker-compose down
 ```
 
@@ -103,7 +103,7 @@ cubesqld  <pid> io    9u  IPv4 ... TCP *:8120 (LISTEN)
 
 ```elixir
 # Start IEx
-cd ~/projects/learn_erl/power-of-three-examples
+cd path/to/power-of-three-examples
 iex -S mix
 
 # Test ADBC connection
@@ -127,7 +127,7 @@ ExamplesOfPoT.CubeQuery.query_cube!(
 
 ### For PowerOfThree
 
-Based on `~/projects/learn_erl/power-of-three-examples/config/config.exs`:
+Based on `path/to/power-of-three-examples/config/config.exs`:
 
 ```elixir
 config :your_app, Adbc.CubePool,
@@ -141,7 +141,7 @@ config :your_app, Adbc.CubePool,
 
 ### Environment Variables (from .env)
 
-Located in `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/.env`:
+Located in `path/to/cube/examples/recipes/arrow-ipc/.env`:
 
 ```bash
 PORT=4008                       # Cube API port
@@ -159,7 +159,7 @@ CUBESQL_CUBE_TOKEN=test        # Authentication token
 
 ## Quick Start Script
 
-Create `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/start-all.sh`:
+Create `path/to/cube/examples/recipes/arrow-ipc/start-all.sh`:
 
 ```bash
 #!/bin/bash
@@ -193,7 +193,7 @@ echo "  kill $CUBE_API_PID $CUBESQLD_PID"
 
 Make it executable:
 ```bash
-chmod +x ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/start-all.sh
+chmod +x path/to/cube/examples/recipes/arrow-ipc/start-all.sh
 ```
 
 ---
@@ -202,8 +202,8 @@ chmod +x ~/projects/learn_erl/cube/examples/recipes/arrow-ipc/start-all.sh
 
 | Service | Log Location | Command to Monitor |
 |---------|-------------|-------------------|
-| Cube API | `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cube-api.log` | `tail -f cube-api.log` |
-| cubesqld | `~/projects/learn_erl/cube/examples/recipes/arrow-ipc/cubesqld.log` (if redirected) | `tail -f cubesqld.log` |
+| Cube API | `path/to/cube/examples/recipes/arrow-ipc/cube-api.log` | `tail -f cube-api.log` |
+| cubesqld | `path/to/cube/examples/recipes/arrow-ipc/cubesqld.log` (if redirected) | `tail -f cubesqld.log` |
 | PostgreSQL | Docker logs | `docker logs -f <container_id>` |
 
 ---
@@ -218,7 +218,7 @@ lsof -ti:8120 | xargs kill -9
 
 ### PostgreSQL Not Running
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd path/to/cube/examples/recipes/arrow-ipc
 docker-compose up -d postgres
 ```
 
@@ -238,7 +238,7 @@ curl http://localhost:4008/cubejs-api/v1/meta
 psql -h 127.0.0.1 -p 4444 -U root
 
 # Via ADBC (from Python)
-cd ~/projects/learn_erl/adbc/python/adbc_driver_cube
+cd path/to/adbc/python/adbc_driver_cube
 source venv/bin/activate
 python quick_test.py
 ```

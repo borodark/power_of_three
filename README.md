@@ -179,3 +179,7 @@ def deps do
 end
 ```
 
+## Testing
+
+See `docs/TESTING.md` for how to run unit tests, live HTTP tests, and
+optional ADBC driver tests.

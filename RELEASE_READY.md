@@ -142,7 +142,7 @@ Average Speedup:    30.6x with cache
 ### Testing
 ```bash
 # Run all tests
-cd /home/io/projects/learn_erl/power-of-three
+cd ../power-of-three
 mix test
 
 # Run specific performance test

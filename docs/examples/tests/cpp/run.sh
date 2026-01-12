@@ -108,7 +108,7 @@ echo ""
 if ! nc -z "$CUBE_HOST" "$CUBE_PORT" 2>/dev/null; then
     echo "⚠️  Warning: Cannot connect to Cube ADBC Server at $CUBE_HOST:$CUBE_PORT"
     echo "   Make sure Cube ADBC Server is running:"
-    echo "   cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc"
+    echo "   cd path/to/cube/examples/recipes/arrow-ipc"
     echo "   ./start-cubesqld.sh"
     echo ""
     read -p "Continue anyway? [y/N] " -n 1 -r

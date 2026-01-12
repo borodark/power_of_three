@@ -565,7 +565,7 @@ defmodule PowerOfThreeDataFrameTest do
   # Start services before tests
   setup_all do
     # Start Cube services
-    cube_dir = Path.expand("~/projects/learn_erl/cube/examples/recipes/arrow-ipc")
+    cube_dir = Path.expand("path/to/cube/examples/recipes/arrow-ipc")
 
     # Start Cube API
     cube_api_port = System.cmd("bash", [

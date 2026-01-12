@@ -21,15 +21,15 @@ Basic connectivity and simple query tests:
 
 ```bash
 # 1. Make sure ADBC driver is built
-cd /home/io/projects/learn_erl/adbc
+cd ../adbc_driver_cube
 make
 
 # 2. Make sure Cube ADBC Server is running
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd ../cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh
 
 # 3. Compile tests
-cd /home/io/projects/learn_erl/adbc/tests/cpp
+cd ../adbc_driver_cube/tests/cpp
 ./compile.sh
 
 # 4. Run tests
@@ -178,13 +178,13 @@ Multi-Column Tests
 
 ### "ADBC driver library not found"
 ```bash
-cd /home/io/projects/learn_erl/adbc
+cd ../adbc
 make
 ```
 
 ### "Cannot connect to Cube ADBC Server"
 ```bash
-cd ~/projects/learn_erl/cube/examples/recipes/arrow-ipc
+cd ../cube/examples/recipes/arrow-ipc
 ./start-cubesqld.sh
 # Wait a few seconds for startup
 ```

@@ -244,8 +244,8 @@ The Arrow IPC query cache is a **resounding success**:
 
 ---
 
-**Implementation**: `/home/io/projects/learn_erl/cube/rust/cubesql/cubesql/src/sql/arrow_native/cache.rs`
-**Documentation**: `/home/io/projects/learn_erl/cube/rust/cubesql/CACHE_IMPLEMENTATION.md`
+**Implementation**: `../cube/rust/cubesql/cubesql/src/sql/arrow_native/cache.rs`
+**Documentation**: `../cube/rust/cubesql/CACHE_IMPLEMENTATION.md`
 **Commits**:
 - `2922a71` feat(cubesql): Add query result caching for Arrow Native server
 - `2f6b885` docs(cubesql): Add comprehensive cache implementation documentation

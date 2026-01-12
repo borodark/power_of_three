@@ -102,4 +102,14 @@ defmodule Order do
   cube(:mandata_captate, default_pre_aggregation: true)
 end
 
+if Code.ensure_loaded?(Adbc) and System.get_env("CUBE_DRIVER_AUTO_DOWNLOAD") == "1" do
+  cube_version = System.get_env("CUBE_DRIVER_VERSION", "0.1.2")
+
+  try do
+    Adbc.download_driver!(:cube, version: cube_version)
+  rescue
+    _ -> :ok
+  end
+end
+
 ExUnit.start(exclude: :live_cube)

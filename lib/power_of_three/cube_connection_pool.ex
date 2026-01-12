@@ -9,7 +9,7 @@ defmodule PowerOfThree.CubeConnectionPool do
 
   Configure the pool in your application config:
 
-      config :power_of_three, PowerOfThree.CubeConnectionPool,
+      config :power_of_3, PowerOfThree.CubeConnectionPool,
         size: 10,
         max_overflow: 5,
         host: "localhost",
@@ -31,8 +31,8 @@ defmodule PowerOfThree.CubeConnectionPool do
       end)
   """
 
-  use GenServer
-  alias PowerOfThree.CubeConnection
+  use Supervisor
+  alias PowerOfThree.{CubeConnection, CubeConnectionWorker}
 
   @pool_name :cube_connection_pool
 
@@ -52,8 +52,7 @@ defmodule PowerOfThree.CubeConnectionPool do
     * `:password` - Optional password
   """
   def start_link(opts \\ []) do
-    pool_config = build_pool_config(opts)
-    :poolboy.start_link(pool_config, opts)
+    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @doc """
@@ -64,12 +63,11 @@ defmodule PowerOfThree.CubeConnectionPool do
       {:ok, result} = CubeConnectionPool.query("SELECT * FROM orders_no_preagg LIMIT 10")
   """
   def query(sql, params \\ [], opts \\ []) do
-    :poolboy.transaction(
-      @pool_name,
+    transaction(
       fn conn ->
         CubeConnection.query(conn, sql, params, opts)
       end,
-      opts[:timeout] || 60_000
+      opts
     )
   end
 
@@ -89,7 +87,10 @@ defmodule PowerOfThree.CubeConnectionPool do
   def transaction(fun, opts \\ []) do
     :poolboy.transaction(
       @pool_name,
-      fun,
+      fn worker ->
+        conn = CubeConnectionWorker.connection(worker)
+        fun.(conn)
+      end,
       opts[:timeout] || 60_000
     )
   end
@@ -97,26 +98,31 @@ defmodule PowerOfThree.CubeConnectionPool do
   @doc """
   Checks out a connection from the pool.
 
-  Remember to check it back in with `checkin/1` when done.
+  Returns `{worker, conn}`; pass the worker back to `checkin/1` when done.
 
   ## Examples
 
-      conn = CubeConnectionPool.checkout()
+      {worker, conn} = CubeConnectionPool.checkout()
       try do
         CubeConnection.query(conn, "SELECT ...")
       after
-        CubeConnectionPool.checkin(conn)
+        CubeConnectionPool.checkin(worker)
       end
   """
   def checkout(opts \\ []) do
-    :poolboy.checkout(@pool_name, opts[:block] || true, opts[:timeout] || 5_000)
+    worker = :poolboy.checkout(@pool_name, opts[:block] || true, opts[:timeout] || 5_000)
+    {worker, CubeConnectionWorker.connection(worker)}
   end
 
   @doc """
   Checks a connection back into the pool.
   """
-  def checkin(conn) do
-    :poolboy.checkin(@pool_name, conn)
+  def checkin({worker, _conn}) do
+    :poolboy.checkin(@pool_name, worker)
+  end
+
+  def checkin(worker) do
+    :poolboy.checkin(@pool_name, worker)
   end
 
   @doc """
@@ -126,55 +132,41 @@ defmodule PowerOfThree.CubeConnectionPool do
     :poolboy.status(@pool_name)
   end
 
-  ## Server Callbacks (Worker Implementation)
+  ## Supervisor Callbacks
 
   @impl true
   def init(opts) do
-    # Each worker maintains a single ADBC connection
-    case CubeConnection.connect(opts) do
-      {:ok, conn} -> {:ok, conn}
-      {:error, reason} -> {:stop, reason}
-    end
-  end
+    config =
+      Application.get_env(:power_of_3, __MODULE__, []) ++
+        Application.get_env(:power_of_three, __MODULE__, [])
 
-  @impl true
-  def handle_call({:query, sql, params, opts}, _from, conn) do
-    result = CubeConnection.query(conn, sql, params, opts)
-    {:reply, result, conn}
-  end
-
-  @impl true
-  def handle_call(:get_connection, _from, conn) do
-    {:reply, conn, conn}
-  end
-
-  @impl true
-  def terminate(_reason, conn) when is_pid(conn) do
-    # Clean up the connection when the worker terminates
-    try do
-      CubeConnection.disconnect(conn)
-    catch
-      _, _ -> :ok
-    end
-
-    :ok
-  end
-
-  def terminate(_reason, _state), do: :ok
-
-  ## Private Functions
-
-  defp build_pool_config(opts) do
-    config = Application.get_env(:power_of_three, __MODULE__, [])
     opts = Keyword.merge(config, opts)
 
-    [
+    pool_config = [
       name: {:local, @pool_name},
-      worker_module: __MODULE__,
+      worker_module: CubeConnectionWorker,
       size: opts[:size] || 5,
       max_overflow: opts[:max_overflow] || 2,
       strategy: :fifo
     ]
+
+    worker_opts =
+      Keyword.take(opts, [
+        :host,
+        :port,
+        :token,
+        :username,
+        :password,
+        :driver,
+        :driver_version,
+        :driver_path
+      ])
+
+    children = [
+      :poolboy.child_spec(@pool_name, pool_config, worker_opts)
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
   end
 
   @doc """

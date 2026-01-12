@@ -5,6 +5,7 @@ defmodule PowerOfThree.CubeHttpClientTest do
   alias PowerOfThree.QueryError
 
   @moduletag :live_cube
+  @moduletag :http
 
   describe "new/1" do
     test "creates HTTP client with default options" do

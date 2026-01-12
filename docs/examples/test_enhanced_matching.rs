@@ -5,7 +5,7 @@ use cubeclient::apis::{configuration::Configuration, default_api as cube_api};
 /// pre-aggregation table names, even when they contain ambiguous patterns.
 ///
 /// Run with:
-///   cd ~/projects/learn_erl/cube/rust/cubesql
+///   cd path/to/cube/rust/cubesql
 ///   CUBESQL_CUBESTORE_DIRECT=true \
 ///   CUBESQL_CUBE_URL=http://localhost:4008/cubejs-api \
 ///   CUBESQL_CUBESTORE_URL=ws://127.0.0.1:3030/ws \

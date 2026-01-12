@@ -4,6 +4,7 @@ defmodule PowerOfThree.PreAggDefaultIntegrationTest do
   alias PowerOfThree.{CubeHttpClient, QueryError}
 
   @moduletag :live_cube
+  @moduletag :http
   @moduletag timeout: 60_000
 
   setup do
