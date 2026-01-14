@@ -204,9 +204,18 @@ defmodule PowerOfThree.CubeSchema do
     # Check if there's an :id field in dimensions
     has_id = Enum.any?(fields, fn {name, _type} -> name == :id end)
 
+    # Filter out :id from fields if it's being used as primary key
+    # (primary key is defined separately via @primary_key)
+    fields_for_schema =
+      if has_id do
+        Enum.reject(fields, fn {name, _type} -> name == :id end)
+      else
+        fields
+      end
+
     # Generate the schema AST
     field_asts =
-      for {name, type} <- fields do
+      for {name, type} <- fields_for_schema do
         quote do
           field(unquote(name), unquote(type))
         end
