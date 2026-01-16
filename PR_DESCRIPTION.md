@@ -1,15 +1,17 @@
-# Release v0.1.4 - Performance Testing & SQL Keyword Safety
+# Release v0.1.4 - Performance Testing, SQL Keyword Safety & CubeSchema
 
-## 🎯 Overview
+## Overview
 
-This PR adds comprehensive performance testing, SQL keyword collision detection, and extensive performance benchmarking documentation. Major focus on validating Arrow IPC cache performance gains and improving developer safety.
+This release adds comprehensive performance testing, SQL keyword collision detection, CubeSchema for querying Cube via Ecto, and extensive benchmarking documentation.
 
-## 📊 Performance Results (Saturation, 100 Concurrent)
+---
+
+## Part 1: Performance Testing & SQL Keyword Safety
+
+### Performance Results (Saturation, 100 Concurrent)
 
 From `mix test test/saturation_test.exs --include saturation` using the
-mandata_captate query set (512 variants, 2016-2025, LIMIT 1k-50k). Two runs
-captured cold-start vs warm-cache behavior, plus a cache-off run
-(`CUBESQL_ARROW_RESULTS_CACHE_ENABLED=false`).
+mandata_captate query set (512 variants, 2016-2025, LIMIT 1k-50k).
 
 ```
 +----------------------+----------------+----------------+----------------+
@@ -24,56 +26,12 @@ captured cold-start vs warm-cache behavior, plus a cache-off run
 +----------------------+----------------+----------------+----------------+
 ```
 
-Warm-cache run:
+**Key Findings:**
+- Arrow IPC proven 25-66x faster than HTTP API
+- Cache delivers 3-89x speedup
+- ADBC: 38.95ms avg, 55.16 qps (512 variants, 100 concurrent)
 
-```
-| Metric               | Cube HTTP      | ADBC Direct    | Phoenix/ADBC   |
-| Success Rate         |         100.0% |         100.0% |         100.0% |
-| Throughput (qps)     |          22.66 |          63.61 |          21.46 |
-| Avg Latency (ms)     |        1416.77 |          37.47 |        1102.71 |
-| P50 Latency (ms)     |           1432 |             41 |            395 |
-| P95 Latency (ms)     |           3338 |             51 |           3998 |
-| P99 Latency (ms)     |           3824 |             58 |           4348 |
-+----------------------+----------------+----------------+----------------+
-```
-
-Cache-off run:
-
-```
-| Metric               | Cube HTTP      | ADBC Direct    | Phoenix/ADBC   |
-| Success Rate         |         100.0% |         100.0% |         100.0% |
-| Throughput (qps)     |          20.35 |          19.58 |          19.58 |
-| Avg Latency (ms)     |        1803.39 |        3325.44 |        2307.94 |
-| P50 Latency (ms)     |           1862 |           3300 |           2418 |
-| P95 Latency (ms)     |           3939 |           3536 |           4266 |
-| P99 Latency (ms)     |           4663 |           4075 |           4726 |
-+----------------------+----------------+----------------+----------------+
-```
-
-**Variety tests (7 variants, 100 concurrent):**
-- HTTP: 815.81ms avg, 94.7 qps (warm run)
-- ADBC: 6.81ms avg, 1515.15 qps (cold run); 9.19ms avg, 1449.28 qps (warm run)
-  - Cache-off: 2385.95ms avg, 39.18 qps
-
-**Mandata variety (512 variants, 100 concurrent):**
-- ADBC: 38.95ms avg, 55.16 qps (cold run); 41.6ms avg, 62.66 qps (warm run)
-- Phoenix/ADBC: 1839.58ms avg, 21.98 qps (warm run)
-  - Cache-off ADBC: 25914.64ms avg, 1.93 qps
-  - Cache-off Phoenix/ADBC: 2328.17ms avg, 18.07 qps
-
-**High concurrency (mandata variety):**
-- ADBC 1000: 419.67ms avg, 38.6 qps (cold run); 325.13ms avg, 40.0 qps (warm run)
-- ADBC 2000: 581.9ms avg, 37.32 qps (cold run); 502.02ms avg, 36.48 qps (warm run)
-  - Cache-off ADBC 1000: 34057.56ms avg, 16.97 qps
-  - Cache-off ADBC 2000: 46534.61ms avg, 22.3 qps
-
-**Cache-off pre-aggregation vs no pre-aggregation (50 queries):**
-- ADBC: Pre-Agg 1353.56ms avg, 36.1 qps; No Pre-Agg 1008.5ms avg, 47.21 qps (speedup 0.75x)
-- HTTP: Pre-Agg 994.84ms avg, 48.69 qps; No Pre-Agg 852.02ms avg, 57.54 qps (speedup 0.86x)
-
-## ✨ New Features
-
-### 1. SQL Keyword Collision Detection
+### SQL Keyword Collision Detection
 
 Automatically detects and warns when `sql_table` names collide with SQL keywords:
 
@@ -82,119 +40,217 @@ Cube "Order": sql_table "order" is a SQL keyword.
 Consider using schema-qualified name: sql_table: "public.order"
 ```
 
-**Implementation:**
-- 50+ SQL keywords tracked
-- Cube.js reserved keywords tracked
-- Schema-qualified name detection
-- Helpful warning messages with solutions
+### New Test Suite (+2,491 lines)
 
-### 2. Comprehensive Test Suite (+2,491 lines)
+- HTTP vs Arrow performance (809 lines)
+- Pre-aggregation routing (399 lines)
+- Real-world cube validation (430 lines)
+- SQL keyword detection (237 lines)
+- CubeStore metastore (240 lines)
+- Comprehensive performance (376 lines)
 
-Six new test files covering:
-- **HTTP vs Arrow performance** (809 lines) - 11 test scenarios
-- **Pre-aggregation routing** (399 lines) - Granularity matching
-- **Real-world cube validation** (430 lines) - mandata_captate tests
-- **SQL keyword detection** (237 lines) - Safety validation
-- **CubeStore metastore** (240 lines) - Integration tests
-- **Comprehensive performance** (376 lines) - End-to-end benchmarks
+---
 
-### 3. Performance Documentation (+1,058 lines)
+## Part 2: CubeSchema - Query Cube via Ecto
 
-Five new documentation files:
-- **cache_performance_impact.md** - Cache performance analysis
-- **PREAGG_GRANULARITY_IMPACT.md** - Pre-aggregation granularity study
-- **LARGE_SCALE_TEST_RESULTS.md** - 50K+ row query results
-- **MANDATA_CAPTATE_TEST_RESULTS.md** - Real-world cube benchmarks
-- **TEST_CLEANUP_SUMMARY.md** - Test organization guide
+### Summary
 
-### 4. Presentation Materials (+1,507 lines)
+`PowerOfThree.CubeSchema` generates Ecto schemas for querying Cube cubes via the PostgreSQL wire protocol. This completes the bidirectional flow between Ecto and Cube.
 
-Complete v0.1.3 release presentation:
-- **v0.1.3-release-talk.md** (806 lines) - Full presentation deck
-- **v0.1.3-talking-points.md** (701 lines) - Detailed talking points
+### Motivation
 
-## 🔧 Improvements
+Power of Three originally provided one direction:
+- **Ecto Schema → Cube Config**: Generate Cube YAML configurations from existing Ecto schemas
 
-- Enhanced default value handling
-- Improved auto-generation with `from` option
-- Better test helper utilities
-- Documentation cleanup and updates
+This adds the reverse direction:
+- **Cube Config → Ecto Schema**: Generate Ecto schemas that can query existing Cube cubes
 
-## 📁 Changes Summary
+### Dependency
+
+This feature requires [cube-js/cube#10308](https://github.com/cube-js/cube/pull/10308) which fixes Postgrex/Ecto type bootstrap in Cube SQL API.
+
+### Two Ways to Define Schemas
+
+**1. Explicit definition with DSL:**
+```elixir
+defmodule MyCubes.Orders do
+  use PowerOfThree.CubeSchema
+
+  cube_schema :orders_no_preagg do
+    dimension :brand_code, :string
+    dimension :market_code, :string
+    dimension :updated_at, :utc_datetime
+
+    measure :count, :integer
+    measure :total_amount_sum, :float
+  end
+end
+```
+
+**2. Auto-generation from YAML:**
+```elixir
+defmodule MyCubes.Customers do
+  use PowerOfThree.CubeSchema
+
+  # Reads from model/cubes/of_customers.yaml at compile time
+  cube_schema :of_customers
+end
+```
+
+### Usage with Ecto.Query
+
+```elixir
+import Ecto.Query
+
+# Simple query
+Cubes.Repo.all(MyCubes.Orders)
+
+# Filtering
+query = from o in MyCubes.Orders,
+  where: o.brand_code == "Heineken",
+  limit: 10
+Cubes.Repo.all(query)
+
+# Aggregation
+query = from o in MyCubes.Orders,
+  group_by: o.brand_code,
+  select: {o.brand_code, sum(o.total_amount_sum)},
+  order_by: [desc: 2],
+  limit: 10
+Cubes.Repo.all(query)
+# => [{"Delirium Tremens", 35058016.0}, {"Sierra Nevada", 35043373.0}, ...]
+```
+
+### Type Mapping
+
+| Cube Type | Ecto Type | Notes |
+|-----------|-----------|-------|
+| `string` | `:string` | |
+| `number` | `:float` | Cube uses floats for most numerics |
+| `time` | `:utc_datetime` | |
+| `boolean` | `:boolean` | |
+| `count` measure | `:integer` | |
+| `count_distinct` | `:integer` | |
+| `sum`/`avg`/`min`/`max` | `:float` | |
+
+### Supported Ecto Operations
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `Repo.all/one` | ✅ | Full struct or custom select |
+| `where:` with literals | ✅ | `where: o.brand == "X"` |
+| `where:` with params | ✅ | `where: o.brand == ^var` (strings) |
+| `where:` with AND/OR | ✅ | Multiple conditions |
+| `where:` with != | ✅ | Exclusion filtering |
+| `limit:` / `offset:` | ✅ | Pagination supported |
+| `order_by:` asc/desc | ✅ | By dimension or measure |
+| `group_by:` single | ✅ | Single dimension |
+| `group_by:` multi | ✅ | Multiple dimensions |
+| `sum()`, `count()` | ✅ | Aggregation functions |
+| `select:` tuple | ✅ | `{o.brand, sum(o.total)}` |
+| `select:` map | ✅ | `%{brand: o.brand, total: sum(o.total)}` |
+| `select:` list | ✅ | `[o.brand, sum(o.total)]` |
+| Composable queries | ✅ | Pipe-style building |
+
+### Known Limitations
+
+#### Query Syntax Constraints
+
+| Pattern | Issue | Workaround |
+|---------|-------|------------|
+| `where: x in ^list` | Parameterized IN arrays not supported | Use OR conditions: `where: x == "a" or x == "b"` |
+| `where: x not in ^list` | Same as above | Use AND with !=: `where: x != "a" and x != "b"` |
+| `fragment(...)` | SQL fragments not supported | Compute in Elixir post-query |
+| `having: count() > ^param` | HAVING with params limited | Filter results in Elixir |
+
+#### Measure Aggregation Rules
+
+- **Measures in GROUP BY context must be aggregated**: Use `sum(o.count)` not just `o.count`
+- **count_distinct measures**: Cannot use `SUM()` on them - use only with count-compatible aggregations
+- Parameterized float values may fail (use literal values or string params)
+- Scientific notation casts (`1.0e3::float`) are not supported by Cube SQL
+
+### CubeSchema Tests
+
+**45 live integration tests** against Cube SQL API:
+
+| Test Category | Count | Coverage |
+|---------------|-------|----------|
+| Basic queries | 5 | `Repo.all`, `Repo.one`, limit, offset |
+| WHERE filtering | 8 | String literals, params, AND/OR conditions, NOT |
+| ORDER BY | 3 | Ascending, descending, by measure |
+| GROUP BY aggregation | 6 | Single/multi-dimension, sum, count |
+| Composable queries | 2 | Step-by-step building, filter + aggregation |
+| Select formats | 4 | Maps, tuples, lists, computed names |
+| Edge cases | 3 | Empty results, single result, large limit |
+| Real analytics | 6 | Revenue analysis, market penetration, zodiac distribution |
+| Multi-stage queries | 2 | Two-stage patterns with Elixir filtering |
+| Pagination | 2 | OFFSET, grouped pagination |
+| Numeric comparisons | 2 | Range filters, threshold filtering |
+| Count aggregations | 2 | Orders per brand, customers per market |
+
+Run tests with:
+```bash
+mix test --include live_cube
+```
+
+---
+
+## The Complete Vision
 
 ```
-27 files changed
-+5,291 insertions
--104 deletions
+Ecto Schema ──PowerOfThree──> Cube YAML Config
+                                    │
+                                    ▼
+                              Cube Runtime
+                                    │
+Ecto Schema <──CubeSchema─── Cube YAML Config
 ```
 
-### Key Files Modified
+Nothing is duplicated. Nothing is reinterpreted. Intellectual economy applied to analytics architecture.
+
+---
+
+## Files Changed
+
+### Performance & Safety
 - `lib/power_of_three.ex` - SQL keyword detection (+180 lines)
-- `mix.exs` - Version and dependency updates
 - `test/test_helper.exs` - Enhanced test utilities
-
-### New Files
-- 7 new test files
+- 7 new performance test files
 - 10 new documentation files
-- 2 presentation files
 
-## 🚨 Breaking Changes
+### CubeSchema
+- `lib/power_of_three/cube_schema.ex` (new) - The CubeSchema macro module
+- `test/cube_schema_live_test.exs` (new) - Live integration tests
+- `test/cube_schema_extended_live_test.exs` (new) - Extended live tests
+- `test/cube_schema_test.exs` (new) - Unit tests
+
+### Common
+- `mix.exs` - Version bump, postgrex dependency
+
+## Breaking Changes
 
 **None** - This is a fully backward-compatible release.
 
-All new features are additive and don't affect existing functionality.
-
-## 📋 Testing
-
-All tests passing:
+## Testing
 
 ```bash
 # Run full test suite
 mix test
 
-# Run specific performance tests
+# Run performance tests
 mix test test/power_of_three/http_vs_arrow_performance_test.exs
-mix test test/power_of_three/comprehensive_performance_test.exs
+
+# Run CubeSchema live tests (requires Cube SQL API)
+mix test --include live_cube
 ```
 
-**Test Coverage Increase:** 625% (+2,500 lines of tests)
-
-## 🎯 Migration
-
-**No migration needed** - All changes are backward compatible.
-
-If you see SQL keyword warnings:
-```elixir
-# Before (may cause issues with SQL keywords)
-sql_table: "order"
-
-# After (recommended - schema-qualified)
-sql_table: "public.order"
-```
-
-## 📝 Checklist
-
-- [x] Tests passing
-- [x] Documentation updated
-- [x] Performance benchmarks documented
-- [x] No breaking changes
-- [x] Backward compatible
-- [ ] Version bumped to 0.1.4
-- [ ] CHANGELOG.md updated
-- [ ] Ready for review
-
-## 🔗 Related Documentation
-
-- [RELEASE_v0.1.4.md](./RELEASE_v0.1.4.md) - Complete release notes
-- [cache_performance_impact.md](./cache_performance_impact.md) - Performance analysis
-
-## 🎉 Summary
-
-This release represents a major validation of PowerOfThree's performance capabilities:
+## Summary
 
 ✅ **Arrow IPC proven 25-66x faster than HTTP API**
 ✅ **Cache delivers 3-89x speedup**
-✅ **625% increase in test coverage**
+✅ **CubeSchema enables Ecto queries against Cube**
+✅ **45 live integration tests for CubeSchema**
 ✅ **Enhanced developer safety with SQL keyword warnings**
 ✅ **Comprehensive performance documentation**
 

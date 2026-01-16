@@ -41,6 +41,7 @@ defmodule PowerOfThree.MixProject do
     [
       {:ymlr, "~> 5.0"},
       {:ecto_sql, "~> 3.10"},
+      {:postgrex, "~> 0.19", only: [:dev, :test]},
       {:explorer, "~> 0.11.1"},
       {:poolboy, "~> 1.5"},
       {:adbc,
