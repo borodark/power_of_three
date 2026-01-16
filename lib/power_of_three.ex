@@ -534,7 +534,6 @@ defmodule PowerOfThree do
         {sql_table, legit_opts} = legit_opts |> Keyword.pop(:sql_table)
         # |> IO.inspect(label: :cube_opts)
         cube_opts = Enum.into(legit_opts, %{})
-        # TODO must match Ecto schema source
 
         case Module.get_attribute(__MODULE__, :ecto_fields, []) do
           [id: {:id, :always}] ->
@@ -601,8 +600,12 @@ defmodule PowerOfThree do
           dimensions
         )
 
+        # sql_table should be provided explicitly via cube option
+        # If not provided, it will be nil and should be set by the user
+        resolved_sql_table = sql_table || "unknown"
+
         a_cube_config = [
-          %{name: cube_name, sql_table: sql_table}
+          %{name: cube_name, sql_table: resolved_sql_table}
           |> Map.merge(cube_opts)
           |> Map.merge(%{dimensions: dimensions ++ time_dimensions, measures: measures})
         ]
