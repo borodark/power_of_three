@@ -1088,7 +1088,7 @@ defmodule PowerOfThree do
 
         Supports two connection modes:
         - **HTTP** (default) - REST API, works in any Elixir environment
-        - **ADBC** - High-performance Arrow protocol via native driver
+        - **Native** - Cube's Arrow Native protocol (port 8120), decoded straight into Explorer
 
         ## Options
 
@@ -1097,9 +1097,9 @@ defmodule PowerOfThree do
           * `:order_by` - Optional. List of `{column_index, :asc | :desc}` or just `column_index`
           * `:limit` - Optional. Maximum number of rows to return
           * `:offset` - Optional. Number of rows to skip
-          * `:connection` - Optional. Existing ADBC connection (enables ADBC mode)
+          * `:connection` - Optional. Existing `PowerOfThree.CubeNativeClient` (enables native mode)
           * `:connection_opts` - Optional. Options for creating a new connection (HTTP by default)
-          * `:connection_type` - Optional. `:http` (default) or `:adbc`
+          * `:connection_type` - Optional. `:http` (default) or `:native`
           * `:http_client` - Optional. Existing HTTP client (enables HTTP mode)
 
         ## Examples
@@ -1120,10 +1120,10 @@ defmodule PowerOfThree do
             {:ok, http_client} = PowerOfThree.CubeHttpClient.new(base_url: "http://localhost:4008")
             df = Customer.df(columns: [...], http_client: http_client)
 
-            # Using ADBC mode (for complex queries or better performance)
+            # Using native mode (for complex queries or better performance)
             df = Customer.df(
               columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
-              connection_type: :adbc,
+              connection_type: :native,
               connection_opts: [token: "my-token"]
             )
 
@@ -1166,9 +1166,9 @@ defmodule PowerOfThree do
               limit: 10
             )
 
-            # Reusing an ADBC connection
-            {:ok, conn} = PowerOfThree.CubeConnection.connect(token: "my-token")
-            df = Customer.df(columns: [...], connection: conn)
+            # Reusing a native client
+            {:ok, client} = PowerOfThree.CubeNativeClient.connect(token: "my-token")
+            df = Customer.df(columns: [...], connection: client)
 
         ## HTTP Mode Limitations (Default)
 
@@ -1178,8 +1178,8 @@ defmodule PowerOfThree do
         - Comparison: `field > 100`, `field <= 50`
         - Set membership: `field IN ('a', 'b', 'c')`
 
-        Complex WHERE clauses with AND/OR/NOT require ADBC mode.
-        For complex queries, specify `connection_type: :adbc`.
+        Complex WHERE clauses with AND/OR/NOT require native mode.
+        For complex queries, specify `connection_type: :native`.
         """
         def df(opts) do
           cube_name = unquote(cube_name) |> to_string()
@@ -1194,14 +1194,14 @@ defmodule PowerOfThree do
             |> Keyword.put(:columns, column_refs)
             |> Keyword.take([:cube, :columns, :where, :order_by, :limit, :offset])
 
-          # Determine connection mode (HTTP or ADBC)
+          # Determine connection mode (HTTP or native)
           result =
             case determine_connection_mode(opts) do
               {:http, http_opts} ->
                 execute_http_query(query_opts, http_opts)
 
-              {:adbc, adbc_opts} ->
-                execute_adbc_query(query_opts, adbc_opts)
+              {:native, native_opts} ->
+                execute_native_query(query_opts, native_opts)
             end
 
           # Apply column aliases if present
@@ -1211,20 +1211,25 @@ defmodule PowerOfThree do
           end
         end
 
-        # Determines whether to use HTTP or ADBC based on options
+        # Determines whether to use HTTP or native based on options
         defp determine_connection_mode(opts) do
           cond do
             # Explicit HTTP client provided
             Keyword.has_key?(opts, :http_client) ->
               {:http, Keyword.get(opts, :http_client)}
 
-            # Explicit ADBC connection provided
+            # Explicit native client provided
             Keyword.has_key?(opts, :connection) ->
-              {:adbc, opts}
+              {:native, opts}
 
             # Explicit connection type specified
+            Keyword.get(opts, :connection_type) == :native ->
+              {:native, opts}
+
             Keyword.get(opts, :connection_type) == :adbc ->
-              {:adbc, opts}
+              raise ArgumentError,
+                    "connection_type: :adbc was removed; use connection_type: :native " <>
+                      "(same port 8120, no driver needed)"
 
             Keyword.get(opts, :connection_type) == :http ->
               http_opts = Keyword.get(opts, :connection_opts, [])
@@ -1262,41 +1267,29 @@ defmodule PowerOfThree do
           PowerOfThree.CubeHttpClient.new(opts)
         end
 
-        # Executes query via ADBC
-        defp execute_adbc_query(query_opts, opts) do
-          # Get SQL from Cube's /v1/sql endpoint instead of building it ourselves
+        # Executes query via the Arrow Native protocol
+        defp execute_native_query(query_opts, opts) do
           cube_opts = Keyword.get(opts, :cube_opts, [])
 
-          case PowerOfThree.CubeSqlGenerator.generate_sql(query_opts, cube_opts) do
-            {:ok, sql} ->
-              # Replace MySQL backticks with PostgreSQL double quotes for ADBC compatibility
-              sql = String.replace(sql, "`", "\"")
-              # Get or create connection
-              conn =
-                case Keyword.get(opts, :connection) do
-                  nil ->
-                    conn_opts = Keyword.get(opts, :connection_opts, [])
+          with {:ok, sql} <- PowerOfThree.CubeSqlGenerator.generate_sql(query_opts, cube_opts) do
+            # Replace MySQL backticks with PostgreSQL double quotes
+            sql = String.replace(sql, "`", "\"")
 
-                    case PowerOfThree.CubeConnection.connect(conn_opts) do
-                      {:ok, conn} -> conn
-                      {:error, error} -> {:error, error}
-                    end
+            case Keyword.get(opts, :connection) do
+              nil ->
+                conn_opts = Keyword.get(opts, :connection_opts, [])
 
-                  conn ->
-                    conn
+                with {:ok, client} <- PowerOfThree.CubeNativeClient.connect(conn_opts) do
+                  try do
+                    PowerOfThree.CubeNativeClient.query_df(client, sql)
+                  after
+                    PowerOfThree.CubeNativeClient.close(client)
+                  end
                 end
 
-              case conn do
-                {:error, _} = error ->
-                  error
-
-                conn ->
-                  # Query directly to DataFrame - no intermediate map materialization
-                  PowerOfThree.CubeFrame.from_query(conn, sql)
-              end
-
-            {:error, reason} ->
-              {:error, reason}
+              client ->
+                PowerOfThree.CubeNativeClient.query_df(client, sql)
+            end
           end
         end
 
@@ -1378,7 +1371,8 @@ defmodule PowerOfThree do
         def df!(opts) do
           case df(opts) do
             {:ok, result} -> result
-            {:error, error} -> raise error
+            {:error, error} when is_exception(error) -> raise error
+            {:error, error} -> raise "Cube query failed: #{inspect(error)}"
           end
         end
 

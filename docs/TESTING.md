@@ -14,21 +14,13 @@ Requires a running Cube API at `http://localhost:4008`.
 
 - `mix test --include live_cube --include http`
 
-## Live Cube over ADBC (adbc_driver_cube)
+## Live Cube over Arrow Native (port 8120)
 
-Requires:
-- `adbc` dependency available
-- `adbc_driver_cube` binaries available locally or auto-downloaded
-- cubesqld running with ADBC enabled
+Requires cubesqld running with the Arrow Native server on port 8120 (see
+`cube/examples/recipes/arrow-ipc`: `start-cube-api.sh`, then
+`start-cubesqld.sh`). No driver or extra dependency is needed.
 
-If you want tests to download the driver automatically, set:
+- `mix test --include live_cube --include native`
 
-- `CUBE_DRIVER_AUTO_DOWNLOAD=1`
-- `CUBE_DRIVER_VERSION=0.1.2` (optional)
-
-Run ADBC tests:
-
-- `mix test --include live_cube --include adbc`
-
-If you already have a local driver build, ensure it is discoverable by
-`Adbc.Driver.so_path(:cube, version: ...)` or set the matching version.
+The pre-aggregation tests (`preagg_routing_test.exs`, `orders_with_preagg`)
+also need Cube Store running.

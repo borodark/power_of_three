@@ -181,5 +181,5 @@ end
 
 ## Testing
 
-See `docs/TESTING.md` for how to run unit tests, live HTTP tests, and
-optional ADBC driver tests.
+See `docs/TESTING.md` for how to run unit tests and live HTTP and
+Arrow Native tests.

@@ -172,7 +172,7 @@ with hourly granularity and a MAX(id) refresh key.
 
 ### Bang Version (Raises on Error)
 ```elixir
-df = Customer.df!(columns: [...])  # Raises Adbc.Error on failure
+df = Customer.df!(columns: [...])  # Raises on failure
 ```
 
 ---

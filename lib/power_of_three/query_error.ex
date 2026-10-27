@@ -1,6 +1,6 @@
 defmodule PowerOfThree.QueryError do
   @moduledoc """
-  Unified error struct for query errors across different connection types (ADBC, HTTP).
+  Unified error struct for query errors across different connection types (native, HTTP).
 
   Provides consistent error handling regardless of the underlying protocol.
   """

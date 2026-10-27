@@ -35,7 +35,7 @@ defmodule PowerOfThree.FilterCondition do
 
   FilterConditions can be converted to:
   - Cube REST API filter format (for HTTP queries)
-  - SQL WHERE clause (for ADBC queries)
+  - SQL WHERE clause (for native queries)
   """
 
   alias PowerOfThree.{DimensionRef, MeasureRef}

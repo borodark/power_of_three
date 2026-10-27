@@ -11,47 +11,34 @@ defmodule PowerOfThree.PreAggRoutingTest do
 
   Run with:
     cd path/to/power-of-three
-    mix test test/power_of_three/preagg_routing_test.exs --trace --include live_cube --include adbc
+    mix test test/power_of_three/preagg_routing_test.exs --trace --include live_cube --include native
   """
 
   use ExUnit.Case, async: true
 
-  alias Adbc.{Database, Connection, Result}
+  alias PowerOfThree.CubeNativeClient
+  alias Explorer.DataFrame, as: DF
 
   @moduletag :live_cube
-  @moduletag :adbc
+  @moduletag :native
 
-  @cube_driver_version System.get_env("CUBE_DRIVER_VERSION", "0.1.2")
-
-  # Cube server connection details (ADBC port for pre-agg routing)
+  # Cube server connection details (Arrow Native port for pre-agg routing)
   @cube_host "localhost"
-  # ADBC port
-  @cube_adbc_port 8120
+  # Arrow Native port
+  @cube_native_port 8120
   @cube_token "test"
 
   setup_all do
-    unless Code.ensure_loaded?(Adbc) do
-      {:skip, "adbc dependency not available"}
-    end
-
-    case Adbc.Driver.so_path(:cube, version: @cube_driver_version) do
-      {:ok, _path} ->
-        :ok
-
-      {:error, reason} ->
-        raise "Cube driver not available: #{reason}"
-    end
-
-    # Verify cubesqld is running on ADBC port
-    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_adbc_port, [:binary], 1000) do
+    # Verify cubesqld is running on the Arrow Native port
+    case :gen_tcp.connect(String.to_charlist(@cube_host), @cube_native_port, [:binary], 1000) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
         :ok
 
       {:error, :econnrefused} ->
         raise """
-        cubesqld not running on #{@cube_host}:#{@cube_adbc_port}.
-        Start with ADBC(Arrow Native) support:
+        cubesqld not running on #{@cube_host}:#{@cube_native_port}.
+        Start with Arrow Native support:
           cd path/to/cube/examples/recipes/arrow-ipc
           source .env
           export CUBESQL_CUBESTORE_DIRECT=true
@@ -72,19 +59,11 @@ defmodule PowerOfThree.PreAggRoutingTest do
   end
 
   setup do
-    db =
-      start_supervised!(
-        {Database,
-         driver: :cube,
-         version: @cube_driver_version,
-         "adbc.cube.host": @cube_host,
-         "adbc.cube.port": Integer.to_string(@cube_adbc_port),
-         "adbc.cube.connection_mode": "native",
-         "adbc.cube.token": @cube_token}
-      )
+    {:ok, conn} =
+      CubeNativeClient.connect(host: @cube_host, port: @cube_native_port, token: @cube_token)
 
-    conn = start_supervised!({Connection, database: db})
-    %{db: db, conn: conn}
+    on_exit(fn -> CubeNativeClient.close(conn) end)
+    %{conn: conn}
   end
 
   describe "Pre-aggregation routing - Basic Coverage" do
@@ -106,14 +85,13 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Full pre-agg coverage")
       IO.puts("Expected: Should route to CubeStore direct")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0, "Should return data"
-      IO.puts("✅ Returned #{length(materialized.data)} columns")
+      assert length(DF.names(df)) > 0, "Should return data"
+      IO.puts("✅ Returned #{length(DF.names(df))} columns")
 
       # Check if all expected fields are present
-      column_names = Enum.map(materialized.data, & &1.name)
+      column_names = DF.names(df)
       assert "market_code" in column_names
       assert "brand_code" in column_names
       assert "count" in column_names
@@ -135,10 +113,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Partial measure coverage")
       IO.puts("Expected: Should still route to CubeStore (subset of measures)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("✅ Returned data with subset of measures")
     end
 
@@ -157,10 +134,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Partial dimension coverage")
       IO.puts("Expected: Should route to CubeStore (subset of dimensions)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("✅ Returned data with subset of dimensions")
     end
 
@@ -178,10 +154,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Measures only, no dimensions")
       IO.puts("Expected: Should route to CubeStore (dimensions optional)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("✅ Returned aggregated data without dimensions")
     end
   end
@@ -201,10 +176,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Measure not in pre-agg")
       IO.puts("Expected: Should fallback to HTTP (measure not covered)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("⚠️  Returned data via HTTP fallback")
     end
 
@@ -222,10 +196,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Dimension not in pre-agg")
       IO.puts("Expected: Should fallback to HTTP (dimension not covered)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("⚠️  Returned data via HTTP fallback")
     end
 
@@ -244,10 +217,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Mixed coverage (some fields not in pre-agg)")
       IO.puts("Expected: Should fallback to HTTP (partial coverage not enough)")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("⚠️  Returned data via HTTP fallback")
     end
   end
@@ -274,10 +246,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: All 6 measures from pre-agg")
       IO.puts("Expected: Should route to CubeStore with all measures")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-      assert length(materialized.data) > 0
+      assert length(DF.names(df)) > 0
       IO.puts("✅ Returned all 6 measures + 2 dimensions")
     end
 
@@ -306,10 +277,9 @@ defmodule PowerOfThree.PreAggRoutingTest do
 
         IO.puts("\n📊 Test: #{description}")
 
-        assert {:ok, result} = Connection.query(conn, query)
-        materialized = Result.materialize(result)
+        assert {:ok, df} = CubeNativeClient.query_df(conn, query)
 
-        assert length(materialized.data) > 0
+        assert length(DF.names(df)) > 0
         IO.puts("✅ #{description} worked")
       end
     end
@@ -346,17 +316,17 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Performance Comparison Test")
 
       # Warmup
-      Connection.query(conn, query_with_preagg)
-      Connection.query(conn, query_without_preagg)
+      CubeNativeClient.query_df(conn, query_with_preagg)
+      CubeNativeClient.query_df(conn, query_without_preagg)
 
       # Measure WITH pre-agg
       start = System.monotonic_time(:millisecond)
-      {:ok, _} = Connection.query(conn, query_with_preagg)
+      {:ok, _} = CubeNativeClient.query_df(conn, query_with_preagg)
       time_with = System.monotonic_time(:millisecond) - start
 
       # Measure WITHOUT pre-agg
       start = System.monotonic_time(:millisecond)
-      {:ok, _} = Connection.query(conn, query_without_preagg)
+      {:ok, _} = CubeNativeClient.query_df(conn, query_without_preagg)
       time_without = System.monotonic_time(:millisecond) - start
 
       IO.puts("WITH pre-agg (CubeStore): #{time_with}ms")
@@ -383,7 +353,7 @@ defmodule PowerOfThree.PreAggRoutingTest do
       IO.puts("\n📊 Test: Invalid measure name")
 
       # This should either error or return empty result
-      result = Connection.query(conn, query)
+      result = CubeNativeClient.query_df(conn, query)
 
       case result do
         {:ok, _} -> IO.puts("⚠️  Query succeeded (unexpected)")
@@ -404,8 +374,8 @@ defmodule PowerOfThree.PreAggRoutingTest do
 
       IO.puts("\n📊 Test: Empty result set")
 
-      assert {:ok, result} = Connection.query(conn, query)
-      _materialized = Result.materialize(result)
+      assert {:ok, df} = CubeNativeClient.query_df(conn, query)
+      assert DF.n_rows(df) == 0
 
       IO.puts("✅ Empty result handled correctly")
     end

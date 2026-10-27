@@ -1,9 +1,9 @@
 defmodule PowerOfThree.CubeConnectionPool do
   @moduledoc """
-  Connection pool for Cube ADBC connections using poolboy.
+  Connection pool for Cube Arrow Native connections using poolboy.
 
-  This module manages a pool of ADBC connections to Cube, enabling
-  efficient connection reuse for query execution.
+  Each worker holds one authenticated `PowerOfThree.CubeNativeClient`, so
+  queries skip the TCP connect, handshake and auth.
 
   ## Configuration
 
@@ -15,24 +15,23 @@ defmodule PowerOfThree.CubeConnectionPool do
         host: "localhost",
         port: 8120,
         token: "test",
-        username: nil,
-        password: nil
+        database: nil
 
   ## Usage
 
       # Execute a query using a pooled connection
-      PowerOfThree.CubeConnectionPool.query("SELECT * FROM orders_no_preagg LIMIT 10")
+      {:ok, df} = PowerOfThree.CubeConnectionPool.query("SELECT * FROM orders_no_preagg LIMIT 10")
 
       # Or check out a connection for multiple operations
-      PowerOfThree.CubeConnectionPool.transaction(fn conn ->
-        {:ok, result1} = PowerOfThree.CubeConnection.query(conn, "SELECT ...")
-        {:ok, result2} = PowerOfThree.CubeConnection.query(conn, "SELECT ...")
-        {result1, result2}
+      PowerOfThree.CubeConnectionPool.transaction(fn client ->
+        {:ok, df1} = PowerOfThree.CubeNativeClient.query_df(client, "SELECT ...")
+        {:ok, df2} = PowerOfThree.CubeNativeClient.query_df(client, "SELECT ...")
+        {df1, df2}
       end)
   """
 
   use Supervisor
-  alias PowerOfThree.{CubeConnection, CubeConnectionWorker}
+  alias PowerOfThree.{CubeConnectionWorker, CubeFrame}
 
   @pool_name :cube_connection_pool
 
@@ -48,24 +47,24 @@ defmodule PowerOfThree.CubeConnectionPool do
     * `:host` - Cube host (default: "localhost")
     * `:port` - Cube port (default: 8120)
     * `:token` - Cube authentication token (required)
-    * `:username` - Optional username
-    * `:password` - Optional password
+    * `:database` - Optional database name
+    * `:timeout` - Connect and receive timeout in ms (default: 30_000)
   """
   def start_link(opts \\ []) do
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @doc """
-  Executes a query using a connection from the pool.
+  Executes a query using a connection from the pool and returns a DataFrame.
 
   ## Examples
 
-      {:ok, result} = CubeConnectionPool.query("SELECT * FROM orders_no_preagg LIMIT 10")
+      {:ok, df} = CubeConnectionPool.query("SELECT * FROM orders_no_preagg LIMIT 10")
   """
   def query(sql, params \\ [], opts \\ []) do
     transaction(
-      fn conn ->
-        CubeConnection.query(conn, sql, params, opts)
+      fn client ->
+        CubeFrame.from_query(client, sql, params, opts)
       end,
       opts
     )
@@ -78,10 +77,10 @@ defmodule PowerOfThree.CubeConnectionPool do
 
   ## Examples
 
-      result = CubeConnectionPool.transaction(fn conn ->
-        {:ok, r1} = CubeConnection.query(conn, "SELECT ...")
-        {:ok, r2} = CubeConnection.query(conn, "SELECT ...")
-        {r1, r2}
+      result = CubeConnectionPool.transaction(fn client ->
+        {:ok, df1} = CubeNativeClient.query_df(client, "SELECT ...")
+        {:ok, df2} = CubeNativeClient.query_df(client, "SELECT ...")
+        {df1, df2}
       end)
   """
   def transaction(fun, opts \\ []) do
@@ -98,13 +97,13 @@ defmodule PowerOfThree.CubeConnectionPool do
   @doc """
   Checks out a connection from the pool.
 
-  Returns `{worker, conn}`; pass the worker back to `checkin/1` when done.
+  Returns `{worker, client}`; pass the worker back to `checkin/1` when done.
 
   ## Examples
 
-      {worker, conn} = CubeConnectionPool.checkout()
+      {worker, client} = CubeConnectionPool.checkout()
       try do
-        CubeConnection.query(conn, "SELECT ...")
+        CubeNativeClient.query_df(client, "SELECT ...")
       after
         CubeConnectionPool.checkin(worker)
       end
@@ -155,11 +154,8 @@ defmodule PowerOfThree.CubeConnectionPool do
         :host,
         :port,
         :token,
-        :username,
-        :password,
-        :driver,
-        :driver_version,
-        :driver_path
+        :database,
+        :timeout
       ])
 
     children = [

@@ -3,7 +3,7 @@ defmodule PowerOfThree.CubeConnectionWorker do
 
   use GenServer
 
-  alias PowerOfThree.CubeConnection
+  alias PowerOfThree.CubeNativeClient
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -15,26 +15,20 @@ defmodule PowerOfThree.CubeConnectionWorker do
 
   @impl true
   def init(opts) do
-    case CubeConnection.connect(opts) do
-      {:ok, conn} -> {:ok, conn}
+    case CubeNativeClient.connect(opts) do
+      {:ok, client} -> {:ok, client}
       {:error, reason} -> {:stop, reason}
     end
   end
 
   @impl true
-  def handle_call(:get_connection, _from, conn) do
-    {:reply, conn, conn}
+  def handle_call(:get_connection, _from, client) do
+    {:reply, client, client}
   end
 
   @impl true
-  def terminate(_reason, conn) when is_pid(conn) do
-    try do
-      CubeConnection.disconnect(conn)
-    catch
-      _, _ -> :ok
-    end
-
-    :ok
+  def terminate(_reason, %CubeNativeClient{} = client) do
+    CubeNativeClient.close(client)
   end
 
   def terminate(_reason, _state), do: :ok

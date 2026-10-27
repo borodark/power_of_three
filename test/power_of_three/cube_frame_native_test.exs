@@ -1,29 +1,17 @@
-defmodule PowerOfThree.CubeFrameAdbcTest do
+defmodule PowerOfThree.CubeFrameNativeTest do
   use ExUnit.Case, async: true
 
-  alias PowerOfThree.{CubeConnection, CubeFrame, DimensionRef, MeasureRef}
+  alias PowerOfThree.{CubeFrame, CubeNativeClient, DimensionRef, MeasureRef}
 
   @moduletag :live_cube
-  @moduletag :adbc
-  @cube_driver_version System.get_env("CUBE_DRIVER_VERSION", "0.1.2")
+  @moduletag :native
 
   setup_all do
-    unless Code.ensure_loaded?(Adbc) do
-      {:skip, "adbc dependency not available"}
-    end
-
-    # Connect to live Cube ADBC endpoint on port 8120
-    {:ok, conn} =
-      CubeConnection.connect(
-        host: "localhost",
-        port: 8120,
-        token: "test",
-        driver: :cube,
-        driver_version: @cube_driver_version
-      )
+    # Connect to live Cube Arrow Native endpoint on port 8120
+    {:ok, conn} = CubeNativeClient.connect(host: "localhost", port: 8120, token: "test")
 
     on_exit(fn ->
-      CubeConnection.disconnect(conn)
+      CubeNativeClient.close(conn)
     end)
 
     {:ok, conn: conn}
@@ -113,7 +101,7 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
     test "raises on invalid SQL", %{conn: conn} do
       sql = "SELECT * FROM nonexistent_table"
 
-      assert_raise Adbc.Error, fn ->
+      assert_raise RuntimeError, fn ->
         CubeFrame.from_query!(conn, sql)
       end
     end
@@ -214,7 +202,7 @@ defmodule PowerOfThree.CubeFrameAdbcTest do
     end
   end
 
-  describe "Direct SQL generation for ADBC" do
+  describe "Direct SQL generation for the native client" do
     test "converts PowerOfThree query options to Cube query format" do
       query_opts = [
         columns: [

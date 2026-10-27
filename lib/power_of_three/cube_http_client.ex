@@ -2,8 +2,8 @@ defmodule PowerOfThree.CubeHttpClient do
   @moduledoc """
   HTTP client for querying the Cube REST API.
 
-  Provides an alternative to ADBC for environments where the native driver
-  is not available. Uses the Cube REST API at `/cubejs-api/v1/load`.
+  Provides an alternative to the Arrow Native client for environments where
+  port 8120 is not reachable. Uses the Cube REST API at `/cubejs-api/v1/load`.
 
   ## Usage
 
@@ -34,7 +34,7 @@ defmodule PowerOfThree.CubeHttpClient do
 
   The Cube API returns row-oriented data with fully-qualified column names.
   This module transforms it to columnar format with normalized column names
-  (matching ADBC output):
+  (matching native client output):
 
       # Cube API response:
       %{"data" => [

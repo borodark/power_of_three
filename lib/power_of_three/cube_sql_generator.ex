@@ -1,16 +1,16 @@
 defmodule PowerOfThree.CubeSqlGenerator do
   @moduledoc """
-  Generates SQL queries for ADBC execution that reference cube names.
+  Generates SQL queries for native-client execution that reference cube names.
 
   This module generates simple SQL that:
   1. References cube names (not pre-aggregation tables)
-  2. Is sent to Cube's ADBC server (cubesql)
+  2. Is sent to Cube's Arrow Native server (cubesql)
   3. Gets compiled and matched to pre-aggregations by cubesql
   4. Routes through HybridTransport to CubeStore for external pre-aggregations
 
   ## How It Works
 
-  The ADBC server (cubesql) internally:
+  The Arrow Native server (cubesql) internally:
   - Parses the SQL we send
   - Converts it to a Cube query plan via `convert_sql_to_cube_query()`
   - Matches it to pre-aggregations (if `external: true` is configured)
@@ -41,7 +41,7 @@ defmodule PowerOfThree.CubeSqlGenerator do
   alias PowerOfThree.{CubeQueryTranslator, DimensionRef, MeasureRef, FilterBuilder}
 
   @doc """
-  Generates SQL that references cube names for ADBC execution.
+  Generates SQL that references cube names for native-client execution.
 
   The SQL is simple and parseable by cubesql, which will internally compile
   it and match it to pre-aggregations.

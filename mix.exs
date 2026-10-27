@@ -10,11 +10,7 @@ defmodule PowerOfThree.MixProject do
       deps: deps(),
       aliases: aliases(),
       test_coverage: [
-        threshold: 90,
-        ignore_modules: [
-          # Requires ADBC dependency not available in tests
-          PowerOfThree.CubeConnection
-        ]
+        threshold: 90
       ],
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
@@ -44,12 +40,6 @@ defmodule PowerOfThree.MixProject do
       {:postgrex, "~> 0.19", only: [:dev, :test]},
       {:explorer, "~> 0.11.1"},
       {:poolboy, "~> 1.5"},
-      {:adbc,
-       github: "borodark/adbc",
-       branch: "cleanup-take-II",
-       override: true,
-       optional: true,
-       only: [:dev, :test]},
       {:req, "~> 0.5"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
@@ -82,7 +72,6 @@ defmodule PowerOfThree.MixProject do
         "docs/blog/auto-generation.md"
       ],
       exclude_patterns: ["lib/generate_data.ex", "lib/example/repo.ex"],
-      exclude_deps: [:adbc],
       description:
         "Start with everything. Keep what performs. Pre-aggregate what matters. | Inline Cubes with Ecto.Schema",
       licenses: ["Apache-2.0"],
