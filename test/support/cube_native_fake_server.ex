@@ -1,0 +1,92 @@
+defmodule PowerOfThree.CubeNativeFakeServer do
+  @moduledoc false
+  # Stand-in for CubeSQL's Arrow Native server. Accepts any number of
+  # connections; `respond` maps SQL to one of:
+  #
+  #   [df, ...]                 - one batch per DataFrame
+  #   {:error, code, message}   - an Error frame
+  #   :close                    - drop the connection without answering
+  #   {:delay, ms, [df, ...]}   - answer after `ms` milliseconds
+  #
+  # The token "test" is accepted; anything else fails auth.
+
+  alias PowerOfThree.CubeNative.Protocol
+  alias Explorer.DataFrame, as: DF
+
+  def start(respond) do
+    {:ok, listen} = :gen_tcp.listen(0, [:binary, packet: 4, active: false])
+    {:ok, port} = :inet.port(listen)
+    pid = spawn_link(fn -> accept_loop(listen, respond) end)
+    :ok = :gen_tcp.controlling_process(listen, pid)
+    port
+  end
+
+  defp accept_loop(listen, respond) do
+    case :gen_tcp.accept(listen) do
+      {:ok, sock} ->
+        pid = spawn(fn -> serve(sock, respond) end)
+        :ok = :gen_tcp.controlling_process(sock, pid)
+        accept_loop(listen, respond)
+
+      {:error, :closed} ->
+        :ok
+    end
+  end
+
+  defp serve(sock, respond) do
+    {:ok, {:handshake_request, 1}} = recv(sock)
+    send_msg(sock, {:handshake_response, 1, "fake"})
+
+    case recv(sock) do
+      {:ok, {:auth_request, "test", _}} ->
+        send_msg(sock, {:auth_response, true, "session-1"})
+        loop(sock, respond)
+
+      {:ok, {:auth_request, _, _}} ->
+        send_msg(sock, {:auth_response, false, "bad token"})
+    end
+  end
+
+  defp loop(sock, respond) do
+    case recv(sock) do
+      {:ok, {:query_request, sql}} ->
+        case answer(sock, respond.(sql)) do
+          :closed -> :ok
+          :ok -> loop(sock, respond)
+        end
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  defp answer(sock, :close) do
+    :gen_tcp.close(sock)
+    :closed
+  end
+
+  defp answer(sock, {:delay, ms, dfs}) do
+    Process.sleep(ms)
+    answer(sock, dfs)
+  end
+
+  defp answer(sock, {:error, code, message}), do: send_msg(sock, {:error, code, message})
+
+  defp answer(sock, [first | _] = dfs) do
+    send_msg(sock, {:schema, DF.dump_ipc_stream!(DF.head(first, 0))})
+    Enum.each(dfs, &send_msg(sock, {:batch, DF.dump_ipc_stream!(&1)}))
+    send_msg(sock, {:complete, dfs |> Enum.map(&DF.n_rows/1) |> Enum.sum()})
+  end
+
+  defp recv(sock) do
+    with {:ok, payload} <- :gen_tcp.recv(sock, 0), do: Protocol.decode(payload)
+  end
+
+  # The client may already have gone away (e.g. after a timeout).
+  defp send_msg(sock, msg) do
+    case :gen_tcp.send(sock, Protocol.encode(msg)) do
+      :ok -> :ok
+      {:error, _} -> :ok
+    end
+  end
+end

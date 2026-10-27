@@ -64,7 +64,6 @@ defmodule PowerOfThree.CubeHttpClient do
   - `type: "time"` → DateTime or Date
   """
 
-  require Explorer.DataFrame
   require Logger
   alias PowerOfThree.QueryError
 

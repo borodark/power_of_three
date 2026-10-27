@@ -3,63 +3,8 @@ defmodule PowerOfThree.CubeNativeClientTest do
 
   alias PowerOfThree.{CubeFrame, CubeNativeClient}
   alias PowerOfThree.CubeNative.Protocol
+  alias PowerOfThree.CubeNativeFakeServer, as: FakeServer
   alias Explorer.DataFrame, as: DF
-
-  # One-connection stand-in for CubeSQL's Arrow Native server. `respond` maps
-  # SQL to a list of DataFrames (one per batch) or {:error, code, message}.
-  defmodule FakeServer do
-    alias PowerOfThree.CubeNative.Protocol
-    alias Explorer.DataFrame, as: DF
-
-    def start(respond) do
-      {:ok, listen} = :gen_tcp.listen(0, [:binary, packet: 4, active: false])
-      {:ok, port} = :inet.port(listen)
-      pid = spawn_link(fn -> accept(listen, respond) end)
-      :ok = :gen_tcp.controlling_process(listen, pid)
-      port
-    end
-
-    defp accept(listen, respond) do
-      {:ok, sock} = :gen_tcp.accept(listen)
-      {:ok, {:handshake_request, 1}} = recv(sock)
-      send_msg(sock, {:handshake_response, 1, "fake"})
-
-      case recv(sock) do
-        {:ok, {:auth_request, "test", _}} ->
-          send_msg(sock, {:auth_response, true, "session-1"})
-          loop(sock, respond)
-
-        {:ok, {:auth_request, _, _}} ->
-          send_msg(sock, {:auth_response, false, "bad token"})
-      end
-    end
-
-    defp loop(sock, respond) do
-      case recv(sock) do
-        {:ok, {:query_request, sql}} ->
-          case respond.(sql) do
-            {:error, code, message} ->
-              send_msg(sock, {:error, code, message})
-
-            [first | _] = dfs ->
-              send_msg(sock, {:schema, DF.dump_ipc_stream!(DF.head(first, 0))})
-              Enum.each(dfs, &send_msg(sock, {:batch, DF.dump_ipc_stream!(&1)}))
-              send_msg(sock, {:complete, dfs |> Enum.map(&DF.n_rows/1) |> Enum.sum()})
-          end
-
-          loop(sock, respond)
-
-        {:error, :closed} ->
-          :ok
-      end
-    end
-
-    defp recv(sock) do
-      with {:ok, payload} <- :gen_tcp.recv(sock, 0), do: Protocol.decode(payload)
-    end
-
-    defp send_msg(sock, msg), do: :ok = :gen_tcp.send(sock, Protocol.encode(msg))
-  end
 
   defp batch1, do: DF.new(brand: ["a", "b", "c"], count: [1, 2, 3])
   defp batch2, do: DF.new(brand: ["d", "e"], count: [4, 5])

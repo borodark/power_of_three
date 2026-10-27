@@ -63,8 +63,6 @@ defmodule PowerOfThree.CubeFrame do
     end
   end
 
-  def from_result(%{}), do: Explorer.Series.from_list([])
-
   @doc """
   Executes a query over the Arrow Native protocol and returns an Explorer.DataFrame.
 

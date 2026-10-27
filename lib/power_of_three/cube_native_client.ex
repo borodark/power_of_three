@@ -104,6 +104,20 @@ defmodule PowerOfThree.CubeNativeClient do
     end
   end
 
+  @doc """
+  Whether `result` leaves the client unusable.
+
+  A server Error frame ends its response cleanly, so the client can run the
+  next query. Anything else that fails mid-exchange (closed socket, timeout,
+  undecodable frame) may leave unread frames behind, and the next query would
+  read them as its own result: the client must be closed and replaced.
+  """
+  @spec broken?(term()) :: boolean()
+  def broken?({:error, {:server, _code, _message}}), do: false
+  def broken?({:error, :params_not_supported_by_native_transport}), do: false
+  def broken?({:error, _}), do: true
+  def broken?(_), do: false
+
   @spec close(t()) :: :ok
   def close(%__MODULE__{socket: socket}), do: :gen_tcp.close(socket)
 
