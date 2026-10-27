@@ -264,7 +264,7 @@ defmodule PowerOfThree.CubeFrameNativeTest do
       # Should have SELECT with column aliases
       assert sql =~ "SELECT"
       assert sql =~ "market_code as market_code"
-      assert sql =~ "COUNT(*) as count"
+      assert sql =~ "MEASURE(count) as count"
       # Should have GROUP BY for dimension
       assert sql =~ "GROUP BY market_code"
       assert sql =~ "LIMIT 10"

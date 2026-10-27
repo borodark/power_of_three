@@ -320,19 +320,19 @@ defmodule PowerOfThree.PreAggRoutingTest do
       CubeNativeClient.query_df(conn, query_without_preagg)
 
       # Measure WITH pre-agg
-      start = System.monotonic_time(:millisecond)
+      start = System.monotonic_time(:microsecond)
       {:ok, _} = CubeNativeClient.query_df(conn, query_with_preagg)
-      time_with = System.monotonic_time(:millisecond) - start
+      time_with = System.monotonic_time(:microsecond) - start
 
       # Measure WITHOUT pre-agg
-      start = System.monotonic_time(:millisecond)
+      start = System.monotonic_time(:microsecond)
       {:ok, _} = CubeNativeClient.query_df(conn, query_without_preagg)
-      time_without = System.monotonic_time(:millisecond) - start
+      time_without = System.monotonic_time(:microsecond) - start
 
-      IO.puts("WITH pre-agg (CubeStore): #{time_with}ms")
-      IO.puts("WITHOUT pre-agg (HTTP): #{time_without}ms")
+      IO.puts("WITH pre-agg (CubeStore): #{Float.round(time_with / 1000, 2)}ms")
+      IO.puts("WITHOUT pre-agg (HTTP): #{Float.round(time_without / 1000, 2)}ms")
 
-      if time_with < time_without do
+      if time_with > 0 and time_with < time_without do
         speedup = Float.round(time_without / time_with, 2)
         IO.puts("✅ Pre-agg is #{speedup}x FASTER!")
       else

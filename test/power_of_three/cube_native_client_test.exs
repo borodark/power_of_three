@@ -193,3 +193,34 @@ defmodule PowerOfThree.CubeNativeDfTest do
     end
   end
 end
+
+defmodule PowerOfThree.CubeSqlGeneratorMemberNamesTest do
+  use ExUnit.Case, async: true
+
+  alias PowerOfThree.CubeSqlGenerator
+
+  # cubesql exposes cube members, not table columns: brand is defined as
+  # `sql: brand_code`, but SQL against power_customers must say `brand`.
+  test "dimensions use member names, measures use MEASURE()" do
+    {:ok, sql} =
+      CubeSqlGenerator.generate_sql(
+        cube: "power_customers",
+        columns: [Customer.Dimensions.brand(), Customer.Measures.count()],
+        limit: 5
+      )
+
+    assert sql ==
+             "SELECT brand as brand, MEASURE(count) as count FROM power_customers GROUP BY brand LIMIT 5"
+  end
+
+  test "dimensions with custom SQL are referenced by member name" do
+    {:ok, sql} =
+      CubeSqlGenerator.generate_sql(
+        cube: "power_customers",
+        columns: [Customer.Dimensions.zodiac(), Customer.Measures.count()]
+      )
+
+    refute sql =~ "CASE"
+    assert sql =~ "SELECT zodiac as zodiac, MEASURE(count) as count"
+  end
+end

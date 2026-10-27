@@ -20,7 +20,7 @@ defmodule PowerOfThree.CubeSqlGenerator do
   ## Example
 
       # We generate:
-      SELECT market_code, COUNT(*) as count
+      SELECT market_code as market_code, MEASURE(count) as count
       FROM mandata_captate
       GROUP BY market_code
       LIMIT 5
@@ -60,7 +60,7 @@ defmodule PowerOfThree.CubeSqlGenerator do
           limit: 10
         ]
       )
-      # Returns: "SELECT market_code, COUNT(*) as count FROM mandata_captate WHERE market_code = 'US' GROUP BY market_code LIMIT 10"
+      # Returns: "SELECT market_code as market_code, MEASURE(count) as count FROM mandata_captate WHERE mandata_captate.market_code = 'US' GROUP BY market_code LIMIT 10"
   """
   @spec generate_sql(keyword(), keyword()) :: {:ok, String.t()} | {:error, term()}
   def generate_sql(query_opts, _cube_opts \\ []) do
@@ -201,14 +201,10 @@ defmodule PowerOfThree.CubeSqlGenerator do
     {:ok, Enum.join(select_items, ", ")}
   end
 
-  defp get_column_sql(%DimensionRef{sql: sql}), do: sql
-  defp get_column_sql(%MeasureRef{type: :count}), do: "COUNT(*)"
-  defp get_column_sql(%MeasureRef{type: :sum, sql: sql}), do: "SUM(#{sql})"
-  defp get_column_sql(%MeasureRef{type: :avg, sql: sql}), do: "AVG(#{sql})"
-  defp get_column_sql(%MeasureRef{type: :min, sql: sql}), do: "MIN(#{sql})"
-  defp get_column_sql(%MeasureRef{type: :max, sql: sql}), do: "MAX(#{sql})"
-  defp get_column_sql(%MeasureRef{type: :count_distinct, sql: sql}), do: "COUNT(DISTINCT #{sql})"
-  defp get_column_sql(%MeasureRef{sql: sql}), do: sql
+  # cubesql exposes a cube's members, not its table's columns, so dimensions
+  # are referenced by member name and measures through MEASURE().
+  defp get_column_sql(%DimensionRef{name: name}), do: to_string(name)
+  defp get_column_sql(%MeasureRef{name: name}), do: "MEASURE(#{name})"
 
   defp get_column_name(%DimensionRef{name: name}), do: to_string(name)
   defp get_column_name(%MeasureRef{name: name}), do: to_string(name)
