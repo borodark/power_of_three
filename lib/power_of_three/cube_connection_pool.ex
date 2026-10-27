@@ -107,8 +107,8 @@ defmodule PowerOfThree.CubeConnectionPool do
   @doc """
   Checks out a connection from the pool.
 
-  Returns `{worker, client}`, or `{:error, reason}` if no connection can be
-  made. Pass the worker back to `checkin/1` when done. Prefer `transaction/2`:
+  Returns `{worker, client}`, `{:error, :full}` when `block: false` and no
+  worker is free, or `{:error, reason}` if no connection can be made. Pass the worker back to `checkin/1` when done. Prefer `transaction/2`:
   it replaces a connection left broken by a failed query, which a manual
   checkout can't detect.
 
@@ -122,9 +122,13 @@ defmodule PowerOfThree.CubeConnectionPool do
       end
   """
   def checkout(opts \\ []) do
-    worker =
-      :poolboy.checkout(@pool_name, Keyword.get(opts, :block, true), opts[:timeout] || 5_000)
+    case :poolboy.checkout(@pool_name, Keyword.get(opts, :block, true), opts[:timeout] || 5_000) do
+      :full -> {:error, :full}
+      worker -> connect_worker(worker)
+    end
+  end
 
+  defp connect_worker(worker) do
     case CubeConnectionWorker.connection(worker) do
       {:ok, client} ->
         {worker, client}

@@ -1,10 +1,13 @@
 defmodule PowerOfThree.CubeConnectionWorker do
   @moduledoc false
-  # Holds one CubeNativeClient. After a failed reconnect the worker keeps
-  # running without a client and connects again on the next checkout, so a
-  # Cube restart doesn't take the pool down.
+  # Holds one CubeNativeClient. When Cube is unreachable, at start or after a
+  # dropped connection, the worker runs without a client and connects again on
+  # the next checkout, so Cube being down doesn't take the pool (or the app
+  # that supervises it) down.
 
   use GenServer
+
+  require Logger
 
   alias PowerOfThree.CubeNativeClient
 
@@ -25,8 +28,12 @@ defmodule PowerOfThree.CubeConnectionWorker do
   @impl true
   def init(opts) do
     case CubeNativeClient.connect(opts) do
-      {:ok, client} -> {:ok, %{opts: opts, client: client}}
-      {:error, reason} -> {:stop, reason}
+      {:ok, client} ->
+        {:ok, %{opts: opts, client: client}}
+
+      {:error, reason} ->
+        Logger.warning("Cube connection failed, will retry on checkout: #{inspect(reason)}")
+        {:ok, %{opts: opts, client: nil}}
     end
   end
 

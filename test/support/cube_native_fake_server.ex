@@ -15,6 +15,11 @@ defmodule PowerOfThree.CubeNativeFakeServer do
 
   def start(respond) do
     {:ok, listen} = :gen_tcp.listen(0, [:binary, packet: 4, active: false])
+    serve_on(listen, respond)
+  end
+
+  @doc "Serves on an already-open listen socket; returns its port."
+  def serve_on(listen, respond) do
     {:ok, port} = :inet.port(listen)
     pid = spawn_link(fn -> accept_loop(listen, respond) end)
     :ok = :gen_tcp.controlling_process(listen, pid)

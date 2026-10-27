@@ -57,6 +57,31 @@ defmodule PowerOfThree.CubeConnectionPoolTest do
     assert {:error, :closed} = CubeConnectionPool.query("doomed")
   end
 
+  test "the pool starts while Cube is down and connects once it's up" do
+    # Grab a free port, then close it so nothing listens there yet.
+    {:ok, probe} = :gen_tcp.listen(0, [])
+    {:ok, port} = :inet.port(probe)
+    :gen_tcp.close(probe)
+
+    start_supervised!({CubeConnectionPool, size: 1, max_overflow: 0, port: port, token: "test"})
+
+    assert {:error, :econnrefused} = CubeConnectionPool.query("early")
+
+    {:ok, listen} = :gen_tcp.listen(port, [:binary, packet: 4, active: false, reuseaddr: true])
+    FakeServer.serve_on(listen, fn _ -> [df(4)] end)
+
+    assert {:ok, result} = CubeConnectionPool.query("late")
+    assert DF.to_columns(result, atom_keys: true).n == [4]
+  end
+
+  test "a non-blocking checkout of a busy pool returns {:error, :full}" do
+    start_pool(fn _ -> [df(5)] end)
+
+    {worker, _client} = CubeConnectionPool.checkout()
+    assert {:error, :full} = CubeConnectionPool.checkout(block: false)
+    CubeConnectionPool.checkin(worker)
+  end
+
   test "a timed-out query doesn't leak its late answer into the next query" do
     start_pool(
       fn
