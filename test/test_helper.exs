@@ -102,4 +102,4 @@ defmodule Order do
   cube(:mandata_captate, default_pre_aggregation: true)
 end
 
-ExUnit.start(exclude: :live_cube)
+ExUnit.start(exclude: [:live_cube, :live_cube_postgres])

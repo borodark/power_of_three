@@ -6,12 +6,17 @@ defmodule CubeSchemaLiveTest do
   - Cube SQL API running on localhost:9432
   - The orders_no_preagg cube configured
 
-  Run with: mix test --include live_cube
+  Run with: mix test --include live_cube_postgres
   """
 
   use ExUnit.Case, async: false
 
-  @moduletag :live_cube
+  # Ecto connects through Postgrex, whose connection bootstrap Cube's Postgres
+  # endpoint can't answer yet: pg_type has NULL typsend/typoutput, and a LEFT
+  # JOIN whose ON has no equality keys is planned as an inner join, so the
+  # bootstrap and reload queries lose rows. Run with --include live_cube_postgres
+  # against a Cube that has both fixed.
+  @moduletag :live_cube_postgres
 
   # Define a test Repo for connecting to Cube
   defmodule CubeRepo do
@@ -25,17 +30,17 @@ defmodule CubeSchemaLiveTest do
     use PowerOfThree.CubeSchema
 
     cube_schema :orders_no_preagg do
-      dimension :id, :float
-      dimension :brand_code, :string
-      dimension :market_code, :string
-      dimension :updated_at, :utc_datetime
-      dimension :inserted_at, :utc_datetime
+      dimension(:id, :float)
+      dimension(:brand_code, :string)
+      dimension(:market_code, :string)
+      dimension(:updated_at, :utc_datetime)
+      dimension(:inserted_at, :utc_datetime)
 
-      measure :count, :integer
-      measure :total_amount_sum, :float
-      measure :tax_amount_sum, :float
-      measure :subtotal_amount_sum, :float
-      measure :customer_id_distinct, :integer
+      measure(:count, :integer)
+      measure(:total_amount_sum, :float)
+      measure(:tax_amount_sum, :float)
+      measure(:subtotal_amount_sum, :float)
+      measure(:customer_id_distinct, :integer)
     end
   end
 
@@ -44,19 +49,19 @@ defmodule CubeSchemaLiveTest do
     use PowerOfThree.CubeSchema
 
     cube_schema :of_customers do
-      dimension :email_per_brand_per_market, :string
-      dimension :given_name, :string
-      dimension :zodiac, :string
-      dimension :star_sector, :float
-      dimension :bm_code, :string
-      dimension :brand, :string
-      dimension :market, :string
-      dimension :updated, :utc_datetime
-      dimension :inserted_at, :utc_datetime
+      dimension(:email_per_brand_per_market, :string)
+      dimension(:given_name, :string)
+      dimension(:zodiac, :string)
+      dimension(:star_sector, :float)
+      dimension(:bm_code, :string)
+      dimension(:brand, :string)
+      dimension(:market, :string)
+      dimension(:updated, :utc_datetime)
+      dimension(:inserted_at, :utc_datetime)
 
-      measure :count, :integer
-      measure :emails_distinct, :integer
-      measure :aquarii, :integer
+      measure(:count, :integer)
+      measure(:emails_distinct, :integer)
+      measure(:aquarii, :integer)
     end
   end
 
@@ -99,9 +104,10 @@ defmodule CubeSchemaLiveTest do
       results = CubeRepo.all(query)
 
       assert length(results) == 3
+
       assert Enum.all?(results, fn {brand, total} ->
-        is_binary(brand) and is_float(total)
-      end)
+               is_binary(brand) and is_float(total)
+             end)
     end
 
     test "fetches customers without primary key" do
@@ -247,9 +253,10 @@ defmodule CubeSchemaLiveTest do
       results = CubeRepo.all(query)
 
       assert length(results) > 0
+
       assert Enum.all?(results, fn {brand, count} ->
-        is_binary(brand) and is_integer(count) and count > 0
-      end)
+               is_binary(brand) and is_integer(count) and count > 0
+             end)
     end
 
     test "groups by brand with sum aggregation" do
@@ -285,9 +292,10 @@ defmodule CubeSchemaLiveTest do
       results = CubeRepo.all(query)
 
       assert length(results) > 0
+
       assert Enum.all?(results, fn {brand, market, count} ->
-        is_binary(brand) and is_binary(market) and is_integer(count)
-      end)
+               is_binary(brand) and is_binary(market) and is_integer(count)
+             end)
     end
 
     test "groups customers by zodiac sign" do
@@ -356,9 +364,10 @@ defmodule CubeSchemaLiveTest do
       results = CubeRepo.all(query)
 
       assert length(results) == 3
+
       assert Enum.all?(results, fn r ->
-        is_map(r) and Map.has_key?(r, :brand) and Map.has_key?(r, :total)
-      end)
+               is_map(r) and Map.has_key?(r, :brand) and Map.has_key?(r, :total)
+             end)
     end
 
     test "selects into tuple" do
@@ -373,9 +382,10 @@ defmodule CubeSchemaLiveTest do
       results = CubeRepo.all(query)
 
       assert length(results) == 3
+
       assert Enum.all?(results, fn {brand, market, count} ->
-        is_binary(brand) and is_binary(market) and is_integer(count)
-      end)
+               is_binary(brand) and is_binary(market) and is_integer(count)
+             end)
     end
   end
 

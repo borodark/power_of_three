@@ -280,10 +280,9 @@ defmodule PowerOfThree.DfHttpTest do
 
       star_sectors = result["star_sector"]
 
-      # star_sector should be numbers (0-11) or strings from HTTP
-      # HTTP returns strings, type conversion may happen in Explorer.DataFrame.new
+      # Integer-valued, so newer Cube versions return it as an integer column
       dtype = Explorer.Series.dtype(star_sectors)
-      assert dtype in [{:f, 64}]
+      assert dtype in [{:f, 64}, {:s, 64}]
     end
   end
 
