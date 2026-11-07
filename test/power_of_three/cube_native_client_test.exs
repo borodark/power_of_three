@@ -9,34 +9,73 @@ defmodule PowerOfThree.CubeNativeClientTest do
   defp batch1, do: DF.new(brand: ["a", "b", "c"], count: [1, 2, 3])
   defp batch2, do: DF.new(brand: ["d", "e"], count: [4, 5])
 
-  defp connect(respond, opts \\ []) do
-    port = FakeServer.start(respond)
+  defp connect(respond, opts \\ [], server_opts \\ []) do
+    port = FakeServer.start(respond, server_opts)
     CubeNativeClient.connect(Keyword.merge([port: port, token: "test"], opts))
   end
 
   describe "protocol" do
     test "round-trips client messages" do
       for msg <- [
-            {:handshake_request, 1},
-            {:auth_request, "tok", nil},
-            {:auth_request, "tok", "db"},
+            {:handshake_request, 2},
+            {:auth_request, 1, nil, "tok", nil},
+            {:auth_request, 1, nil, "tok", "db"},
+            {:auth_request, 2, nil, "tok", nil},
+            {:auth_request, 2, "cube", "tok", "db"},
             {:query_request, "SELECT 1"}
           ] do
+        version = if(elem(msg, 0) == :auth_request, do: elem(msg, 1))
+
         assert {:ok, ^msg} =
-                 msg |> Protocol.encode() |> IO.iodata_to_binary() |> Protocol.decode()
+                 msg |> Protocol.encode() |> IO.iodata_to_binary() |> Protocol.decode(version)
       end
     end
 
     test "matches the byte layout in protocol.rs" do
       assert IO.iodata_to_binary(Protocol.encode({:query_request, "SELECT"})) ==
                <<0x10, 0, 0, 0, 6, "SELECT">>
+
+      # Version 1: password, optional database
+      assert IO.iodata_to_binary(Protocol.encode({:auth_request, 1, nil, "pw", nil})) ==
+               <<0x03, 0, 0, 0, 2, "pw", 0>>
+
+      # Version 2: optional user first
+      assert IO.iodata_to_binary(Protocol.encode({:auth_request, 2, "u", "pw", "db"})) ==
+               <<0x03, 1, 0, 0, 0, 1, "u", 0, 0, 0, 2, "pw", 1, 0, 0, 0, 2, "db">>
     end
   end
 
   test "handshake and auth" do
     assert {:ok, client} = connect(fn _ -> [batch1()] end)
     assert client.server_version == "fake"
+    assert client.protocol_version == 2
+    assert client.session_id == "session-2"
+  end
+
+  test "version 2 sends the user" do
+    assert {:ok, %{protocol_version: 2}} = connect(fn _ -> [] end, user: "cube")
+    assert {:error, {:auth_failed, _}} = connect(fn _ -> [] end, user: "someone-else")
+  end
+
+  test "falls back to version 1 when the server refuses version 2" do
+    assert {:ok, client} = connect(fn _ -> [batch1()] end, [], versions: [1])
+    assert client.protocol_version == 1
     assert client.session_id == "session-1"
+    assert {:ok, df} = CubeNativeClient.query_df(client, "SELECT 1")
+    assert DF.n_rows(df) == 3
+  end
+
+  test "a user is never dropped by falling back to version 1" do
+    assert {:error, {:server, "UNSUPPORTED_VERSION", _}} =
+             connect(fn _ -> [] end, [user: "cube"], versions: [1])
+
+    assert_raise ArgumentError, fn ->
+      connect(fn _ -> [] end, user: "cube", protocol_version: 1)
+    end
+  end
+
+  test "protocol_version: 1 speaks version 1" do
+    assert {:ok, %{protocol_version: 1}} = connect(fn _ -> [] end, protocol_version: 1)
   end
 
   test "bad token is reported" do

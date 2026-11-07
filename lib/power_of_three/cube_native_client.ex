@@ -18,7 +18,7 @@ defmodule PowerOfThree.CubeNativeClient do
 
   alias PowerOfThree.CubeNative.Protocol
 
-  defstruct [:socket, :server_version, :session_id, :timeout]
+  defstruct [:socket, :server_version, :session_id, :timeout, :protocol_version]
 
   @type t :: %__MODULE__{}
   @type result :: %{schema: binary() | nil, batches: [binary()], rows_affected: integer()}
@@ -30,8 +30,13 @@ defmodule PowerOfThree.CubeNativeClient do
 
     * `:host` - Cube host (default: "localhost")
     * `:port` - Arrow Native port (default: 8120)
-    * `:token` - Cube authentication token (required)
+    * `:token` - Cube authentication token (required), the SQL API password
+    * `:user` - Optional SQL API user name; authenticates as the Postgres
+      endpoint does for the same user and password (protocol version 2)
     * `:database` - Optional database name
+    * `:protocol_version` - 2 (default) or 1. A server that only speaks
+      version 1 refuses version 2; the client then reconnects with version 1,
+      unless `:user` is set, which version 1 cannot carry
     * `:timeout` - Connect and receive timeout in ms (default: 30_000)
 
   Options are merged over `config :power_of_3, PowerOfThree.CubeNativeClient, ...`.
@@ -41,16 +46,39 @@ defmodule PowerOfThree.CubeNativeClient do
     opts = merge_config(opts)
     host = opts |> Keyword.get(:host, "localhost") |> String.to_charlist()
     port = Keyword.get(opts, :port, 8120)
-    token = Keyword.fetch!(opts, :token)
-    database = Keyword.get(opts, :database)
-    timeout = Keyword.get(opts, :timeout, 30_000)
 
+    auth = %{
+      token: Keyword.fetch!(opts, :token),
+      user: Keyword.get(opts, :user),
+      database: Keyword.get(opts, :database)
+    }
+
+    timeout = Keyword.get(opts, :timeout, 30_000)
+    version = Keyword.get(opts, :protocol_version, Protocol.version())
+
+    unless Protocol.supported_version?(version),
+      do: raise(ArgumentError, "unsupported :protocol_version #{inspect(version)}")
+
+    if version == 1 and auth.user,
+      do: raise(ArgumentError, ":user needs :protocol_version 2")
+
+    case connect(host, port, timeout, version, auth) do
+      # A server older than version 2 refuses it in the handshake
+      {:error, {:server, "UNSUPPORTED_VERSION", _}} when version > 1 and is_nil(auth.user) ->
+        connect(host, port, timeout, 1, auth)
+
+      result ->
+        result
+    end
+  end
+
+  defp connect(host, port, timeout, version, auth) do
     sock_opts = [:binary, packet: 4, active: false, nodelay: true]
 
     with {:ok, socket} <- :gen_tcp.connect(host, port, sock_opts, timeout) do
-      client = %__MODULE__{socket: socket, timeout: timeout}
+      client = %__MODULE__{socket: socket, timeout: timeout, protocol_version: version}
 
-      case handshake(client, token, database) do
+      case handshake(client, auth) do
         {:ok, client} ->
           {:ok, client}
 
@@ -129,14 +157,14 @@ defmodule PowerOfThree.CubeNativeClient do
     Keyword.merge(app_config, opts)
   end
 
-  defp handshake(client, token, database) do
-    with :ok <- send_msg(client, {:handshake_request, Protocol.version()}),
-         {:ok, {:handshake_response, version, server_version}} <- recv_msg(client),
-         :ok <- check_version(version),
-         :ok <- send_msg(client, {:auth_request, token, database}),
+  defp handshake(%{protocol_version: version} = client, auth) do
+    with :ok <- send_msg(client, {:handshake_request, version}),
+         {:ok, {:handshake_response, ^version, server_version}} <- recv_msg(client),
+         :ok <- send_msg(client, {:auth_request, version, auth.user, auth.token, auth.database}),
          {:ok, {:auth_response, true, session_id}} <- recv_msg(client) do
       {:ok, %{client | server_version: server_version, session_id: session_id}}
     else
+      {:ok, {:handshake_response, other, _}} -> {:error, {:version_mismatch, other}}
       {:ok, {:auth_response, false, reason}} -> {:error, {:auth_failed, reason}}
       {:ok, {:error, code, message}} -> {:error, {:server, code, message}}
       {:ok, other} -> {:error, {:unexpected, other}}
@@ -165,10 +193,6 @@ defmodule PowerOfThree.CubeNativeClient do
       {:error, _} = error ->
         error
     end
-  end
-
-  defp check_version(version) do
-    if version == Protocol.version(), do: :ok, else: {:error, {:version_mismatch, version}}
   end
 
   defp send_msg(%{socket: socket}, msg), do: :gen_tcp.send(socket, Protocol.encode(msg))

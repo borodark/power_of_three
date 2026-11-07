@@ -8,46 +8,58 @@ defmodule PowerOfThree.CubeNativeFakeServer do
   #   :close                    - drop the connection without answering
   #   {:delay, ms, [df, ...]}   - answer after `ms` milliseconds
   #
-  # The token "test" is accepted; anything else fails auth.
+  # The token "test" is accepted; anything else fails auth. A user, sent in
+  # protocol version 2, must be "cube" when given. Options:
+  #
+  #   versions: [1, 2]          - protocol versions the server accepts
 
   alias PowerOfThree.CubeNative.Protocol
   alias Explorer.DataFrame, as: DF
 
-  def start(respond) do
+  def start(respond, opts \\ []) do
     {:ok, listen} = :gen_tcp.listen(0, [:binary, packet: 4, active: false])
-    serve_on(listen, respond)
+    serve_on(listen, respond, opts)
   end
 
   @doc "Serves on an already-open listen socket; returns its port."
-  def serve_on(listen, respond) do
+  def serve_on(listen, respond, opts \\ []) do
     {:ok, port} = :inet.port(listen)
-    pid = spawn_link(fn -> accept_loop(listen, respond) end)
+    versions = Keyword.get(opts, :versions, [1, 2])
+    pid = spawn_link(fn -> accept_loop(listen, respond, versions) end)
     :ok = :gen_tcp.controlling_process(listen, pid)
     port
   end
 
-  defp accept_loop(listen, respond) do
+  defp accept_loop(listen, respond, versions) do
     case :gen_tcp.accept(listen) do
       {:ok, sock} ->
-        pid = spawn(fn -> serve(sock, respond) end)
+        pid = spawn(fn -> serve(sock, respond, versions) end)
         :ok = :gen_tcp.controlling_process(sock, pid)
-        accept_loop(listen, respond)
+        accept_loop(listen, respond, versions)
 
       {:error, :closed} ->
         :ok
     end
   end
 
-  defp serve(sock, respond) do
-    {:ok, {:handshake_request, 1}} = recv(sock)
-    send_msg(sock, {:handshake_response, 1, "fake"})
+  defp serve(sock, respond, versions) do
+    {:ok, {:handshake_request, version}} = recv(sock)
 
-    case recv(sock) do
-      {:ok, {:auth_request, "test", _}} ->
-        send_msg(sock, {:auth_response, true, "session-1"})
+    if version in versions do
+      send_msg(sock, {:handshake_response, version, "fake"})
+      authenticate(sock, respond, version)
+    else
+      send_msg(sock, {:error, "UNSUPPORTED_VERSION", "Unsupported protocol version #{version}"})
+    end
+  end
+
+  defp authenticate(sock, respond, version) do
+    case recv(sock, version) do
+      {:ok, {:auth_request, ^version, user, "test", _}} when user in [nil, "cube"] ->
+        send_msg(sock, {:auth_response, true, "session-#{version}"})
         loop(sock, respond)
 
-      {:ok, {:auth_request, _, _}} ->
+      {:ok, {:auth_request, ^version, _, _, _}} ->
         send_msg(sock, {:auth_response, false, "bad token"})
     end
   end
@@ -83,8 +95,8 @@ defmodule PowerOfThree.CubeNativeFakeServer do
     send_msg(sock, {:complete, dfs |> Enum.map(&DF.n_rows/1) |> Enum.sum()})
   end
 
-  defp recv(sock) do
-    with {:ok, payload} <- :gen_tcp.recv(sock, 0), do: Protocol.decode(payload)
+  defp recv(sock, version \\ nil) do
+    with {:ok, payload} <- :gen_tcp.recv(sock, 0), do: Protocol.decode(payload, version)
   end
 
   # The client may already have gone away (e.g. after a timeout).
