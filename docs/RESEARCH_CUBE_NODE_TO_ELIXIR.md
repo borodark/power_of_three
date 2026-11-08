@@ -106,6 +106,64 @@ interface; PropCheck generators for JS-shaped values; a `mix check` gate. Applie
 M0 is the go/no-go: about the size of the Neon adapter, and it settles the two real
 unknowns (§7).
 
+### M0, first half: done 2026-11-08 — Tesseract without JS gives Node's SQL
+
+Tesseract's own tests carry a pure-Rust model host (`src/test_fixtures`, 12.7k LOC:
+`MockSchema::from_yaml`, mock `cube_bridge` objects, mock Postgres/Cube Store driver
+tools). The spike (`cube-stream-integ` branch `spike/tesseract-host`, commit
+`58bd78f1c7`, `tests/node_parity.rs`) fed it:
+
+- the trader model (`posteriors.yaml`, `race_results.yaml`, unchanged);
+- `sqlTemplates()` dumped from Node's `PostgresQuery` (174 templates) and
+  `CubeStoreQuery` (159) as JSON data;
+- 7 REST queries, compared with Node Cube's `/v1/sql` for the same model (the FreeBSD
+  build on mac-247): 5 answered from the `by_symbol_hour` rollup (Cube Store dialect),
+  2 missing it (Postgres dialect: week granularity with time-zone conversion, `ILIKE`,
+  `notEquals` with `IS NULL`, `$n` params reused).
+
+**Result: 7/7 byte-identical SQL.** What the host had to do itself, i.e. what an Elixir
+host owns:
+
+1. **Pre-aggregation table names.** Tesseract emits `{cube}__{pre_agg}__usage_{n}`;
+   the host substitutes the table (`dev_pre_aggregations.posteriors_by_symbol_hour` in
+   dev mode, versioned names in production — the orchestrator's job).
+2. **REST query normalisation:** the default `LIMIT 10000`, the `order` map to a list.
+   Default ordering came out of Tesseract unaided.
+3. **Parameter formatting.** One gap: Node binds Postgres date params as
+   `2026-10-01T00:00:00.000Z` (`BaseQuery.timestampFormat`, `[Z]`); the mock's UTC
+   `in_db_time_zone` returns them without `Z`. Only the bound values differ, not the SQL.
+   Driver tools are code, not data, and must follow Node's per-dialect behaviour; the
+   goldens catch the gaps.
+
+Templates turned out to be pure data (Jinja strings, minijinja on the Rust side), so a
+dialect for the Elixir host is a JSON file plus a small `DriverTools` port (the
+mock's is 312 lines for Postgres + Cube Store).
+
+### M0, second half: done 2026-11-08 — the same SQL from Elixir
+
+`learn_erl/tesseract_ex` (local repo, commit `ec6cc2e`): a Rustler NIF
+(`TesseractEx.Native.plan/4`, dirty CPU) over `cubesqlplanner` with a new
+`host-fixtures` cargo feature that builds the test model host as a library
+(`cube-stream-integ` `96a298840d`: the feature, `pub mod test_fixtures`, one
+test-only builder ungated). The host's jobs are Elixir (`TesseractEx.sql/4`: REST
+normalisation, pre-aggregation naming by regex).
+
+- **7/7 SQL equal to Node Cube** from `mix test` (`test/parity_test.exs`); params equal
+  except the `Z` gap above.
+- A malformed query returns `{:error, _}`: the test host panics on bad input, so the
+  NIF catches the unwind.
+- **3.4 ms per call**, including re-parsing the YAML model and 333 templates on every
+  call; a real host parses the model once per compile.
+- Nothing calls back into Erlang during planning, so the callback-threading risk (§7)
+  is avoided on this path, not solved: models whose member SQL is JS code stay out.
+
+**What M0 does not show:** the test host is test code (it panics on bad input, and its
+YAML reader may lag Cube's compiler on features the trader model doesn't use: views,
+access policies, multi-stage measures, custom granularities); the param formatting gap;
+production pre-aggregation names (versioned, from the orchestrator). M1 replaces the
+mock host with an owned one (or hardens it upstream) and widens the goldens to
+Tesseract's own YAML fixtures, compared against Node.
+
 ## 6. Out of scope, deliberately
 
 The legacy `BaseQuery` planner; JS model files; GraphQL; the Playground/dev UI; the 30
