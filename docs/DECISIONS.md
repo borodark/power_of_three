@@ -244,10 +244,12 @@ says what replaced it.
 - Decision: sizing treats the daily panel as stale when it lacks the last
   completed session plus a grace period (recommended 22:00 New York for US
   equities, 18:00 New York for FX), and shows the panel's age.
-- Stale panel (the user, 2026-11-08): **no size-ups while the panel is
-  stale.** This replaces an earlier relayed version (fall back to in-memory
-  data and size as usual). Trading never blocks: orders that do not increase
-  a position go ahead.
+- Stale panel: **pending the user's answer.** The user said "fall back to
+  the in-memory data" (to the trader session) and "no size-ups when stale"
+  (to this session), both 2026-11-08. Read together: fall back to in-memory
+  data, and still no size-ups while the panel is stale. The trader session is
+  asking the user; this entry is updated with the answer. Trading never
+  blocks either way.
 - Owner: the trader session.
 
 ## 22. Shrinkage in the live held-book matrix (the user, 2026-11-08)
