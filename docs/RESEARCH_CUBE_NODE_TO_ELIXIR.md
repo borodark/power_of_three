@@ -185,7 +185,62 @@ non-Postgres drivers; Cube Cloud features. Each can come later behind the same s
 - **Mixed fleets.** A Node Cube and an Elixir Cube sharing one Cube Store must agree on
   pre-aggregation table names and partition keys (§4.3).
 
-## 8. Where it pays
+## 8. Gaps: what this plan underplans (reviewed 2026-11-08, after M0)
+
+M0 proved the easiest seam. Ranked by risk, what the milestones above give a line or
+nothing:
+
+1. **SQL API push-down needs a small JS evaluator.** cubesql sends member expressions as
+   `{cubeParams, sql}` (`wrapper.rs` `SqlFunctionExpr`, `PatchMeasureDef`), and Node turns
+   `sql` into a JS function (`api-gateway/src/member-expression-security.ts`,
+   `Function(...cubeParams, ...)`). The syntax is restricted, so an Elixir parser is
+   feasible, but no milestone has it. M0 tested REST queries only; Postgres-wire queries
+   that push down, including the 7-query Arrow check, take this path.
+2. **Pre-aggregations are one row (M4) and most of the work.** Versioned table names
+   (hashes of SQL, structure version and refresh-key result, computed exactly as JS
+   does, or Node and Elixir hosts cannot share a Cube Store); partitions and build
+   ranges; refresh-key evaluation; incremental refresh; loading rows from Postgres into
+   Cube Store with indexes. Recent Cube also uses Cube Store as its queue and cache
+   (cachestore); §3's ETS cache breaks as soon as Node and Elixir share a Cube Store.
+3. **The model host is borrowed test code with no owner.** M0 runs on
+   `src/test_fixtures` (12.7k LOC), which upstream changes freely. M1 must choose:
+   (a) own a Rust model crate (copied, or upstreamed as a feature) tracking the
+   `cube_bridge` traits; or (b) a Rustler `InnerTypes` over Elixir data, the §2 idea,
+   which brings the callback-threading problem (§7) back for anything that isn't plain
+   data. Whether upstream would take a `host-fixtures`-style feature is unexplored.
+4. **The model compiler is more than YAML loading.** Jinja and Python in YAML; views
+   (join paths, includes/excludes, prefixes); `extends`; `FILTER_PARAMS` and
+   `COMPILE_CONTEXT`; access policies; segments; `case` dimensions; multi-stage and
+   rolling-window measures; custom granularities; Cube's validation and its error
+   messages. Nothing measures how much is needed; the trader model touches almost none.
+5. **`/v1/meta` is unspecified.** cubesql builds its schema from `meta()`; the JSON must
+   match Cube's client models field for field. No milestone has meta goldens beyond M1's
+   mention.
+6. **cubesql inside the BEAM is an open architecture choice.** cubesql runs its own
+   tokio runtime and listeners. As a NIF, a panic takes down the VM and each `load` into
+   Elixir is a message round-trip; as a separate process (cubesqld talking to Elixir over
+   a socket) it is safer but needs a new transport. §3 says "Rustler calls" and stops.
+7. **Results to Arrow.** cubesql wants record batches. Postgrex returns rows to convert in
+   Elixir, or queries run in Rust (tokio-postgres). Type mapping (numerics,
+   time-zoned timestamps) decides whether the equivalence checks pass.
+8. **Config hooks.** Node's config is JS functions: `checkAuth` and JWT,
+   `contextToAppId` with per-tenant compiler caches, `queryRewrite`,
+   `scheduledRefreshContexts`. The Elixir surface is not designed.
+9. **Per-dialect driver tools.** The `Z` gap (M0) shows each dialect's `DriverTools` must
+   follow Node's code, not the test mock.
+10. **Goldens and drift.** Seven goldens. Missing: a harvester that runs Node Cube over
+    Tesseract's YAML fixtures and Cube's test models, recording `/v1/sql` and `/v1/meta`;
+    a rebase cadence as Tesseract moves.
+11. **The product question.** The trader needs a few daily-panel rollups, not a full Cube.
+    Not weighed: the smallest useful ex_cube — an Elixir model, Tesseract for SQL, run
+    directly against Postgres (Postgrex) and Cube Store (its HTTP API), skipping cubesql
+    and the orchestrator; a power_of_three backend. Weeks from the spike, against months
+    for the full path.
+
+**Recommendation:** make 11 the next milestone; settle 3 now as (a), owning the Rust
+model crate; treat 1, 2 and 6 as their own research before committing to the full port.
+
+## 9. Where it pays
 
 For the trader store (zed `specs/asus-data-jails-plan.md`): the `cube` jail would run a
 BEAM release instead of Node 22 plus `index.node`, so one runtime on asus, supervised;
@@ -193,7 +248,7 @@ the trader's reads of the daily panel (D19-D21) could come over distribution or 
 instead of Arrow Native over TCP. It does not change the D15 conclusion that Cube buys no
 latency for sizing: what it removes is a runtime, not a hop that matters.
 
-## 9. Today's evidence this rests on
+## 10. Today's evidence this rests on
 
 - Native FreeBSD Cube on mac-247: `cubestored` + Node 22 + FreeBSD-built `index.node`,
   7/7 queries SAME against the Linux baselines (posterior_hour 178,258 rows ...
