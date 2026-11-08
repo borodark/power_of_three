@@ -191,7 +191,8 @@ says what replaced it.
 
 ## 16. The missing tables: fills with prices, and adjusted daily closes
 - Decision: the first tables worth keeping are a record of fills with their
-  prices, and daily closes adjusted for splits, keyed by session date with the
+  prices, and daily closes adjusted for splits and dividends (Alpaca
+  `adjustment=all`; one table, shared with the Risk tab's nightly job), keyed by session date with the
   boundary per asset class (US close for equities, 17:00 New York for FX, UTC
   for crypto; NYSE sessions for cross-asset panels).
 - Rationale: the order ledger has no fill prices, so live P&L cannot be
