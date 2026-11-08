@@ -139,6 +139,16 @@ Templates turned out to be pure data (Jinja strings, minijinja on the Rust side)
 dialect for the Elixir host is a JSON file plus a small `DriverTools` port (the
 mock's is 312 lines for Postgres + Cube Store).
 
+### M1: started 2026-11-08 — see tesseract_ex `docs/M1.md`
+
+Compiled models on a planner thread each (1.7 ms per query); a golden harvester that
+plans in-process through Node's own compiler (equal to live `/v1/sql`); over
+Tesseract's 91 Node-compilable fixture models and 5,412 generated queries, **82.5%
+agree and 96.1% produce equal SQL**. Everything left is in the borrowed test host:
+date-param formatting (739), interval spelling (112), multi-stage column order (87),
+reference resolution (7), and 14 models Node's compiler rejects. Next: the owned model
+crate, gated on that comparison.
+
 ### M0, second half: done 2026-11-08 — the same SQL from Elixir
 
 `learn_erl/tesseract_ex` (local repo, commit `ec6cc2e`): a Rustler NIF
@@ -299,8 +309,10 @@ What follows from it:
 ### 9.4 Boundary rules
 
 1. **Once per compile:** the model IR, dialect templates and meta go to Rust as
-   binaries, and come back as a resource handle. This forces the owned model crate
-   (§8.3) to use `Send + Sync` types; the test host's `Rc` cannot be a `ResourceArc`.
+   binaries, and come back as a resource handle. Tesseract's `cube_bridge` returns `Rc`
+   (80 sites), so the compiled model cannot be `Send` and cannot be a `ResourceArc`;
+   instead it lives on a thread of its own and the resource holds a channel to it
+   (tesseract_ex M1 step 1: 1.7 ms per query, threads exit with the last reference).
 2. **Once per query:** a JSON query in; SQL, params and pre-aggregation usages out
    (about 1.3 ms of planning, on a dirty CPU scheduler, with the unwind caught).
 3. **Once per batch:** Arrow IPC binaries, never lists of row terms.
