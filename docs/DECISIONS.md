@@ -202,3 +202,55 @@ says what replaced it.
   completed session plus a few hours' grace (22:00 New York for US equities,
   18:00 New York for FX); every number shows its age.
 - Status: recommended; owned by the trader session.
+
+## 17. Postgres and Cube run on asus, in jails (the user, 2026-11-08)
+- Decision: a `pg` jail (PostgreSQL 16) and a `cube` jail (Cube Store and Cube)
+  on asus, beside the trader jail, on their own ZFS datasets and on CPUs apart
+  from the trader's cores and their SMT siblings. Plan:
+  zed `specs/asus-data-jails-plan.md`.
+- Rationale: the shop keeps trading with super-io down; a store the trader
+  reads must live where the trader lives.
+- **[EVOLVED]** 15: Cube was kept off the risk path because it ran on
+  super-io under /tmp. On asus it can serve the daily panel to live sizing;
+  trading still never blocks on it (entry 21).
+
+## 18. FreeBSD native, no Linux userland (the user, 2026-11-08)
+- Decision: Cube Store and `@cubejs-backend/native` are compiled for FreeBSD
+  15 (on mac-247, same release as asus); Node and Postgres from pkg.
+- Alternatives: the Linux builds under asus's `linux_base-rl9` (index.node
+  needs glibc 2.34 and would load; cubestored needs 2.39 and would need a
+  Rocky 9 rebuild). Rejected by the user.
+- Assumption: Cube Store and cubesql build on FreeBSD with their pinned
+  toolchains (nightly-2025-08-01, 1.98.1). Unverified until the builds pass.
+
+## 19. Live sizing moves to daily returns (the user, 2026-11-08)
+- Decision: the correlation and volatility inputs to live sizing come from a
+  daily, session-aligned returns panel, not from the 60-second positional
+  windows.
+- Rationale: the documented practice is daily at the fastest; the positional
+  windows have no timestamps and mix frequencies after a restart.
+- Owner: the trader session.
+
+## 20. A tick sink and a fills record (the user, 2026-11-08)
+- Decision: MarketFeed's accepted quotes are written to `ticks`, and fills with
+  their prices to `fills`, in the `pg` jail; batched, and spooled locally when
+  Postgres is away so trading never waits on it.
+- Rationale: nothing seen or paid was kept; per-instrument P&L could not be
+  attributed (entry 16).
+- Owner: the trader session.
+
+## 21. A staleness threshold for sizing (the user, 2026-11-08)
+- Decision: sizing treats the daily panel as stale when it lacks the last
+  completed session plus a grace period (recommended 22:00 New York for US
+  equities, 18:00 New York for FX), and shows the panel's age.
+- Open: what sizing does with a stale panel (no size-ups, or the in-memory
+  fallback) is not yet stated.
+- Owner: the trader session.
+
+## 22. Shrinkage in the live held-book matrix (the user, 2026-11-08)
+- Decision: the held-book correlation used by sizing is shrunk, not plain
+  Pearson. The Risk tab's structured blend (0.4 S60 + 0.6 factor-implied,
+  next-60-day RMSE 0.204 against 0.240 for S60) is the validated candidate;
+  Ledoit-Wolf exists in `Exmc.Trading.Portfolio.Covariance`. Duplicate flags
+  keep using the sample correlation (the blend shrinks true duplicates).
+- Owner: the trader session.
