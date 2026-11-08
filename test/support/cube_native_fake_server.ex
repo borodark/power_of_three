@@ -7,6 +7,7 @@ defmodule PowerOfThree.CubeNativeFakeServer do
   #   {:error, code, message}   - an Error frame
   #   :close                    - drop the connection without answering
   #   {:delay, ms, [df, ...]}   - answer after `ms` milliseconds
+  #   {:empty, df}              - a zero-row result: df's schema, no batches
   #
   # The token "test" is accepted; anything else fails auth. A user, sent in
   # protocol version 2, must be "cube" when given. Options:
@@ -85,6 +86,11 @@ defmodule PowerOfThree.CubeNativeFakeServer do
   defp answer(sock, {:delay, ms, dfs}) do
     Process.sleep(ms)
     answer(sock, dfs)
+  end
+
+  defp answer(sock, {:empty, df}) do
+    send_msg(sock, {:schema, DF.dump_ipc_stream!(DF.head(df, 0))})
+    send_msg(sock, {:complete, 0})
   end
 
   defp answer(sock, {:error, code, message}), do: send_msg(sock, {:error, code, message})

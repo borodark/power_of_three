@@ -133,6 +133,121 @@ defmodule PowerOfThree.CubeNativeClient do
   end
 
   @doc """
+  Runs `sql` and returns a lazy stream of its Arrow IPC payloads, each a
+  self-contained Arrow IPC stream, as the server sends them.
+
+  Nothing is sent until the stream is run. Rows are read from the socket only
+  as the stream is consumed, so a large result is never held whole: TCP holds
+  the server back while the reader is busy.
+
+  A zero-row result yields its schema as one payload with no batches, so a
+  reader always sees the columns. A server error raises
+  `PowerOfThree.CubeNativeClient.StreamError`.
+
+  A stream stopped before its last payload (`Enum.take/2`, an exception) leaves
+  frames unread, which the next query would read as its own: the client's
+  socket is closed then, and the client must be replaced (`broken?/1` is true
+  for whatever it returns next).
+  """
+  @spec stream(t(), String.t()) :: Enumerable.t()
+  def stream(%__MODULE__{} = client, sql) when is_binary(sql) do
+    Stream.resource(
+      fn ->
+        case send_msg(client, {:query_request, sql}) do
+          :ok -> %{schema: nil, batches?: false}
+          {:error, reason} -> raise_stream_error(client, reason)
+        end
+      end,
+      fn
+        state when not is_map(state) ->
+          {:halt, state}
+
+        state ->
+          case recv_msg(client) do
+            {:ok, {:schema, ipc}} ->
+              {[], %{state | schema: ipc}}
+
+            {:ok, {:batch, ipc}} ->
+              {[ipc], %{state | batches?: true}}
+
+            {:ok, {:complete, _rows}} ->
+              if state.batches? or is_nil(state.schema),
+                do: {[], :done},
+                else: {[state.schema], :done}
+
+            # A server error ends its response cleanly
+            {:ok, {:error, code, message}} ->
+              {:halt, {:failed, {:server, code, message}}}
+
+            {:ok, other} ->
+              {:halt, {:broken, {:unexpected, other}}}
+
+            {:error, reason} ->
+              {:halt, {:broken, reason}}
+          end
+      end,
+      fn
+        :done ->
+          :ok
+
+        {:failed, reason} ->
+          raise __MODULE__.StreamError, reason: reason
+
+        {:broken, reason} ->
+          raise_stream_error(client, reason)
+
+        # Stopped by the reader before the last payload
+        _unfinished ->
+          close(client)
+      end
+    )
+  end
+
+  @doc """
+  Runs `sql` and returns a lazy stream of `ExArrow.RecordBatch`es, decoded
+  with ex_arrow one payload at a time as they arrive. See `stream/2`.
+
+  Batches with no rows are left out, so a zero-row result yields none. Needs
+  the optional `:ex_arrow` dependency.
+  """
+  @spec stream_record_batches(t(), String.t()) :: Enumerable.t()
+  def stream_record_batches(%__MODULE__{} = client, sql) when is_binary(sql) do
+    unless Code.ensure_loaded?(ExArrow.IPC.Reader),
+      do: raise(ArgumentError, "stream_record_batches/2 needs the :ex_arrow dependency")
+
+    client
+    |> stream(sql)
+    |> Stream.flat_map(&record_batches!/1)
+    |> Stream.reject(&(ExArrow.RecordBatch.num_rows(&1) == 0))
+  end
+
+  @doc """
+  Decodes one IPC payload of `stream/2` into its `ExArrow.RecordBatch`es.
+  Needs the optional `:ex_arrow` dependency.
+  """
+  @spec record_batches!(binary()) :: [struct()]
+  def record_batches!(ipc) when is_binary(ipc) do
+    case ExArrow.IPC.Reader.from_binary(ipc) do
+      {:ok, ipc_stream} -> read_record_batches(ipc_stream, [])
+      {:error, reason} -> raise __MODULE__.StreamError, reason: {:decode, reason}
+    end
+  end
+
+  defp read_record_batches(ipc_stream, acc) do
+    case ExArrow.Stream.next(ipc_stream) do
+      nil -> Enum.reverse(acc)
+      {:error, reason} -> raise __MODULE__.StreamError, reason: {:decode, reason}
+      batch -> read_record_batches(ipc_stream, [batch | acc])
+    end
+  end
+
+  # Leaves the socket in an unknown state, so it is closed.
+  defp raise_stream_error(client, reason) do
+    close(client)
+    raise __MODULE__.StreamError, reason: reason
+  end
+
+  @doc """
   Whether `result` leaves the client unusable.
 
   A server Error frame ends its response cleanly, so the client can run the
@@ -200,4 +315,16 @@ defmodule PowerOfThree.CubeNativeClient do
   defp recv_msg(%{socket: socket, timeout: timeout}) do
     with {:ok, payload} <- :gen_tcp.recv(socket, 0, timeout), do: Protocol.decode(payload)
   end
+end
+
+defmodule PowerOfThree.CubeNativeClient.StreamError do
+  @moduledoc """
+  Raised by `PowerOfThree.CubeNativeClient.stream/2` when a streamed query
+  fails. `:reason` is what `query/2` would return as `{:error, reason}`, or
+  `{:decode, message}` for a payload ex_arrow could not read.
+  """
+  defexception [:reason]
+
+  @impl true
+  def message(%{reason: reason}), do: "native stream failed: #{inspect(reason)}"
 end

@@ -43,6 +43,7 @@ defmodule PowerOfThree.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.19", only: [:dev, :test]},
       {:explorer, "~> 0.11.1"},
+      {:ex_arrow, "~> 0.9", optional: true},
       {:poolboy, "~> 1.5"},
       {:req, "~> 0.5"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
