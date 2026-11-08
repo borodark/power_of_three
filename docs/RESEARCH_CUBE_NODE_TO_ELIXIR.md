@@ -240,7 +240,78 @@ nothing:
 **Recommendation:** make 11 the next milestone; settle 3 now as (a), owning the Rust
 model crate; treat 1, 2 and 6 as their own research before committing to the full port.
 
-## 9. Where it pays
+## 9. Rust or Elixir: what goes where (2026-11-08)
+
+The rule: **rows stay in Rust, next to the store; decisions, names and schedules live
+in Elixir.** Rust owns everything whose cost scales with rows. Elixir owns everything
+whose size scales with the model, the tenants and time. The boundary is crossed once per
+compile, per query or per batch, never per row or per member.
+
+### 9.1 The evidence for the rule
+
+| Measurement | Where | Number |
+|---|---|---|
+| Rows as Arrow vs as Elixir terms (Postgrex), 5M rows | our stream bench | 14.9 s vs 35.1 s |
+| same, 100k-row rollup | conv bench | 183-204 ms vs 378-523 ms |
+| Node row materialisation (passthrough off vs on), 1.35M rows | stream mode | 14.6 s vs 4.2 s |
+| Term lists vs binaries across a NIF | exmc research log 2026-02-09 | O(elements) vs O(bytes) |
+| One coarse NIF call vs ~50 fine ones, with more serialising | exmc D58 (negative result) | the coarse call was 0.4-0.8x as fast |
+| Process wrapping in Elixir | exmc EXPERIMENT_RESULTS | invisible above ~100 µs of work |
+| Tesseract call from Elixir (release build) | `node_parity_timing` | model parse 0.39 ms, templates 1.28 ms, plan 1.34 ms |
+
+What follows from it:
+- **Row decoding is the cost.** Elixir loses 2x by decoding rows into terms; Node
+  loses 3.5x the same way.
+- **Pay for parsing static inputs once.** Half of today's 3.4 ms planning call is
+  re-parsing the model and templates. They belong in Rust as a resource built once per
+  compile; a query then costs ~1.3 ms of planning.
+- **Make each crossing coarse, and pass binaries.** D58 lost both ways: per-op calls
+  cost too much, and so did one call that serialised a lot. Arrow IPC and JSON binaries
+  cost O(bytes). Refcounted binaries above 64 bytes pass between BEAM processes without
+  a copy.
+
+### 9.2 Rust: close to the data
+
+| Part | Why Rust | Today in Cube |
+|---|---|---|
+| Result path, Cube Store → client | Arrow frames go through as bytes; Elixir consumers take IPC binaries into Explorer/Nx without making rows | PRs (d)-(f): `arrowChunk` passthrough |
+| `/v1/load` JSON from Arrow | per-row formatting | Cube already moved this out of JS: `rust/cube/cubeorchestrator` `query_result_transform.rs` |
+| **Pre-aggregation loader**, source → Cube Store | the biggest serialise/deserialise sink in a refresh: for Postgres, Cube pulls rows through Node as JS objects, re-encodes them as CSV (`CubeStoreDriver.importStream`, `csv-write-stream`) and uploads that. A Rust loader streams Postgres `COPY` out into Cube Store's import, never as values; Elixir sends the job and receives progress | JS |
+| cubesql (Postgres wire, Arrow Native, DataFusion rewrite) | parses and rewrites per query; holds the client sockets | Rust |
+| Tesseract planning **with the model held in Rust** | called per member during planning (`cube_bridge`, `DriverTools`): fine-grained calls that must not cross (D58) | Rust, model in JS (Neon) |
+| Member-expression parsing for SQL push-down (§8.1) | arrives from cubesql (Rust) and feeds the model's member SQL (Rust): parsing it in Elixir would be a Rust → Elixir → Rust trip | JS (`Function(...)`) |
+| Per-dialect driver tools | called inside planning | JS |
+| Aggregation itself | in the store: Cube Store's rollups compute the per-pair moment sums (zed plan §5); the 90×90 matrix maths on top is small and lives in Elixir | — |
+
+### 9.3 Elixir: the model, the policy, the schedule
+
+| Part | Why Elixir | Replaces |
+|---|---|---|
+| **Model DSL** (`cube :posteriors do measure :count ... end`) | macros check references at compile time (`@before_compile`, as in zed's DSL), derive cubes from Ecto schemas (power_of_three already does), and generate repeated cubes with ordinary code; output is one model IR, sent to Rust as a single binary per compile | YAML plus Jinja/Python templating, runtime Joi validation |
+| **Query DSL** | Ecto-style macros compile to the REST query map, with defaults normalised at compile time | the api-gateway's runtime normalisation |
+| `/v1/meta` | derived from the IR; sent to cubesql once per compile as JSON | schema-compiler's meta |
+| Gateway, auth, security context, `queryRewrite`, `contextToAppId` | config hooks become functions and behaviours, not JS callbacks | cube.js config |
+| **Orchestrator** | queue, dedup, refresh scheduler, partition and build-range planning, retries, supervision; each tenant's compiled model a Rust resource owned by a GenServer; refresh workers spread over the fleet's BEAM nodes. Data never passes through it | query-orchestrator, server-core |
+| Pre-aggregation names and versions | small inputs, but the hashes must match `JSON.stringify` (kung_phoo's `JS.stringify`, K5) so Node and Elixir can share a Cube Store | JS |
+| Dialect template sets | JSON data (M0); loaded and versioned by Elixir, handed to Rust once | per-dialect `sqlTemplates()` |
+| Consumers (the trader's panel reads) | Arrow binaries in, Nx/Explorer maths | — |
+
+### 9.4 Boundary rules
+
+1. **Once per compile:** the model IR, dialect templates and meta go to Rust as
+   binaries, and come back as a resource handle. This forces the owned model crate
+   (§8.3) to use `Send + Sync` types; the test host's `Rc` cannot be a `ResourceArc`.
+2. **Once per query:** a JSON query in; SQL, params and pre-aggregation usages out
+   (about 1.3 ms of planning, on a dirty CPU scheduler, with the unwind caught).
+3. **Once per batch:** Arrow IPC binaries, never lists of row terms.
+4. **Crash isolation by lifetime.** Short, pure calls (planning) run as NIFs.
+   Long-running Rust (cubesql's listeners, loaders) runs as OS processes or ports that
+   Elixir supervises, so a Rust panic does not take the node down (§8.6).
+
+This answers part of §8.6: cubesql runs as a separate process, with the transport per
+query.
+
+## 10. Where it pays
 
 For the trader store (zed `specs/asus-data-jails-plan.md`): the `cube` jail would run a
 BEAM release instead of Node 22 plus `index.node`, so one runtime on asus, supervised;
@@ -248,7 +319,7 @@ the trader's reads of the daily panel (D19-D21) could come over distribution or 
 instead of Arrow Native over TCP. It does not change the D15 conclusion that Cube buys no
 latency for sizing: what it removes is a runtime, not a hop that matters.
 
-## 10. Today's evidence this rests on
+## 11. Today's evidence this rests on
 
 - Native FreeBSD Cube on mac-247: `cubestored` + Node 22 + FreeBSD-built `index.node`,
   7/7 queries SAME against the Linux baselines (posterior_hour 178,258 rows ...
