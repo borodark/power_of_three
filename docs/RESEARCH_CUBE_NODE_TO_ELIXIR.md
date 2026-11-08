@@ -1,0 +1,144 @@
+# Research: moving Cube's Node part to Elixir
+
+**Written:** 2026-11-08, from the Cube/Arrow session. **Status:** research only; nothing
+decided. **Measured on:** the composite `cube-stream-integ` (Cube 1.8.20 plus the
+stream PRs d/e/f), line counts excluding tests.
+
+## 1. What "the Node part" is
+
+| Package | LOC | What it does | Port? |
+|---|---:|---|---|
+| `cubejs-schema-compiler` / `compiler` | 10.5k | loads YAML/JS models, transpiles member SQL, builds the cube evaluator and join graph | **yes**, YAML only |
+| `cubejs-schema-compiler` / `adapter` | 14.4k | legacy SQL planner (`BaseQuery`) + 30 dialect subclasses | **no**: Tesseract replaced it (§2) |
+| rest of schema-compiler | 17.3k | compilers for views, access policies, hierarchies, Jinja/Python models | partly |
+| `cubejs-api-gateway` | 7.7k | REST/GraphQL/WS, query normalisation, auth, `/v1/meta`, `/v1/load`, `/v1/sql` | **yes**, REST + SQL first |
+| `cubejs-query-orchestrator` | 7.1k | query queue, result cache, pre-aggregation build/refresh, Cube Store queue | **yes**; OTP's home ground |
+| `cubejs-server-core` | 6.4k | compiler API per tenant, context, refresh scheduler | **yes** |
+| `cubejs-backend-shared` | 5.4k | env config, helpers | as needed |
+| `cubejs-base-driver` + postgres + cubestore drivers | 4.4k | driver contract, Postgres, Cube Store | Postgrex; Cube Store over its existing protocol |
+| `cubejs-server` | 1.2k | CLI and HTTP server boot | Phoenix/Bandit app |
+
+The Rust side stays Rust: cubesql (Postgres and Arrow Native wire, DataFusion rewrite),
+Tesseract (`rust/cube/cubesqlplanner`, 104k LOC), `cubeorchestrator` (result transform),
+Cube Store. The port is the ~40k lines that sit **between** them.
+
+## 2. The finding that sets the shape: Tesseract is host-agnostic already
+
+- Tesseract is the default SQL planner (`CUBEJS_TESSERACT_SQL_PLANNER`, repo CLAUDE.md);
+  `BaseQuery` and its dialects are the deprecated fallback. Porting the 14k-line legacy
+  planner would port dead code.
+- Tesseract reads the model through `cube_bridge` (2.1k LOC of traits:
+  `CubeDefinition`, `MeasureDefinition`, `MemberSql`, `JoinGraph`, `Evaluator`,
+  `SqlTemplatesRender`, `DriverTools`...). Those objects are reached through
+  `cubenativeutils`, which is generic over an `InnerTypes` trait
+  (`NativeContext`, `NativeObject`, `NativeStruct`, `NativeFunction`, `NativeString`).
+- **`cubesqlplanner/src` has zero `neon::` uses.** The only host implementation is
+  `cubenativeutils/src/wrappers/neon` — **1,767 lines**. A Rustler implementation of
+  the same traits lets Tesseract run inside the BEAM, with Elixir structs and funs
+  standing in for the JS cube objects.
+- That turns "port the planner" (impossible to keep up with) into "port one adapter of
+  ~2k lines and keep tracking upstream Tesseract unchanged".
+
+The second seam is cubesql's `TransportService` trait (`meta`, `sql`, `load`,
+`load_stream`, `pre_aggregation_matches`, `can_switch_user_for_session`,
+`log_load_state`). Today `@cubejs-backend/native` implements it by calling JS; cubesqld
+ships an `HttpTransport` against Cube's REST API, but its `sql()` is `todo!()` and it has
+no streaming, so it is a smoke-test path, not a product one. An Elixir host implements
+the trait in Rust over Rustler calls into Elixir, like `native` does over Neon.
+
+## 3. Target shape
+
+```
+          Postgres wire / Arrow Native          REST /v1/{meta,load,sql}
+                     │                                   │
+   ┌─────────────────┴───── BEAM node ───────────────────┴──────────┐
+   │ cubesql (Rust NIF/port)  ◄─TransportService─►  Gateway (Elixir)│
+   │ Tesseract (Rust NIF)     ◄─cube_bridge via Rustler InnerTypes─►│
+   │                                    Model compiler (Elixir)     │
+   │ Orchestrator (Elixir): queue, cache, pre-agg refresh, per-tenant│
+   └──────────┬──────────────────────────────────────┬──────────────┘
+          Postgrex                       Cube Store (HTTP/WS, streamed frames)
+```
+
+- **Model compiler.** YAML models only (no JS model files: those need a JS engine).
+  `{CUBE}` / `{other_cube.member}` references become Elixir funs returning SQL strings,
+  which is what `MemberSql` asks for. power_of_three's `cube_schema.ex` already holds
+  cube definitions in Elixir; it becomes a source of the same structs. Jinja-templated
+  models are a later milestone (kung_phoo's hand-ported Nunjucks, K4, is the precedent).
+- **Orchestrator.** One GenServer per data source queue, ETS result cache, a
+  `Task.Supervisor` for pre-aggregation builds, the refresh scheduler as a timer
+  process. Supervised restart is where OTP buys the most over Node's in-process queue.
+- **Streaming.** The Arrow path built in PRs (d)-(f) carries over: Cube Store frames →
+  cubesql `arrowChunk` → client, with backpressure through the transport. In a BEAM
+  host the frame can go to an Elixir consumer without a socket hop at all.
+- **Drivers.** Postgrex for Postgres; Cube Store through the existing protocol. Other
+  databases stay out (§6).
+
+## 4. How to keep it honest (from kung_phoo)
+
+The kg's closest precedent is kung_phoo, the Elixir port of promptfoo
+(`doc:kung_phoo/PLAN.md`, decisions K1-K23): "dump fixtures first, then make them
+pass"; goldens recorded from the upstream Node program only; a drop-in contract as the
+interface; PropCheck generators for JS-shaped values; a `mix check` gate. Applied here:
+
+1. **Goldens from Node Cube.** For the trader_bench and race_bench models: `/v1/meta`
+   JSON, `/v1/sql` output per query, `/v1/load` results, and the cubesql SQL-API results
+   (the 7 Arrow IPC baselines in `pt_ref` already exist; all 7 matched on the FreeBSD
+   build today).
+2. **SQL equality first, rows second.** Tesseract is shared, so the Elixir host must
+   produce byte-identical SQL for the same model and query; any diff is a bridge bug,
+   localisable to one `cube_bridge` method.
+3. **Cache keys.** Cube keys caches and pre-aggregation tables on `JSON.stringify`-shaped
+   values; kung_phoo needed `KungPhoo.JS.stringify` (K5) for exactly this. Reuse it, or
+   pre-aggregation table names will not match a Node Cube sharing the same Cube Store.
+
+## 5. Milestones
+
+| # | Deliverable | Gate |
+|---|---|---|
+| M0 | Spike: Rustler `InnerTypes` for `cubenativeutils`; Tesseract builds as a NIF and plans one query from a hand-built Elixir cube | SQL equals Node's for one query |
+| M1 | YAML model compiler → `cube_bridge` objects; `/v1/meta` and `/v1/sql` | meta and SQL goldens for both models |
+| M2 | `/v1/load` over Postgrex with an ETS cache; no pre-aggregations | load goldens |
+| M3 | `TransportService` over Rustler; cubesql in the BEAM node | the 7-query Arrow check SAME |
+| M4 | Orchestrator: queue, Cube Store pre-aggregation builds, refresh scheduler | rollups for the asus `trader_store` panel build and refresh |
+| M5 | Streamed Arrow frames into Elixir consumers without a socket hop | stream bench vs Node path (14.6 s off / 4.2 s on, 1.35M rows) |
+
+M0 is the go/no-go: about the size of the Neon adapter, and it settles the two real
+unknowns (§7).
+
+## 6. Out of scope, deliberately
+
+The legacy `BaseQuery` planner; JS model files; GraphQL; the Playground/dev UI; the 30
+non-Postgres drivers; Cube Cloud features. Each can come later behind the same seams.
+
+## 7. Risks and unknowns
+
+- **Callback threading.** Tesseract calls back into the host synchronously while
+  planning (member SQL, templates). Neon does this on the JS thread. Under Rustler the
+  planner must run on a dirty scheduler and call Elixir funs; a NIF cannot call back into
+  Erlang synchronously, so either the model is pre-materialised into Rust-side values
+  before planning (preferred: member SQL from YAML is data, not code) or the planner runs
+  in a thread that messages an Elixir process and blocks. M0 decides.
+- **Upstream churn.** `cube_bridge` traits change with Tesseract releases; the adapter
+  must track them. Small surface, but continuous work.
+- **Tracking the JS semantics we keep.** Query normalisation, time-dimension and
+  granularity rules, and security-context handling live in the gateway and compiler; the
+  goldens are the guard.
+- **Mixed fleets.** A Node Cube and an Elixir Cube sharing one Cube Store must agree on
+  pre-aggregation table names and partition keys (§4.3).
+
+## 8. Where it pays
+
+For the trader store (zed `specs/asus-data-jails-plan.md`): the `cube` jail would run a
+BEAM release instead of Node 22 plus `index.node`, so one runtime on asus, supervised;
+the trader's reads of the daily panel (D19-D21) could come over distribution or in-node
+instead of Arrow Native over TCP. It does not change the D15 conclusion that Cube buys no
+latency for sizing: what it removes is a runtime, not a hop that matters.
+
+## 9. Today's evidence this rests on
+
+- Native FreeBSD Cube on mac-247: `cubestored` + Node 22 + FreeBSD-built `index.node`,
+  7/7 queries SAME against the Linux baselines (posterior_hour 178,258 rows ...
+  race_assertions 1,345,325). Workaround needed: `CUBESTORE_SELECT_WORKERS=0`; the
+  worker pool's ipc-channel handshake panics on FreeBSD (`respawn.rs:140`, sending an
+  `IpcSender` over the socket). Open bug, separate from this research.
