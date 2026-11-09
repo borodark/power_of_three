@@ -1,7 +1,7 @@
 # Research: moving Cube's Node part to Elixir
 
-**Written:** 2026-11-08, from the Cube/Arrow session. **Status:** research only; nothing
-decided. **Measured on:** the composite `cube-stream-integ` (Cube 1.8.20 plus the
+**Written:** 2026-11-08, from the Cube/Arrow session. **Status:** M0–M3 done
+(2026-11-08, `learn_erl/tesseract_ex`, §5); M4 and M5 not started. **Measured on:** the composite `cube-stream-integ` (Cube 1.8.20 plus the
 stream PRs d/e/f), line counts excluding tests.
 
 ## 1. What "the Node part" is
@@ -139,16 +139,6 @@ Templates turned out to be pure data (Jinja strings, minijinja on the Rust side)
 dialect for the Elixir host is a JSON file plus a small `DriverTools` port (the
 mock's is 312 lines for Postgres + Cube Store).
 
-### M1: started 2026-11-08 — see tesseract_ex `docs/M1.md`
-
-Compiled models on a planner thread each (1.7 ms per query); a golden harvester that
-plans in-process through Node's own compiler (equal to live `/v1/sql`); over
-Tesseract's 91 Node-compilable fixture models and 5,412 generated queries, **82.5%
-agree and 96.1% produce equal SQL**. Everything left is in the borrowed test host:
-date-param formatting (739), interval spelling (112), multi-stage column order (87),
-reference resolution (7), and 14 models Node's compiler rejects. Next: the owned model
-crate, gated on that comparison.
-
 ### M0, second half: done 2026-11-08 — the same SQL from Elixir
 
 `learn_erl/tesseract_ex` (local repo, commit `ec6cc2e`): a Rustler NIF
@@ -173,6 +163,66 @@ access policies, multi-stage measures, custom granularities); the param formatti
 production pre-aggregation names (versioned, from the orchestrator). M1 replaces the
 mock host with an owned one (or hardens it upstream) and widens the goldens to
 Tesseract's own YAML fixtures, compared against Node.
+
+### M1: done 2026-11-08 — see tesseract_ex `docs/M1.md`
+
+- **Compiled models** each run on their own planner thread, because `cube_bridge`
+  returns `Rc` (§9.4). A query plans in 1.7 ms.
+- **The owned model crate `cube_model`** was copied out of Tesseract's test host, then
+  fixed toward Node: date params, interval strings, sorted references, Postgres
+  `dateBin`.
+  - Against goldens harvested from Node's own compiler, run in-process: **5,412 of
+    5,412 generated queries agree over 91 of 91 fixture models**, up from 82.5% on the
+    borrowed host.
+  - Tesseract's own recorded test queries agree on every model Node compiles.
+- **The model in Elixir:**
+  - a compile-time-checked DSL (`TesseractEx.Model`);
+  - a power_of_three adapter (`TesseractEx.PowerOfThree`, from `@cube_config`);
+  - for the trader model, both plan exactly as Node does.
+- **`/v1/meta`** (`TesseractEx.Meta`): all 268 of 268 cubes and views are equal to
+  Node's (§8.5).
+
+### M2: done 2026-11-08 — see tesseract_ex `docs/M2.md`
+
+`TesseractEx.Load` serves `/v1/load` over Postgrex, without pre-aggregations, with an
+ETS cache keyed by refresh key. 29 of 29 load goldens from Node Cube agree; they cover
+both data sources, every filter operator and ungrouped queries.
+
+- **18 of the 29 agree byte for byte.** In the other 11, float measures differ in the
+  last digits, for two reasons:
+  - Postgres sums `float8` in parallel, in no fixed order;
+  - Node's native result transform parses floats with `serde_json` without the
+    `float_roundtrip` feature, so it can land one ulp off. We serve the exact value.
+    This is an upstream bug that users can observe.
+- Ported from Node: the api-gateway's query normalisation, the annotation, and the
+  value formatting of the driver and of `cubeorchestrator`.
+
+### M3: done 2026-11-08 — see tesseract_ex `docs/M3.md`
+
+`TesseractEx.SqlApi` runs cubesql, both the Postgres wire and Arrow Native listeners,
+in a NIF with its own tokio runtime. Its `TransportService` and `SqlAuthService` call
+an Elixir handler with one JSON message per request.
+
+**The 7-query Arrow check is SAME, with no Node in the path:**
+- `race_assertions` returns 1,345,325 rows;
+- the whole check takes 20.5 s, against 18.4 s for Node Cube.
+
+How it works:
+- **Rollup rows never enter Elixir.** For a query a rollup serves, the handler answers
+  with SQL. Rust runs that SQL on Cube Store and converts the result with
+  `cubeorchestrator`, the code Node's native module runs, so floats match to the bit.
+- **Other queries** run on M2's Postgrex path.
+- **Rollup tables:** the handler takes the newest version Cube Store lists. Computing
+  the versioned names itself is M4's job (§8.2).
+
+Still answered with an error:
+- member expressions (§8.1);
+- SQL that cubesql pushes down;
+- streaming sends the whole result at once (M5).
+
+On §8.6, the milestone put cubesql in the node. §9.4's rule still holds for
+production: run cubesql as a supervised process. The handler only exchanges JSON
+messages, so it can move behind a port unchanged.
 
 ## 6. Out of scope, deliberately
 
@@ -249,6 +299,22 @@ nothing:
 
 **Recommendation:** make 11 the next milestone; settle 3 now as (a), owning the Rust
 model crate; treat 1, 2 and 6 as their own research before committing to the full port.
+
+**Where the gaps stand after M3:**
+
+| Gap | Status |
+|---|---|
+| 1. Member expressions (JS evaluator) | **Open.** M3 answers them with an error; the 7-query check doesn't push down. |
+| 2. Pre-aggregations | **Open**, and it is M4. M3 reads tables that Node built. |
+| 3. Model host | **Settled as (a):** tesseract_ex owns `cube_model`, and it agrees with Node on 91/91 models. |
+| 4. Model compiler | **Partly settled.** The Elixir DSL and the power_of_three adapter replace YAML for owned models. Jinja, Python and JS models stay out. |
+| 5. `/v1/meta` | **Settled:** 268/268 cubes and views equal to Node. |
+| 6. cubesql in the BEAM | **In the node for M3**, as a NIF that sends JSON calls to Elixir. The port version is still to build. |
+| 7. Results to Arrow | **Settled.** Cube Store rows go through Node's own Rust transform; Postgres rows are shaped like the driver's output. |
+| 8. Config hooks | **Started:** `:auth` is an Elixir function. The other hooks aren't designed yet. |
+| 9. Driver tools | **Settled for Postgres and Cube Store:** the `Z` gap and moment's loose timestamp parsing. |
+| 10. Goldens | **Settled:** a harvester, 5,412 generated queries, 29 load goldens, and the 7-query check. |
+| 11. Smallest ex_cube | **Overtaken:** M2 is that path, Tesseract plus Postgrex. M3 added cubesql on top. |
 
 ## 9. Rust or Elixir: what goes where (2026-11-08)
 
